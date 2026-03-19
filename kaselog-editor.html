@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KaseLog — Log Editor</title>
+<style>
+  :root {
+    --accent: #1D9E75;
+    --accent-light: #E1F5EE;
+    --accent-text: #085041;
+    --bg: #ffffff;
+    --bg-secondary: #f7f6f3;
+    --bg-tertiary: #f0efe9;
+    --text-primary: #1a1a18;
+    --text-secondary: #5a5955;
+    --text-tertiary: #9a9890;
+    --border: rgba(0,0,0,0.08);
+    --border-mid: rgba(0,0,0,0.14);
+    --font: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'DM Mono', 'Fira Code', monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #131312; --bg-secondary: #1c1c1a; --bg-tertiary: #242422;
+    --text-primary: #e8e6df; --text-secondary: #9a9890; --text-tertiary: #5a5955;
+    --border: rgba(255,255,255,0.07); --border-mid: rgba(255,255,255,0.12);
+    --accent-light: #0a2e22; --accent-text: #5DCAA5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
+  body { font-family: var(--font); background: var(--bg); color: var(--text-primary); height: 100vh; display: flex; overflow: hidden; transition: background 0.2s, color 0.2s; }
+  nav { width: 200px; min-width: 200px; background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .nav-logo { padding: 1rem 1rem 0.75rem; border-bottom: 1px solid var(--border); }
+  .nav-logo-name { font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.03em; }
+  .nav-logo-sub { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+  .nav-new { margin: 0.6rem 0.6rem 0.25rem; padding: 0.45rem 0.75rem; background: var(--bg); border: 1px solid var(--border-mid); border-radius: 8px; font-size: 12px; font-weight: 500; color: var(--text-secondary); cursor: pointer; text-align: center; }
+  .nav-sl { font-size: 9px; font-weight: 600; color: var(--text-tertiary); padding: 0.5rem 1rem 0.25rem; text-transform: uppercase; letter-spacing: 0.08em; }
+  .nav-kases { flex: 1; overflow-y: auto; padding: 0 0.4rem; }
+  .nav-kase { padding: 0.4rem 0.5rem; border-radius: 6px; cursor: pointer; margin-bottom: 1px; }
+  .nav-kase.active { background: var(--bg-tertiary); }
+  .nav-kase-name { font-size: 12px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nav-kase.active .nav-kase-name { color: var(--text-primary); font-weight: 500; }
+  .nav-kase-count { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+  .nav-search-pin { border-top: 1px solid var(--border); padding: 0.6rem; }
+  .nav-search-btn { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.65rem; border-radius: 7px; background: var(--bg); border: 1px solid var(--border-mid); cursor: pointer; }
+  .nav-search-label { font-size: 12px; color: var(--text-tertiary); flex: 1; }
+  main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  .topbar { height: 48px; min-height: 48px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 1.25rem; gap: 0.5rem; background: var(--bg); flex-shrink: 0; }
+  .topbar-back { font-size: 12px; color: var(--text-tertiary); cursor: pointer; padding: 4px 8px; border-radius: 5px; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
+  .topbar-back:hover { color: var(--accent); background: var(--accent-light); }
+  .topbar-sep { font-size: 12px; color: var(--border-mid); flex-shrink: 0; }
+  .topbar-logtitle { font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .topbar-spacer { flex: 1; min-width: 0.5rem; }
+  .topbar-version { font-size: 10px; color: var(--text-tertiary); padding: 3px 9px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 5px; cursor: pointer; font-family: var(--font-mono); white-space: nowrap; flex-shrink: 0; }
+  .topbar-save-status { font-size: 10px; color: var(--text-tertiary); white-space: nowrap; flex-shrink: 0; }
+  .topbar-save { font-size: 12px; font-weight: 500; color: var(--text-secondary); background: var(--bg-secondary); border: 1px solid var(--border-mid); padding: 5px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: all 0.15s; }
+  .topbar-save:hover { border-color: var(--accent); color: var(--accent); }
+  .topbar-newlog { font-size: 12px; font-weight: 500; color: white; background: var(--accent); padding: 5px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  .topbar-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent-light); border: 1px solid var(--border-mid); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--accent-text); cursor: pointer; flex-shrink: 0; }
+  .editor-area { flex: 1; display: flex; overflow: hidden; position: relative; }
+  .editor-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .editor-toolbar { border-bottom: 1px solid var(--border); padding: 0 1.5rem; display: flex; align-items: center; background: var(--bg); height: 36px; min-height: 36px; flex-shrink: 0; overflow-x: auto; }
+  .editor-toolbar::-webkit-scrollbar { display: none; }
+  .tb-btn { padding: 4px 7px; border-radius: 5px; font-size: 11px; font-weight: 500; color: var(--text-tertiary); cursor: pointer; transition: all 0.12s; min-width: 26px; text-align: center; white-space: nowrap; line-height: 1; flex-shrink: 0; }
+  .tb-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+  .tb-sep { width: 1px; height: 14px; background: var(--border-mid); margin: 0 3px; flex-shrink: 0; }
+  .editor-canvas { flex: 1; overflow-y: auto; padding: 2.5rem 0; display: flex; flex-direction: column; align-items: center; }
+  .editor-inner { width: 100%; max-width: 680px; padding: 0 3rem; }
+  .log-title { font-size: 26px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.03em; line-height: 1.2; margin-bottom: 0.4rem; border: none; outline: none; background: transparent; width: 100%; font-family: var(--font); }
+  .log-title::placeholder { color: var(--text-tertiary); }
+  .log-meta { font-size: 11px; color: var(--text-tertiary); display: flex; align-items: center; gap: 0.45rem; margin-bottom: 2rem; }
+  .log-meta-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--border-mid); }
+  .prose { color: var(--text-secondary); line-height: 1.8; }
+  .prose p { font-size: 15px; margin-bottom: 1rem; }
+  .prose h2 { font-size: 17px; font-weight: 600; color: var(--text-primary); margin: 1.75rem 0 0.6rem; letter-spacing: -0.02em; }
+  .prose code { font-family: var(--font-mono); font-size: 13px; background: var(--bg-secondary); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: var(--text-primary); }
+  .prose pre { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; font-family: var(--font-mono); font-size: 13px; color: var(--text-primary); line-height: 1.7; margin: 1rem 0; overflow-x: auto; }
+  .prose ul { padding-left: 1.25rem; margin-bottom: 1rem; }
+  .prose li { font-size: 15px; margin-bottom: 0.3rem; }
+  .callout { display: flex; align-items: flex-start; gap: 0.65rem; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 8px; margin: 1.25rem 0; background: var(--bg-secondary); }
+  .callout-dot { width: 7px; height: 7px; border-radius: 50%; background: #EF9F27; flex-shrink: 0; margin-top: 7px; }
+  .callout-text { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  .bubble-wrap { position: relative; display: inline; }
+  .selected-text { background: rgba(29,158,117,0.13); border-radius: 2px; }
+  .bubble-menu { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--text-primary); border-radius: 7px; padding: 3px; display: flex; gap: 1px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); white-space: nowrap; z-index: 10; pointer-events: none; }
+  .bm-btn { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.75); }
+  .bm-sep { width: 1px; background: rgba(255,255,255,0.12); margin: 3px 1px; }
+  .cursor { display: inline-block; width: 2px; height: 1.1em; background: var(--accent); vertical-align: text-bottom; animation: blink 1.1s step-end infinite; margin-left: 1px; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .edge-tab { position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 30; transition: right 0.25s ease; }
+  .edge-tab-inner { background: var(--bg-secondary); border: 1px solid var(--border-mid); border-right: none; border-radius: 8px 0 0 8px; padding: 0.6rem 0.35rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; box-shadow: -2px 0 8px rgba(0,0,0,0.06); user-select: none; transition: background 0.15s; }
+  .edge-tab-inner:hover { background: var(--bg-tertiary); }
+  .edge-arrow { font-size: 14px; color: var(--text-tertiary); line-height: 1; }
+  .edge-dots { display: flex; flex-direction: column; gap: 3px; align-items: center; }
+  .edge-dot { width: 2.5px; height: 2.5px; border-radius: 50%; background: var(--text-tertiary); opacity: 0.5; }
+  .settings-panel { width: 0; min-width: 0; background: var(--bg-secondary); display: flex; flex-direction: column; overflow: hidden; transition: width 0.25s ease, min-width 0.25s ease, border-left-width 0.25s; flex-shrink: 0; border-left: 0px solid var(--border-mid); }
+  .settings-panel.open { width: 260px; min-width: 260px; border-left-width: 1px; }
+  .sp-header { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .sp-title { font-size: 12px; font-weight: 500; color: var(--text-primary); white-space: nowrap; }
+  .sp-body { flex: 1; overflow-y: auto; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 1rem; }
+  .sp-label { font-size: 9px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.3rem; white-space: nowrap; }
+  .sp-input { background: var(--bg); border: 1px solid var(--border-mid); border-radius: 6px; padding: 0.4rem 0.6rem; font-size: 11px; color: var(--text-primary); font-family: var(--font); width: 100%; outline: none; }
+  .sp-input::placeholder { color: var(--text-tertiary); font-style: italic; }
+  .sp-tags { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.3rem; }
+  .sp-tag { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 99px; display: flex; align-items: center; gap: 0.2rem; white-space: nowrap; }
+  .sp-tag-add { background: var(--bg); border: 1px solid var(--border-mid); border-radius: 5px; padding: 0.3rem 0.6rem; font-size: 11px; color: var(--text-tertiary); cursor: pointer; white-space: nowrap; }
+  .sp-divider { border-top: 1px solid var(--border); flex-shrink: 0; }
+  .sp-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+  .sp-toggle-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+  .sp-toggle-sub { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; white-space: nowrap; }
+  .toggle { width: 32px; height: 18px; border-radius: 9px; background: var(--accent); position: relative; cursor: pointer; flex-shrink: 0; }
+  .toggle.off { background: var(--border-mid); }
+  .toggle-thumb { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 50%; background: white; transition: right 0.2s, left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .toggle.off .toggle-thumb { right: auto; left: 2px; }
+  .sp-version { padding: 0.45rem 0.55rem; border-radius: 5px; cursor: pointer; margin-bottom: 2px; }
+  .sp-version.current { background: var(--bg); border: 1px solid var(--border-mid); }
+  .sp-vrow { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.1rem; }
+  .sp-vnum { font-size: 11px; font-weight: 500; color: var(--text-primary); font-family: var(--font-mono); }
+  .sp-vbadge { font-size: 9px; padding: 1px 5px; border-radius: 99px; font-weight: 500; white-space: nowrap; }
+  .badge-current { background: var(--accent-light); color: var(--accent-text); }
+  .badge-named { background: #FAEEDA; color: #412402; }
+  [data-theme="dark"] .badge-named { background: #2a1e08; color: #EF9F27; }
+  .sp-vtime { font-size: 10px; color: var(--text-tertiary); white-space: nowrap; }
+  .sp-checkpoint { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 0.35rem; font-size: 11px; color: var(--text-tertiary); cursor: pointer; text-align: center; white-space: nowrap; }
+  .sp-checkpoint:hover { border-color: var(--accent); color: var(--accent); }
+  .sp-mrow { display: flex; justify-content: space-between; gap: 0.5rem; }
+  .sp-mkey { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
+  .sp-mval { font-size: 11px; color: var(--text-secondary); text-align: right; white-space: nowrap; }
+  .sp-delete-wrap { padding: 0.65rem 1rem; border-top: 1px solid var(--border); flex-shrink: 0; }
+  .sp-delete { font-size: 11px; color: #A32D2D; cursor: pointer; text-align: center; padding: 0.4rem; border-radius: 5px; border: 1px solid #F09595; white-space: nowrap; }
+  .sp-delete:hover { background: #FCEBEB; }
+  [data-theme="dark"] .sp-delete { color: #F09595; border-color: #501313; }
+  .theme-toggle { position: fixed; bottom: 1rem; right: 1rem; background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 99px; padding: 6px 14px; font-size: 11px; color: var(--text-secondary); cursor: pointer; font-family: var(--font); z-index: 100; }
+</style>
+</head>
+<body data-theme="light">
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-name">KaseLog</div>
+    <div class="nav-logo-sub">private ops journal</div>
+  </div>
+  <div class="nav-new">+ New Kase</div>
+  <div class="nav-sl">Kases</div>
+  <div class="nav-kases">
+    <div class="nav-kase active"><div class="nav-kase-name">Proxmox Cluster</div><div class="nav-kase-count">12 logs</div></div>
+    <div class="nav-kase"><div class="nav-kase-name">OPNsense Migration</div></div>
+    <div class="nav-kase"><div class="nav-kase-name">Home Assistant Stack</div></div>
+    <div class="nav-kase"><div class="nav-kase-name">GPT-4 Research</div></div>
+    <div class="nav-kase"><div class="nav-kase-name">DNS Architecture</div></div>
+  </div>
+  <div class="nav-search-pin">
+    <div class="nav-search-btn">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.4"/><line x1="8.5" y1="8.5" x2="12" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.4"/></svg>
+      <div class="nav-search-label">Search logs...</div>
+    </div>
+  </div>
+</nav>
+<main>
+  <div class="topbar">
+    <div class="topbar-back">← Proxmox Cluster</div>
+    <div class="topbar-sep">/</div>
+    <div class="topbar-logtitle">VLAN trunk configuration</div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-version">v3 · history</div>
+    <div class="topbar-save-status">saved 4s ago</div>
+    <div class="topbar-save" onclick="let t=this;t.textContent='Saved ✓';t.style.color='var(--accent)';t.style.borderColor='var(--accent)';setTimeout(()=>{t.textContent='Save';t.style.color='';t.style.borderColor='';},1400)">Save</div>
+    <div class="topbar-newlog">+ New Log</div>
+    <div class="topbar-avatar">RJ</div>
+  </div>
+  <div class="editor-area">
+    <div class="editor-col">
+      <div class="editor-toolbar">
+        <div class="tb-btn">H1</div><div class="tb-btn">H2</div><div class="tb-btn">H3</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn">≡</div><div class="tb-btn">1.</div><div class="tb-btn">☐</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn">&lt;/&gt;</div><div class="tb-btn">"</div><div class="tb-btn">▶</div><div class="tb-btn">∑</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn">⊞</div><div class="tb-btn">🖼</div><div class="tb-btn">—</div><div class="tb-btn">☺</div>
+        <div class="tb-sep"></div>
+        <div class="tb-btn">↩</div><div class="tb-btn">↪</div>
+      </div>
+      <div class="editor-canvas">
+        <div class="editor-inner">
+          <input class="log-title" value="VLAN trunk configuration" placeholder="Log title...">
+          <div class="log-meta">
+            <span>today 14:32</span><span class="log-meta-dot"></span>
+            <span>Proxmox Cluster</span><span class="log-meta-dot"></span>
+            <span>version 3 of 3</span>
+          </div>
+          <div class="prose">
+            <p>Configuring the VLAN trunk on the Proxmox nodes to pass tagged traffic through to the VMs. Switch ports set to trunk mode with native VLAN untagged.</p>
+            <h2>Network configuration</h2>
+            <p>Updated <code>/etc/network/interfaces</code> on both nodes:</p>
+            <pre>auto vmbr0
+iface vmbr0 inet static
+    bridge-vlan-aware yes
+    bridge-vids 2-4094</pre>
+            <p>Confirmed traffic passing on <span class="bubble-wrap"><span class="selected-text">VLAN 10 and VLAN 20</span><div class="bubble-menu"><div class="bm-btn"><b>B</b></div><div class="bm-btn"><i>I</i></div><div class="bm-btn" style="text-decoration:underline">U</div><div class="bm-btn" style="text-decoration:line-through">S</div><div class="bm-sep"></div><div class="bm-btn">Link</div><div class="bm-btn">Code</div><div class="bm-sep"></div><div class="bm-btn">H2</div></div></span> using tcpdump.</p>
+            <div class="callout"><div class="callout-dot"></div><div class="callout-text">Follow up: check OPNsense VLAN 30 rules. Likely a firewall policy on WAN interface.</div></div>
+            <p><span class="cursor"></span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="edge-tab" id="edge-tab">
+      <div class="edge-tab-inner" onclick="togglePanel()">
+        <div class="edge-arrow" id="edge-arrow">&#8249;</div>
+        <div class="edge-dots"><div class="edge-dot"></div><div class="edge-dot"></div><div class="edge-dot"></div></div>
+      </div>
+    </div>
+    <div class="settings-panel" id="settings-panel">
+      <div class="sp-header"><div class="sp-title">Log settings</div></div>
+      <div class="sp-body">
+        <div><div class="sp-label">Title</div><input class="sp-input" value="VLAN trunk configuration"></div>
+        <div><div class="sp-label">Description</div><input class="sp-input" placeholder="Shows as preview on timeline..."></div>
+        <div>
+          <div class="sp-label">Tags</div>
+          <div class="sp-tags">
+            <span class="sp-tag" style="background:#E1F5EE;color:#085041;">networking <span style="opacity:0.5;cursor:pointer;">✕</span></span>
+            <span class="sp-tag" style="background:#EEEDFE;color:#26215C;">proxmox <span style="opacity:0.5;cursor:pointer;">✕</span></span>
+            <span class="sp-tag" style="background:#FAEEDA;color:#412402;">vlan <span style="opacity:0.5;cursor:pointer;">✕</span></span>
+          </div>
+          <div class="sp-tag-add">+ add tag...</div>
+        </div>
+        <div class="sp-divider"></div>
+        <div>
+          <div class="sp-label">Autosave</div>
+          <div class="sp-toggle-row">
+            <div><div class="sp-toggle-label">Save automatically</div><div class="sp-toggle-sub">Last saved 4s ago</div></div>
+            <div class="toggle" onclick="this.classList.toggle('off')"><div class="toggle-thumb"></div></div>
+          </div>
+        </div>
+        <div class="sp-divider"></div>
+        <div>
+          <div class="sp-label">Version history</div>
+          <div class="sp-version current">
+            <div class="sp-vrow"><div class="sp-vnum">v3</div><div class="sp-vbadge badge-current">current</div></div>
+            <div class="sp-vtime">today 14:32 · autosaved</div>
+          </div>
+          <div class="sp-version">
+            <div class="sp-vrow"><div class="sp-vnum">v2</div><div class="sp-vbadge badge-named">before rewrite</div></div>
+            <div class="sp-vtime">today 11:05 · checkpoint</div>
+          </div>
+          <div class="sp-version"><div class="sp-vnum" style="font-size:11px;color:var(--text-secondary);font-family:var(--font-mono);">v1</div><div class="sp-vtime">yesterday 09:40 · created</div></div>
+          <div class="sp-checkpoint">+ save named checkpoint</div>
+        </div>
+        <div class="sp-divider"></div>
+        <div>
+          <div class="sp-label">Info</div>
+          <div style="display:flex;flex-direction:column;gap:0.3rem;">
+            <div class="sp-mrow"><span class="sp-mkey">Created</span><span class="sp-mval">yesterday 09:40</span></div>
+            <div class="sp-mrow"><span class="sp-mkey">Last edited</span><span class="sp-mval">today 14:32</span></div>
+            <div class="sp-mrow"><span class="sp-mkey">Kase</span><span class="sp-mval">Proxmox Cluster</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="sp-delete-wrap"><div class="sp-delete">Delete this log</div></div>
+    </div>
+  </div>
+</main>
+<button class="theme-toggle" onclick="document.body.setAttribute('data-theme',document.body.getAttribute('data-theme')==='dark'?'light':'dark')">Toggle dark mode</button>
+<script>
+let open = false;
+function togglePanel() {
+  open = !open;
+  const panel = document.getElementById('settings-panel');
+  const arrow = document.getElementById('edge-arrow');
+  const tab = document.getElementById('edge-tab');
+  panel.classList.toggle('open', open);
+  arrow.innerHTML = open ? '&#8250;' : '&#8249;';
+  tab.style.right = open ? '260px' : '0';
+}
+</script>
+</body>
+</html>
