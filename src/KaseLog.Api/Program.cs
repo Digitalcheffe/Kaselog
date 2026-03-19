@@ -27,6 +27,10 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
+// ── Data directories ─────────────────────────────────────────────────────────
+var dataDir = Path.GetDirectoryName(dataPath) ?? "/data";
+Directory.CreateDirectory(Path.Combine(dataDir, "images"));
+
 // ── Schema initialization ─────────────────────────────────────────────────────
 var schemaInitializer = app.Services.GetRequiredService<ISchemaInitializer>();
 await schemaInitializer.InitializeAsync();
@@ -36,6 +40,9 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.MapControllers();
+
+// Health check — no database dependency
+app.MapGet("/health", () => Results.Ok(new { status = "ok", version = "1.0.0" }));
 
 // SPA fallback — return index.html for any unmatched route
 app.MapFallbackToFile("index.html");
