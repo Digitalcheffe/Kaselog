@@ -1,0 +1,13 @@
+src/kaselog-ui/node_modules/
+src/kaselog-ui/dist/
+src/KaseLog.Api/bin/
+src/KaseLog.Api/obj/
+src/KaseLog.Api/wwwroot/
+tests/KaseLog.Api.Tests/bin/
+tests/KaseLog.Api.Tests/obj/
+*.tgz
+*.gz
+/data/
+.env
+.env.local
+.DS_Store
