@@ -9,7 +9,9 @@
       "Read(//c/Program Files/**)",
       "Read(//c/Program Files \\(x86\\)/**)",
       "Bash(powershell.exe -Command \"[System.Environment]::GetEnvironmentVariable\\(''Path'',''User''\\)\")",
-      "Bash(powershell.exe -Command \"[System.Environment]::GetEnvironmentVariable\\(''Path'',''Machine''\\)\")"
+      "Bash(powershell.exe -Command \"[System.Environment]::GetEnvironmentVariable\\(''Path'',''Machine''\\)\")",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

@@ -1,20 +1,15 @@
 @AGENTS.md
+# Claude Code Instructions
 
+## Git Workflow (Always Follow This)
+- Never commit directly to main or master
+- Create a feature branch before making changes
+- Branch naming: feat/, fix/, chore/, docs/
+- After completing any task:
+  1. Stage changes: `git add -A`
+  2. Commit with a clear message: `git commit -m "<type>: <description>"`
+  3. Push the branch: `git push -u origin <branch-name>`
+  4. Open a pull request: `gh pr create --title "<type>: <description>" --body "<what changed and why>"`
+- Confirm the PR URL was created before finishing
 
-
-Do not attempt to build, run, or test anything locally.
-
-All builds and tests run in Docker. Scaffold, commit, and push only.
-
-Verification happens via Portainer.
-
-
-
-Always create a new branch before making any commits.
-
-Branch naming: prompt-XX-short-description (e.g. prompt-02-database-schema).
-
-When complete, push the branch and create a pull request on GitHub.
-
-Never commit directly to main.
 
