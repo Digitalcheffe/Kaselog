@@ -63,6 +63,17 @@ export interface SearchResult {
   updatedAt: string
 }
 
+export interface UserResponse {
+  id: string
+  firstName: string | null
+  lastName: string | null
+  email: string | null
+  theme: string
+  accent: string
+  createdAt: string
+  updatedAt: string
+}
+
 // ── Request bodies ────────────────────────────────────────────────────────────
 
 export interface CreateKaseRequest {
@@ -85,6 +96,14 @@ export interface UpdateLogRequest {
   title: string
   description?: string | null
   autosaveEnabled?: boolean
+}
+
+export interface UpdateUserRequest {
+  firstName?: string | null
+  lastName?: string | null
+  email?: string | null
+  theme: string
+  accent: string
 }
 
 export interface CreateVersionRequest {

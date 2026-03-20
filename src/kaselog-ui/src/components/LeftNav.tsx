@@ -1,16 +1,27 @@
 import { useMatch, useNavigate } from 'react-router-dom'
 import { useKases } from '../contexts/KasesContext'
+import { useUser } from '../contexts/UserContext'
 
 interface LeftNavProps {
   onSearchOpen: () => void
-  onAppearanceOpen: () => void
+  onProfileOpen: () => void
 }
 
-export default function LeftNav({ onSearchOpen, onAppearanceOpen }: LeftNavProps) {
+function getInitials(firstName: string | null | undefined, lastName: string | null | undefined): string {
+  const f = firstName?.trim()[0]?.toUpperCase() ?? ''
+  const l = lastName?.trim()[0]?.toUpperCase() ?? ''
+  return f || l ? `${f}${l}` : 'U'
+}
+
+export default function LeftNav({ onSearchOpen, onProfileOpen }: LeftNavProps) {
   const { kaseList } = useKases()
+  const { user } = useUser()
   const navigate = useNavigate()
   const kaseMatch = useMatch('/kases/:id')
   const activeKaseId = kaseMatch?.params.id
+
+  const initials = getInitials(user?.firstName, user?.lastName)
+  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Profile'
 
   return (
     <nav style={{
@@ -106,8 +117,8 @@ export default function LeftNav({ onSearchOpen, onAppearanceOpen }: LeftNavProps
       {/* Avatar + Search — pinned */}
       <div style={{ borderTop: '1px solid var(--border)', padding: '0.5rem 0.6rem 0.6rem', background: 'var(--bg-secondary)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
         <button
-          onClick={onAppearanceOpen}
-          aria-label="Open appearance settings"
+          onClick={onProfileOpen}
+          aria-label="Open user profile"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -129,15 +140,16 @@ export default function LeftNav({ onSearchOpen, onAppearanceOpen }: LeftNavProps
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 11,
+            fontSize: 10,
             fontWeight: 600,
             color: 'white',
             flexShrink: 0,
+            letterSpacing: '-0.02em',
           }}>
-            U
+            {initials}
           </div>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1, textAlign: 'left' }}>
-            Appearance
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {displayName}
           </span>
         </button>
         <button

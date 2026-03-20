@@ -5,11 +5,13 @@ import type {
   LogVersionResponse,
   TagResponse,
   SearchResult,
+  UserResponse,
   CreateKaseRequest,
   UpdateKaseRequest,
   CreateLogRequest,
   UpdateLogRequest,
   CreateVersionRequest,
+  UpdateUserRequest,
 } from './types'
 
 // ── Base request helper ───────────────────────────────────────────────────────
@@ -128,6 +130,19 @@ export const images = {
     }
     return envelope.data as { uid: string; url: string }
   },
+}
+
+// ── User ──────────────────────────────────────────────────────────────────────
+
+export const user = {
+  get: (): Promise<UserResponse> =>
+    request<UserResponse>('/api/user'),
+
+  update: (body: UpdateUserRequest): Promise<UserResponse> =>
+    request<UserResponse>('/api/user', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
