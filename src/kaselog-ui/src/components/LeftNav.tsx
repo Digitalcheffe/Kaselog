@@ -3,9 +3,10 @@ import { useKases } from '../contexts/KasesContext'
 
 interface LeftNavProps {
   onSearchOpen: () => void
+  onAppearanceOpen: () => void
 }
 
-export default function LeftNav({ onSearchOpen }: LeftNavProps) {
+export default function LeftNav({ onSearchOpen, onAppearanceOpen }: LeftNavProps) {
   const { kaseList } = useKases()
   const navigate = useNavigate()
   const kaseMatch = useMatch('/kases/:id')
@@ -102,8 +103,43 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
         })}
       </div>
 
-      {/* Search — pinned */}
-      <div style={{ borderTop: '1px solid var(--border)', padding: '0.6rem', background: 'var(--bg-secondary)' }}>
+      {/* Avatar + Search — pinned */}
+      <div style={{ borderTop: '1px solid var(--border)', padding: '0.5rem 0.6rem 0.6rem', background: 'var(--bg-secondary)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+        <button
+          onClick={onAppearanceOpen}
+          aria-label="Open appearance settings"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.4rem 0.65rem',
+            borderRadius: 7,
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            width: '100%',
+            fontFamily: 'var(--font)',
+          }}
+        >
+          <div style={{
+            width: 24,
+            height: 24,
+            borderRadius: '50%',
+            background: 'var(--accent)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'white',
+            flexShrink: 0,
+          }}>
+            U
+          </div>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1, textAlign: 'left' }}>
+            Appearance
+          </span>
+        </button>
         <button
           onClick={onSearchOpen}
           style={{
