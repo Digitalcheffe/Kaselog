@@ -169,6 +169,12 @@ export const collections = {
   get: (id: string): Promise<CollectionResponse> =>
     request<CollectionResponse>(`/api/collections/${id}`),
 
+  create: (body: { title: string; color: string }): Promise<CollectionResponse> =>
+    request<CollectionResponse>('/api/collections', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   update: (id: string, body: { title: string; color: string }): Promise<CollectionResponse> =>
     request<CollectionResponse>(`/api/collections/${id}`, {
       method: 'PUT',

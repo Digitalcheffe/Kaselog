@@ -61,6 +61,7 @@ export default function CollectionListPage() {
   const [fields, setFields] = useState<CollectionFieldResponse[]>([])
   const [items, setItems] = useState<CollectionItemResponse[]>([])
   const [loading, setLoading] = useState(true)
+  const [collectionLoading, setCollectionLoading] = useState(true)
 
   // Column visibility: title field locked, others default showInList
   const [colVisibility, setColVisibility] = useState<ColVisibility[]>([])
@@ -89,7 +90,7 @@ export default function CollectionListPage() {
       const listFields = flds.filter(f => f.showInList)
       setFields(listFields)
       setColVisibility(listFields.map((f, i) => ({ fieldId: f.id, visible: i === 0 || f.showInList })))
-    }).catch(() => {})
+    }).catch(() => {}).finally(() => setCollectionLoading(false))
   }, [id])
 
   // Fetch items whenever search/filters/sort change
@@ -169,7 +170,7 @@ export default function CollectionListPage() {
     return () => document.removeEventListener('click', handler)
   }, [])
 
-  if (!collection && !loading) {
+  if (!collection && !collectionLoading) {
     return (
       <div style={{ padding: '2rem', color: 'var(--text-tertiary)' }}>Collection not found.</div>
     )
