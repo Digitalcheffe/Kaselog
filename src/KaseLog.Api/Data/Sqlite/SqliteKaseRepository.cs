@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Dapper;
 using KaseLog.Api.Models;
 
@@ -84,6 +85,113 @@ public sealed class SqliteKaseRepository : IKaseRepository
             "DELETE FROM Kases WHERE Id = @Id",
             new { Id = id.ToString() });
         return affected > 0;
+    }
+
+    public async Task<IEnumerable<TimelineEntryResponse>> GetTimelineAsync(Guid kaseId, int page, int pageSize)
+    {
+        using var conn = await _db.OpenAsync();
+
+        var rows = await conn.QueryAsync<TimelineRow>("""
+            SELECT
+                'log'             AS EntityType,
+                l.Id              AS Id,
+                l.CreatedAt       AS CreatedAt,
+                l.Title           AS Title,
+                l.Description     AS Description,
+                (SELECT COUNT(*) FROM LogVersions WHERE LogId = l.Id) AS VersionCount,
+                NULL              AS CollectionId,
+                NULL              AS CollectionTitle,
+                NULL              AS CollectionColor,
+                NULL              AS FieldValues
+            FROM Logs l
+            WHERE l.KaseId = @KaseId
+            UNION ALL
+            SELECT
+                'collection_item' AS EntityType,
+                ci.Id             AS Id,
+                ci.CreatedAt      AS CreatedAt,
+                NULL              AS Title,
+                NULL              AS Description,
+                0                 AS VersionCount,
+                ci.CollectionId   AS CollectionId,
+                c.Title           AS CollectionTitle,
+                c.Color           AS CollectionColor,
+                ci.FieldValues    AS FieldValues
+            FROM CollectionItems ci
+            JOIN Collections c ON c.Id = ci.CollectionId
+            WHERE ci.KaseId = @KaseId
+            ORDER BY CreatedAt DESC
+            LIMIT @PageSize OFFSET @Offset
+            """,
+            new { KaseId = kaseId.ToString(), PageSize = pageSize, Offset = (page - 1) * pageSize });
+
+        var rowList = rows.ToList();
+
+        // Fetch tags for any logs in the result
+        var logIds = rowList
+            .Where(r => r.EntityType == "log")
+            .Select(r => r.Id)
+            .ToList();
+
+        Dictionary<string, List<string>> tagMap = [];
+        if (logIds.Count > 0)
+        {
+            var tagRows = await conn.QueryAsync<(string LogId, string Name)>("""
+                SELECT lt.LogId, t.Name
+                FROM LogTags lt
+                JOIN Tags t ON t.Id = lt.TagId
+                WHERE lt.LogId IN @LogIds
+                ORDER BY t.Name
+                """, new { LogIds = logIds });
+
+            foreach (var (logId, name) in tagRows)
+            {
+                if (!tagMap.TryGetValue(logId, out var list))
+                {
+                    list = [];
+                    tagMap[logId] = list;
+                }
+                list.Add(name);
+            }
+        }
+
+        return rowList.Select(r => r.EntityType == "log"
+            ? new TimelineEntryResponse
+            {
+                EntityType   = "log",
+                Id           = Guid.Parse(r.Id),
+                CreatedAt    = DateTime.Parse(r.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
+                Title        = r.Title,
+                Description  = r.Description,
+                VersionCount = (int)r.VersionCount,
+                Tags         = tagMap.TryGetValue(r.Id, out var t) ? t : [],
+            }
+            : new TimelineEntryResponse
+            {
+                EntityType       = "collection_item",
+                Id               = Guid.Parse(r.Id),
+                CreatedAt        = DateTime.Parse(r.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
+                CollectionId     = r.CollectionId is null ? null : Guid.Parse(r.CollectionId),
+                CollectionTitle  = r.CollectionTitle,
+                CollectionColor  = r.CollectionColor,
+                FieldValues      = r.FieldValues is null
+                    ? null
+                    : JsonDocument.Parse(r.FieldValues).RootElement.Clone(),
+            });
+    }
+
+    private sealed class TimelineRow
+    {
+        public string EntityType { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+        public string CreatedAt { get; set; } = string.Empty;
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public long VersionCount { get; set; }
+        public string? CollectionId { get; set; }
+        public string? CollectionTitle { get; set; }
+        public string? CollectionColor { get; set; }
+        public string? FieldValues { get; set; }
     }
 
     private static KaseResponse Map(KaseRow row) => new()

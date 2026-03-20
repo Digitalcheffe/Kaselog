@@ -82,4 +82,22 @@ public sealed class KasesController : ControllerBase
             return NotFound(ApiResponse<KaseResponse>.NotFound($"Kase with ID '{id}' was not found."));
         return NoContent();
     }
+
+    /// <summary>Returns Logs and linked Collection items for a Kase in reverse-chronological order.</summary>
+    [HttpGet("{id:guid}/timeline")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<TimelineEntryResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetTimeline(
+        Guid id,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
+    {
+        var kase = await _kases.GetByIdAsync(id);
+        if (kase is null)
+            return NotFound(ApiResponse<IEnumerable<TimelineEntryResponse>>.NotFound(
+                $"Kase with ID '{id}' was not found."));
+
+        var entries = await _kases.GetTimelineAsync(id, Math.Max(1, page), Math.Clamp(pageSize, 1, 200));
+        return Ok(ApiResponse<IEnumerable<TimelineEntryResponse>>.Success(entries));
+    }
 }
