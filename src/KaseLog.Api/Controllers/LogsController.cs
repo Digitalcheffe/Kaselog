@@ -5,15 +5,29 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace KaseLog.Api.Controllers;
 
+/// <summary>CRUD operations for Logs and their version history.</summary>
 [ApiController]
 [Route("api/logs")]
+[Produces("application/json")]
 public sealed class LogsController : ControllerBase
 {
     private readonly ILogRepository _logs;
 
+    /// <summary>Initialises a new instance of <see cref="LogsController"/>.</summary>
     public LogsController(ILogRepository logs) => _logs = logs;
 
+    // ── Logs ──────────────────────────────────────────────────────────────────
+
+    /// <summary>Returns a single Log by ID.</summary>
+    /// <remarks>
+    /// The <c>Content</c> field in the response is taken from the most recent
+    /// <c>LogVersion</c> for this Log.
+    /// </remarks>
+    /// <param name="id">The GUID of the Log to retrieve.</param>
+    /// <returns>The Log with its current content, or 404 if not found.</returns>
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<LogResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<LogResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var log = await _logs.GetByIdAsync(id);
@@ -22,7 +36,18 @@ public sealed class LogsController : ControllerBase
         return Ok(ApiResponse<LogResponse>.Success(log));
     }
 
+    /// <summary>Updates the metadata of an existing Log.</summary>
+    /// <remarks>
+    /// Updates title, description, and autosave preference. Does not create a new
+    /// version — use <c>POST /api/logs/{logId}/versions</c> to save content changes.
+    /// </remarks>
+    /// <param name="id">The GUID of the Log to update.</param>
+    /// <param name="request">Updated title, description, and autosave flag.</param>
+    /// <returns>The updated Log, or 404 if not found.</returns>
     [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<LogResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<LogResponse>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<LogResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateLogRequest request)
     {
         var log = await _logs.UpdateAsync(id, request.Title, request.Description, request.AutosaveEnabled);
@@ -31,7 +56,12 @@ public sealed class LogsController : ControllerBase
         return Ok(ApiResponse<LogResponse>.Success(log));
     }
 
+    /// <summary>Deletes a Log and all its versions.</summary>
+    /// <param name="id">The GUID of the Log to delete.</param>
+    /// <returns>204 No Content on success, or 404 if not found.</returns>
     [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<LogResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var deleted = await _logs.DeleteAsync(id);
@@ -42,7 +72,13 @@ public sealed class LogsController : ControllerBase
 
     // ── Log Versions ──────────────────────────────────────────────────────────
 
+    /// <summary>Returns the full version history for a Log.</summary>
+    /// <remarks>Versions are returned newest first. The first item is always the current version.</remarks>
+    /// <param name="logId">The GUID of the parent Log.</param>
+    /// <returns>All versions for the Log, or 404 if the Log does not exist.</returns>
     [HttpGet("{logId:guid}/versions")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<LogVersionResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<LogVersionResponse>>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetVersions(Guid logId)
     {
         var log = await _logs.GetByIdAsync(logId);
@@ -53,7 +89,22 @@ public sealed class LogsController : ControllerBase
         return Ok(ApiResponse<IEnumerable<LogVersionResponse>>.Success(versions));
     }
 
+    /// <summary>Saves a new version of a Log's content.</summary>
+    /// <remarks>
+    /// Set <c>IsAutosave</c> to <c>true</c> for background saves and <c>false</c> for
+    /// explicit user saves. Provide a <c>Label</c> to create a named checkpoint —
+    /// named checkpoints are visually distinct in the version history UI.
+    /// The FTS5 search index is updated in the same transaction.
+    /// </remarks>
+    /// <param name="logId">The GUID of the Log to version.</param>
+    /// <param name="request">
+    /// Content (markdown), optional label, and whether this is an autosave.
+    /// </param>
+    /// <returns>The newly created version, or 404 if the Log does not exist.</returns>
     [HttpPost("{logId:guid}/versions")]
+    [ProducesResponseType(typeof(ApiResponse<LogVersionResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<LogVersionResponse>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<LogVersionResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AddVersion(Guid logId, [FromBody] CreateVersionRequest request)
     {
         var version = await _logs.AddVersionAsync(logId, request.Content, request.Label, request.IsAutosave);
@@ -64,7 +115,13 @@ public sealed class LogsController : ControllerBase
             ApiResponse<LogVersionResponse>.Success(version));
     }
 
+    /// <summary>Returns a specific version of a Log by version ID.</summary>
+    /// <param name="logId">The GUID of the parent Log.</param>
+    /// <param name="versionId">The GUID of the version to retrieve.</param>
+    /// <returns>The requested version, or 404 if either ID is not found.</returns>
     [HttpGet("{logId:guid}/versions/{versionId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<LogVersionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<LogVersionResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetVersionById(Guid logId, Guid versionId)
     {
         var version = await _logs.GetVersionByIdAsync(logId, versionId);
@@ -74,7 +131,17 @@ public sealed class LogsController : ControllerBase
         return Ok(ApiResponse<LogVersionResponse>.Success(version));
     }
 
+    /// <summary>Restores a prior version by creating a new version with its content.</summary>
+    /// <remarks>
+    /// Restore never mutates history. A new <c>LogVersion</c> is inserted with
+    /// the restored content, incrementing the version count.
+    /// </remarks>
+    /// <param name="logId">The GUID of the parent Log.</param>
+    /// <param name="versionId">The GUID of the version to restore from.</param>
+    /// <returns>The new version created from the restore, or 404 if either ID is not found.</returns>
     [HttpPost("{logId:guid}/versions/{versionId:guid}/restore")]
+    [ProducesResponseType(typeof(ApiResponse<LogVersionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<LogVersionResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RestoreVersion(Guid logId, Guid versionId)
     {
         var version = await _logs.RestoreVersionAsync(logId, versionId);
