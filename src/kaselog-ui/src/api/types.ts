@@ -58,6 +58,9 @@ export interface SearchResult {
   kaseTitle: string
   title: string
   content: string
+  highlight: string
+  tags: string[]
+  updatedAt: string
 }
 
 // ── Request bodies ────────────────────────────────────────────────────────────

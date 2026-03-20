@@ -1,14 +1,16 @@
-import { Outlet, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Outlet } from 'react-router-dom'
 import LeftNav from './LeftNav'
+import SearchOverlay from './SearchOverlay'
 import { KasesProvider } from '../contexts/KasesContext'
 
 export default function Shell() {
-  const navigate = useNavigate()
+  const [overlayOpen, setOverlayOpen] = useState(false)
 
   return (
     <KasesProvider>
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-        <LeftNav onSearchOpen={() => navigate('/search')} />
+        <LeftNav onSearchOpen={() => setOverlayOpen(true)} />
         <main style={{
           flex: 1,
           display: 'flex',
@@ -19,6 +21,7 @@ export default function Shell() {
           <Outlet />
         </main>
       </div>
+      {overlayOpen && <SearchOverlay onClose={() => setOverlayOpen(false)} />}
     </KasesProvider>
   )
 }
