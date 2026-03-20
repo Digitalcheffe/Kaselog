@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KaseLog — Add Collection Item</title>
+<style>
+  :root {
+    --accent: #1D9E75;
+    --accent-light: #E1F5EE;
+    --accent-text: #085041;
+    --bg: #ffffff;
+    --bg-secondary: #f7f6f3;
+    --bg-tertiary: #f0efe9;
+    --text-primary: #1a1a18;
+    --text-secondary: #5a5955;
+    --text-tertiary: #9a9890;
+    --border: rgba(0,0,0,0.08);
+    --border-mid: rgba(0,0,0,0.14);
+    --font: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'DM Mono', 'Fira Code', monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #131312; --bg-secondary: #1c1c1a; --bg-tertiary: #242422;
+    --text-primary: #e8e6df; --text-secondary: #9a9890; --text-tertiary: #5a5955;
+    --border: rgba(255,255,255,0.07); --border-mid: rgba(255,255,255,0.12);
+    --accent-light: #0a2e22; --accent-text: #5DCAA5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  body { font-family: var(--font); background: var(--bg); color: var(--text-primary); height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: background 0.2s, color 0.2s; }
+
+  /* Top bar */
+  .topbar { height: 48px; min-height: 48px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 1.25rem; gap: 0.75rem; flex-shrink: 0; background: var(--bg); }
+  .topbar-back { font-size: 12px; color: var(--text-tertiary); cursor: pointer; padding: 4px 8px; border-radius: 5px; transition: all 0.15s; }
+  .topbar-back:hover { color: var(--accent); background: var(--accent-light); }
+  .topbar-sep { font-size: 12px; color: var(--border-mid); }
+  .topbar-title { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+  .topbar-dot { width: 8px; height: 8px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; }
+  .topbar-collection { font-size: 13px; color: var(--text-secondary); }
+  .topbar-spacer { flex: 1; }
+  .topbar-mode { font-size: 11px; color: var(--text-tertiary); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
+  .topbar-mode:hover { border-color: var(--border-mid); color: var(--text-secondary); }
+  .topbar-mode.view { color: var(--text-secondary); }
+  .topbar-save { font-size: 12px; font-weight: 500; color: white; background: var(--accent); padding: 5px 14px; border-radius: 6px; cursor: pointer; border: none; font-family: var(--font); transition: opacity 0.15s; }
+  .topbar-save:hover { opacity: 0.85; }
+  .topbar-save:disabled { opacity: 0.45; cursor: default; }
+
+  /* Mode indicator */
+  .mode-bar { height: 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 1.25rem; gap: 0.5rem; flex-shrink: 0; background: var(--bg-secondary); }
+  .mode-label { font-size: 11px; color: var(--text-tertiary); }
+  .mode-pill { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 99px; cursor: pointer; transition: all 0.12s; }
+  .mode-pill.active { background: var(--accent); color: white; }
+  .mode-pill.inactive { background: var(--bg); border: 1px solid var(--border-mid); color: var(--text-secondary); }
+  .mode-pill.inactive:hover { border-color: var(--accent); color: var(--accent); }
+  .mode-spacer { flex: 1; }
+  .mode-required-note { font-size: 10px; color: var(--text-tertiary); }
+  .mode-required-note span { color: #A32D2D; }
+
+  /* Scroll area */
+  .form-scroll { flex: 1; overflow-y: auto; padding: 1.75rem; }
+  .form-scroll::-webkit-scrollbar { width: 4px; }
+  .form-scroll::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+  .form-inner { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 0; }
+
+  /* The 2-column form grid — mirrors the designer */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+
+  /* Field cell */
+  .form-cell { display: flex; flex-direction: column; }
+  .form-cell.full-width { grid-column: 1 / -1; }
+
+  /* Field label */
+  .field-label { font-size: 10px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.3rem; }
+  .field-required { color: #A32D2D; font-size: 11px; }
+
+  /* Inputs */
+  .fi { background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 7px; padding: 0.5rem 0.7rem; font-size: 13px; color: var(--text-primary); font-family: var(--font); outline: none; width: 100%; transition: border-color 0.15s, box-shadow 0.15s; }
+  .fi:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(29,158,117,0.08); }
+  .fi::placeholder { color: var(--text-tertiary); }
+  .fi.multiline { resize: none; height: 80px; line-height: 1.6; font-size: 12px; }
+  .fi.number { font-family: var(--font-mono); }
+
+  /* Select */
+  .fi-select { background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 7px; padding: 0.5rem 0.7rem; font-size: 13px; color: var(--text-primary); font-family: var(--font); outline: none; width: 100%; transition: border-color 0.15s; appearance: none; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239a9890' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.7rem center; padding-right: 2rem; }
+  .fi-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(29,158,117,0.08); }
+
+  /* Rating */
+  .rating-input { display: flex; gap: 0.25rem; align-items: center; padding: 0.4rem 0; }
+  .star-btn { font-size: 22px; color: var(--border-mid); cursor: pointer; transition: color 0.1s, transform 0.1s; line-height: 1; }
+  .star-btn.lit { color: #BA7517; }
+  .star-btn:hover { transform: scale(1.15); }
+  .rating-val { font-size: 11px; color: var(--text-tertiary); margin-left: 0.4rem; font-family: var(--font-mono); }
+
+  /* Boolean */
+  .boolean-input { display: flex; align-items: center; gap: 0.75rem; padding: 0.4rem 0; }
+  .bool-option { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; }
+  .bool-radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--border-mid); display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+  .bool-radio.selected { border-color: var(--accent); background: var(--accent); }
+  .bool-radio.selected::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: white; }
+  .bool-label { font-size: 13px; color: var(--text-secondary); }
+
+  /* URL */
+  .url-wrap { position: relative; }
+  .url-wrap .fi { padding-left: 2.1rem; }
+  .url-icon { position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); font-size: 13px; opacity: 0.4; pointer-events: none; }
+
+  /* Image upload */
+  .image-upload { border: 1.5px dashed var(--border-mid); border-radius: 8px; background: var(--bg-secondary); cursor: pointer; transition: all 0.15s; overflow: hidden; }
+  .image-upload:hover { border-color: var(--accent); background: var(--accent-light); }
+  .image-upload-inner { padding: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+  .image-upload-icon { font-size: 24px; opacity: 0.4; }
+  .image-upload-label { font-size: 12px; color: var(--text-tertiary); }
+  .image-upload-hint { font-size: 10px; color: var(--text-tertiary); opacity: 0.7; }
+  .image-preview { width: 100%; aspect-ratio: 1; object-fit: cover; display: none; }
+  .image-upload.has-image .image-upload-inner { display: none; }
+  .image-upload.has-image .image-preview { display: block; }
+  .image-remove { font-size: 10px; color: var(--accent); text-align: center; padding: 0.4rem; cursor: pointer; border-top: 1px solid var(--border); display: none; }
+  .image-upload.has-image .image-remove { display: block; }
+
+  /* Date */
+  .fi-date { background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 7px; padding: 0.5rem 0.7rem; font-size: 13px; color: var(--text-primary); font-family: var(--font); outline: none; width: 100%; transition: border-color 0.15s; }
+  .fi-date:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(29,158,117,0.08); }
+
+  /* Divider layout element */
+  .layout-divider { display: flex; align-items: center; gap: 0.75rem; padding: 0.1rem 0; grid-column: 1 / -1; margin: 0.25rem 0; }
+  .layout-divider-line { flex: 1; height: 1px; background: var(--border); }
+  .layout-divider-label { font-size: 10px; color: var(--text-tertiary); white-space: nowrap; }
+
+  /* Section label layout element */
+  .layout-section-label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.5rem 0 0.1rem; grid-column: 1 / -1; }
+
+  /* Read mode overlay */
+  .read-mode .fi,
+  .read-mode .fi-select,
+  .read-mode .fi-date { background: transparent; border-color: transparent; padding-left: 0; padding-right: 0; pointer-events: none; color: var(--text-primary); font-size: 13px; box-shadow: none; }
+  .read-mode .fi::placeholder { display: none; }
+  .read-mode .fi-select { background-image: none; }
+  .read-mode .rating-input .star-btn { pointer-events: none; cursor: default; }
+  .read-mode .bool-option { pointer-events: none; }
+  .read-mode .image-upload { border-style: solid; cursor: default; }
+  .read-mode .image-upload:hover { border-color: var(--border-mid); background: var(--bg-secondary); }
+  .read-mode .image-remove { display: none !important; }
+  .read-mode .url-icon { opacity: 0.6; }
+  .read-mode .field-label { color: var(--text-tertiary); }
+
+  /* Kase link section */
+  .kase-link-section { margin-top: 1.25rem; padding: 0.85rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; gap: 0.75rem; }
+  .kase-link-label { font-size: 11px; color: var(--text-tertiary); flex-shrink: 0; }
+  .kase-link-select { flex: 1; background: var(--bg); border: 1px solid var(--border-mid); border-radius: 6px; padding: 0.35rem 0.6rem; font-size: 12px; color: var(--text-secondary); font-family: var(--font); outline: none; cursor: pointer; }
+  .kase-link-select:focus { border-color: var(--accent); }
+  .kase-link-hint { font-size: 10px; color: var(--text-tertiary); }
+
+  /* Bottom action bar */
+  .action-bar { border-top: 1px solid var(--border); padding: 0.75rem 1.25rem; display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; background: var(--bg); }
+  .action-spacer { flex: 1; }
+  .btn-cancel { font-size: 12px; color: var(--text-secondary); padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border-mid); cursor: pointer; background: var(--bg); font-family: var(--font); transition: all 0.15s; }
+  .btn-cancel:hover { border-color: var(--border-mid); color: var(--text-primary); }
+  .btn-save { font-size: 12px; font-weight: 500; color: white; background: var(--accent); padding: 6px 20px; border-radius: 6px; cursor: pointer; border: none; font-family: var(--font); transition: opacity 0.15s; }
+  .btn-save:hover { opacity: 0.85; }
+  .btn-edit { font-size: 12px; font-weight: 500; color: var(--accent); background: var(--accent-light); padding: 6px 16px; border-radius: 6px; cursor: pointer; border: 1px solid rgba(29,158,117,0.25); font-family: var(--font); }
+
+  .theme-toggle { position: fixed; bottom: 1rem; right: 1rem; background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 99px; padding: 6px 14px; font-size: 11px; color: var(--text-secondary); cursor: pointer; font-family: var(--font); z-index: 100; }
+</style>
+</head>
+<body data-theme="light">
+
+<div class="topbar">
+  <div class="topbar-back">← Vinyl Records</div>
+  <div class="topbar-sep">/</div>
+  <div class="topbar-dot"></div>
+  <div class="topbar-collection">Vinyl Records</div>
+  <div class="topbar-sep">/</div>
+  <div class="topbar-title" id="topbar-title">New item</div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-mode" id="mode-toggle-btn" onclick="toggleMode()">View mode</div>
+</div>
+
+<div class="mode-bar">
+  <div class="mode-pill active" id="pill-edit" onclick="setMode('edit')">Edit</div>
+  <div class="mode-pill inactive" id="pill-view" onclick="setMode('view')">View</div>
+  <div class="mode-spacer"></div>
+  <div class="mode-required-note"><span>*</span> Required fields</div>
+</div>
+
+<div class="form-scroll" id="form-scroll">
+  <div class="form-inner" id="form-inner"></div>
+</div>
+
+<div class="action-bar" id="action-bar">
+  <div class="action-spacer"></div>
+  <div class="btn-cancel" onclick="cancel()">Cancel</div>
+  <button class="btn-save" onclick="saveItem()">Save item</button>
+</div>
+
+<button class="theme-toggle" onclick="document.body.setAttribute('data-theme',document.body.getAttribute('data-theme')==='dark'?'light':'dark')">Toggle dark mode</button>
+
+<script>
+/* ============================================================
+   SCHEMA + LAYOUT — mirrors what the designer produces
+============================================================ */
+const SCHEMA = {
+  f1: { name:'Album',     type:'text',      required:true  },
+  f2: { name:'Artist',    type:'text',      required:true  },
+  f3: { name:'Year',      type:'number',    required:false },
+  f4: { name:'Label',     type:'text',      required:false },
+  f5: { name:'Format',    type:'select',    required:false, opts:['LP','2×LP','7-inch','10-inch','Picture disc'] },
+  f6: { name:'Condition', type:'select',    required:false, opts:['M','VG+','VG','G+','G','F'] },
+  f7: { name:'Rating',    type:'rating',    required:false },
+  f8: { name:'Status',    type:'select',    required:false, opts:['Own','Want','Sold'] },
+  f9: { name:'Cover',     type:'image',     required:false },
+  f10:{ name:'Notes',     type:'multiline', required:false },
+  f11:{ name:'Purchase URL', type:'url',    required:false },
+};
+
+// Layout as designed — rows of cells, span:2 = full width
+const LAYOUT = [
+  { cells: [{ kind:'field', fieldId:'f9',  span:1 }, { kind:'field', fieldId:'f1',  span:1 }] },
+  { cells: [{ kind:'field', fieldId:'f2',  span:1 }, { kind:'field', fieldId:'f3',  span:1 }] },
+  { cells: [{ kind:'divider', label:'Details', span:2 }, null] },
+  { cells: [{ kind:'field', fieldId:'f5',  span:1 }, { kind:'field', fieldId:'f4',  span:1 }] },
+  { cells: [{ kind:'field', fieldId:'f6',  span:1 }, { kind:'field', fieldId:'f7',  span:1 }] },
+  { cells: [{ kind:'label', label:'Record info', span:2 }, null] },
+  { cells: [{ kind:'field', fieldId:'f8',  span:1 }, { kind:'field', fieldId:'f11', span:1 }] },
+  { cells: [{ kind:'field', fieldId:'f10', span:2 }, null] },
+];
+
+// Pre-filled item data (for view/edit demo)
+const ITEM_DATA = {
+  f1: 'Rumours',
+  f2: 'Fleetwood Mac',
+  f3: '1977',
+  f4: 'Warner Bros.',
+  f5: 'LP',
+  f6: 'VG+',
+  f7: 4,
+  f8: 'Own',
+  f9: null,
+  f10: 'Original pressing. Bought at Record Exchange on Church St. Some light sleeve wear but plays beautifully.',
+  f11: 'https://www.discogs.com/Fleetwood-Mac-Rumours',
+};
+
+let formData = { ...ITEM_DATA };
+let isEditMode = true;
+let ratingValues = { f7: ITEM_DATA.f7 };
+
+/* ============================================================
+   MODE
+============================================================ */
+function setMode(mode) {
+  isEditMode = mode === 'edit';
+  document.getElementById('pill-edit').className = 'mode-pill ' + (isEditMode ? 'active' : 'inactive');
+  document.getElementById('pill-view').className = 'mode-pill ' + (!isEditMode ? 'active' : 'inactive');
+  document.getElementById('mode-toggle-btn').textContent = isEditMode ? 'View mode' : 'Edit mode';
+  const scroll = document.getElementById('form-scroll');
+  scroll.classList.toggle('read-mode', !isEditMode);
+  document.getElementById('action-bar').style.display = isEditMode ? '' : 'none';
+  renderForm();
+}
+
+function toggleMode() { setMode(isEditMode ? 'view' : 'edit'); }
+
+/* ============================================================
+   RENDER FORM
+============================================================ */
+function renderForm() {
+  const inner = document.getElementById('form-inner');
+  inner.innerHTML = '';
+
+  LAYOUT.forEach(row => {
+    const c0 = row.cells[0];
+    const c1 = row.cells[1];
+
+    if (!c0) return;
+
+    // Full-width row (span:2 or layout elements that always span)
+    if (c0.span === 2 || c0.kind === 'divider' || c0.kind === 'label') {
+      const grid = getOrCreateGrid(inner);
+      if (c0.kind === 'divider') {
+        const el = document.createElement('div');
+        el.className = 'layout-divider';
+        el.innerHTML = `<div class="layout-divider-line"></div>${c0.label ? `<div class="layout-divider-label">${c0.label}</div><div class="layout-divider-line"></div>` : ''}`;
+        grid.appendChild(el);
+      } else if (c0.kind === 'label') {
+        const el = document.createElement('div');
+        el.className = 'layout-section-label';
+        el.textContent = c0.label || '';
+        grid.appendChild(el);
+      } else if (c0.kind === 'field') {
+        const cell = buildFieldCell(c0.fieldId, true);
+        if (cell) grid.appendChild(cell);
+      }
+      return;
+    }
+
+    // Two-column row
+    const grid = getOrCreateGrid(inner);
+    const left = c0 && c0.kind === 'field' ? buildFieldCell(c0.fieldId, false) : buildEmptyCell();
+    const right = c1 && c1.kind === 'field' ? buildFieldCell(c1.fieldId, false) : buildEmptyCell();
+    if (left) grid.appendChild(left);
+    if (right) grid.appendChild(right);
+  });
+
+  // Kase link at the bottom
+  const kaseSection = document.createElement('div');
+  kaseSection.className = 'kase-link-section';
+  kaseSection.innerHTML = `
+    <div class="kase-link-label">Link to Kase</div>
+    <select class="kase-link-select">
+      <option value="">— none —</option>
+      <option value="proxmox">Proxmox Cluster</option>
+      <option value="opnsense">OPNsense Migration</option>
+      <option value="homeassistant">Home Assistant</option>
+    </select>
+    <div class="kase-link-hint">Optional — appears on the Kase timeline</div>
+  `;
+  inner.appendChild(kaseSection);
+
+  // Restore rating state
+  Object.keys(ratingValues).forEach(fid => {
+    setStars(fid, ratingValues[fid], false);
+  });
+}
+
+function getOrCreateGrid(parent) {
+  // Reuse last grid if it exists and isn't a standalone section
+  const last = parent.lastElementChild;
+  if (last && last.classList.contains('form-grid')) return last;
+  const grid = document.createElement('div');
+  grid.className = 'form-grid';
+  parent.appendChild(grid);
+  return grid;
+}
+
+function buildEmptyCell() {
+  const cell = document.createElement('div');
+  cell.className = 'form-cell';
+  return cell;
+}
+
+function buildFieldCell(fieldId, fullWidth) {
+  const field = SCHEMA[fieldId];
+  if (!field) return null;
+  const cell = document.createElement('div');
+  cell.className = 'form-cell' + (fullWidth ? ' full-width' : '');
+  const reqMark = field.required ? '<span class="field-required">*</span>' : '';
+  const labelHtml = `<div class="field-label">${field.name}${reqMark}</div>`;
+  cell.innerHTML = labelHtml + buildInput(fieldId, field, fullWidth);
+  return cell;
+}
+
+function buildInput(fieldId, field, fullWidth) {
+  const val = formData[fieldId] ?? '';
+  switch (field.type) {
+    case 'text':
+      return `<input class="fi" id="inp-${fieldId}" value="${escHtml(val)}" placeholder="${field.name}..." oninput="formData['${fieldId}']=this.value">`;
+    case 'multiline':
+      return `<textarea class="fi multiline" id="inp-${fieldId}" placeholder="Add notes..." oninput="formData['${fieldId}']=this.value">${escHtml(val)}</textarea>`;
+    case 'number':
+      return `<input class="fi number" id="inp-${fieldId}" type="text" inputmode="numeric" value="${escHtml(val)}" placeholder="0" oninput="formData['${fieldId}']=this.value">`;
+    case 'date':
+      return `<input class="fi-date" id="inp-${fieldId}" type="date" value="${val}" onchange="formData['${fieldId}']=this.value">`;
+    case 'select': {
+      const opts = ['', ...field.opts].map(o => `<option value="${escHtml(o)}" ${val===o?'selected':''}>${o || '— select —'}</option>`).join('');
+      return `<select class="fi-select" id="inp-${fieldId}" onchange="formData['${fieldId}']=this.value">${opts}</select>`;
+    }
+    case 'rating':
+      return `<div class="rating-input" id="inp-${fieldId}">
+        ${[1,2,3,4,5].map(n=>`<span class="star-btn ${(ratingValues[fieldId]||0)>=n?'lit':''}" onclick="setStars('${fieldId}',${n},true)" onmouseover="previewStars('${fieldId}',${n})" onmouseout="setStars('${fieldId}',${ratingValues[fieldId]||0},false)">★</span>`).join('')}
+        <span class="rating-val" id="rating-val-${fieldId}">${ratingValues[fieldId]||0}/5</span>
+      </div>`;
+    case 'url':
+      return `<div class="url-wrap"><span class="url-icon">🔗</span><input class="fi" id="inp-${fieldId}" type="url" value="${escHtml(val)}" placeholder="https://..." oninput="formData['${fieldId}']=this.value"></div>`;
+    case 'boolean': {
+      const isYes = val === true || val === 'true' || val === 'Yes';
+      const isNo  = val === false || val === 'false' || val === 'No';
+      return `<div class="boolean-input">
+        <div class="bool-option" onclick="setBool('${fieldId}',true)">
+          <div class="bool-radio ${isYes?'selected':''}" id="bool-yes-${fieldId}"></div>
+          <div class="bool-label">Yes</div>
+        </div>
+        <div class="bool-option" onclick="setBool('${fieldId}',false)">
+          <div class="bool-radio ${isNo?'selected':''}" id="bool-no-${fieldId}"></div>
+          <div class="bool-label">No</div>
+        </div>
+      </div>`;
+    }
+    case 'image':
+      return `<div class="image-upload ${val?'has-image':''}" id="img-${fieldId}" onclick="triggerImageUpload('${fieldId}')">
+        <div class="image-upload-inner">
+          <div class="image-upload-icon">🖼</div>
+          <div class="image-upload-label">Click to upload image</div>
+          <div class="image-upload-hint">JPG, PNG, WEBP · max 10MB</div>
+        </div>
+        <img class="image-preview" id="img-preview-${fieldId}" src="${val||''}" alt="Cover">
+        <div class="image-remove" onclick="removeImage('${fieldId}',event)">Remove image</div>
+      </div>
+      <input type="file" id="file-${fieldId}" accept="image/*" style="display:none" onchange="handleImageFile('${fieldId}',this)">`;
+    default:
+      return `<input class="fi" id="inp-${fieldId}" value="${escHtml(val)}" placeholder="${field.name}...">`;
+  }
+}
+
+/* ============================================================
+   FIELD INTERACTIONS
+============================================================ */
+function setStars(fieldId, n, save) {
+  if (save) { ratingValues[fieldId] = n; formData[fieldId] = n; }
+  const container = document.getElementById('inp-' + fieldId);
+  if (!container) return;
+  container.querySelectorAll('.star-btn').forEach((s, i) => {
+    s.classList.toggle('lit', i < n);
+  });
+  const valEl = document.getElementById('rating-val-' + fieldId);
+  if (valEl) valEl.textContent = (save ? n : (ratingValues[fieldId]||0)) + '/5';
+}
+
+function previewStars(fieldId, n) {
+  const container = document.getElementById('inp-' + fieldId);
+  if (!container) return;
+  container.querySelectorAll('.star-btn').forEach((s, i) => {
+    s.classList.toggle('lit', i < n);
+  });
+}
+
+function setBool(fieldId, val) {
+  formData[fieldId] = val;
+  const yes = document.getElementById('bool-yes-' + fieldId);
+  const no  = document.getElementById('bool-no-'  + fieldId);
+  if (yes) yes.classList.toggle('selected', val === true);
+  if (no)  no.classList.toggle('selected',  val === false);
+}
+
+function triggerImageUpload(fieldId) {
+  if (!isEditMode) return;
+  document.getElementById('file-' + fieldId).click();
+}
+
+function handleImageFile(fieldId, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    formData[fieldId] = e.target.result;
+    const wrap = document.getElementById('img-' + fieldId);
+    const preview = document.getElementById('img-preview-' + fieldId);
+    if (wrap) wrap.classList.add('has-image');
+    if (preview) preview.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage(fieldId, e) {
+  e.stopPropagation();
+  formData[fieldId] = null;
+  const wrap = document.getElementById('img-' + fieldId);
+  const preview = document.getElementById('img-preview-' + fieldId);
+  if (wrap) wrap.classList.remove('has-image');
+  if (preview) preview.src = '';
+}
+
+function escHtml(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function cancel() { /* navigate back */ }
+
+function saveItem() {
+  // Validate required fields
+  const missing = Object.entries(SCHEMA).filter(([id, f]) => f.required && !formData[id]);
+  if (missing.length) {
+    missing.forEach(([id]) => {
+      const inp = document.getElementById('inp-' + id);
+      if (inp) { inp.style.borderColor = '#E24B4A'; setTimeout(() => inp.style.borderColor = '', 1800); }
+    });
+    return;
+  }
+  const btn = document.querySelector('.btn-save');
+  btn.textContent = 'Saved ✓';
+  btn.style.background = '#0F6E56';
+  setTimeout(() => { btn.textContent = 'Save item'; btn.style.background = ''; setMode('view'); }, 1200);
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+renderForm();
+</script>
+</body>
+</html>

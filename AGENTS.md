@@ -4,7 +4,7 @@ You are building **KaseLog**, a self-hosted personal kase-and-log system.
 
 Before implementing any feature, read this document completely. All design and implementation decisions must align with the principles defined here.
 
-KaseLog starts with a narrow purpose and a strong foundation. The first job is to build an excellent kase-and-log experience that is fast, clean, reliable, and easy to self-host.
+KaseLog starts with a narrow purpose and a strong foundation. The first job is to build an excellent kase-and-log experience that is fast, clean, reliable, and easy to self-host. Collections extend that foundation — they do not replace it.
 
 ---
 
@@ -14,29 +14,36 @@ KaseLog is a private ops journal for the solo technical operator.
 
 It is not a PKM. It is not a team wiki. It is not a runbook automation tool. It is not a second brain.
 
-KaseLog is built around a single mental model: you open a Kase when something needs attention, and you log against it as the work unfolds. That is the entire product.
+KaseLog is built around two mental models that work together:
 
-KaseLog is designed for people who want a private, simple, searchable system they control themselves. It also maps cleanly onto AI project workflows — a Kase is a project, Logs are session summaries or context snapshots, and the timeline gives the arc of a conversation or research thread over time.
+1. You open a **Kase** when something needs attention and log against it as the work unfolds.
+2. You create a **Collection** when you need to track a set of things that share the same structure.
+
+Both live in the same application. Both can be linked. The timeline is where they meet.
+
+KaseLog is designed for people who want a private, simple, searchable system they control themselves. It maps cleanly onto both technical operations (Kases for incidents, projects, research threads) and personal inventory needs (Collections for gear, media, anything with consistent fields).
 
 ---
 
 ## Product Philosophy
 
-KaseLog begins with a simple model: **Kases contain Logs**.
+KaseLog has three first-class concepts: **Kases**, **Logs**, and **Collections**.
 
-A **Kase** is the organizing container. It groups related information together around a topic, issue, project, system, incident, or line of thought.
+A **Kase** is the organizing container for narrative work. It groups related Logs around a topic, issue, project, system, incident, or line of thought.
 
 A **Log** is the actual entry the user writes. Logs are markdown documents captured over time inside a Kase.
 
-Future capabilities may grow from this foundation over time, but the quality of creating, editing, reading, organizing, and retrieving Logs must remain the center of the product.
+A **Collection** is a typed inventory. It has a user-defined schema (fields) and a user-designed layout. Each item in a Collection is a structured record. Collection items can be optionally linked to a Kase and appear on the Kase timeline alongside Logs.
+
+The quality of creating, editing, reading, organizing, and retrieving Logs must remain the center of the product. Collections extend that without competing with it.
 
 The goal is to build a self-hosted KaseLog application that feels polished, dependable, and pleasant to use every day.
 
 ---
 
-## Initial Product Goal
+## Product Goals
 
-The first version of KaseLog focuses on a complete kase-and-log workflow:
+### Phase 1 — Kase and Log foundation (complete)
 
 1. Create Kases
 2. View Kases (timeline view)
@@ -48,25 +55,35 @@ The first version of KaseLog focuses on a complete kase-and-log workflow:
 8. Tag Logs
 9. Version history per Log
 
-This phase is about getting the foundation right. Future additions should only be introduced after the kase and log experience is strong.
+### Phase 2 — Collections (current)
+
+1. Create Collections with user-defined schemas
+2. Design Collection item layout (2-column grid designer)
+3. Add Collection items via generated entry form
+4. View Collection items in a filterable, sortable list
+5. Link Collection items to Kases
+6. Collection items appear on the Kase timeline alongside Logs
+7. Search across both Logs and Collection items
 
 ---
 
-## Core Concept
+## Core Concepts
 
-A **Kase** is the primary organizational unit.
+### Kase
+
+The primary organizational unit for narrative work.
 
 Each Kase contains:
-
 * title
 * optional description
 * created timestamp
 * updated timestamp
 
-A **Log** is a markdown document stored within a Kase.
+### Log
+
+A markdown document stored within a Kase.
 
 Each Log contains:
-
 * KaseId
 * title
 * short description (shown as preview on the timeline)
@@ -76,9 +93,89 @@ Each Log contains:
 * created timestamp
 * updated timestamp
 
-Kases must be easy to create and browse.
+### Collection
 
-Logs must be easy to create, fast to edit, and easy to find.
+A typed inventory with a user-defined schema and layout.
+
+Each Collection contains:
+* title
+* color (one of five accent presets — used as the Collection's dot color in the nav)
+* schema (ordered list of fields — see Field Types)
+* layout (2-column grid arrangement of fields and layout elements)
+* created timestamp
+* updated timestamp
+
+### Collection Item
+
+A structured record inside a Collection.
+
+Each Collection Item contains:
+* CollectionId (FK)
+* KaseId (nullable FK — optional link to a Kase)
+* field values (JSON, keyed by field ID)
+* created timestamp
+* updated timestamp
+
+When a Collection Item is linked to a Kase via KaseId, it appears on the Kase timeline as a structured inline card alongside Logs.
+
+---
+
+## Field Types
+
+The following field types are supported in Collection schemas:
+
+| Type       | Description                              | List column | Searchable |
+|------------|------------------------------------------|-------------|------------|
+| text       | Single line text                         | yes         | yes        |
+| multiline  | Multi-line paragraph text                | no          | yes        |
+| number     | Integer or decimal                       | yes         | no         |
+| date       | Calendar date                            | yes         | no         |
+| select     | Single value from predefined options     | yes         | yes        |
+| rating     | 1–5 star rating                         | yes         | no         |
+| url        | Link                                     | yes         | no         |
+| boolean    | Yes / No toggle                          | yes         | no         |
+| image      | Photo or cover art (stored as flat file) | thumbnail   | no         |
+
+Each field has:
+* id (GUID)
+* name (user-defined label)
+* type (from table above)
+* required (boolean)
+* showInList (boolean — controls whether the field appears as a column in the Collection list view)
+* options (array of strings — select type only)
+* sortOrder (integer — display order in schema)
+
+---
+
+## Collection Layout Designer
+
+The layout designer is a separate mode accessed via "Edit schema" from the Collection list view. It navigates to `/collections/:id/design`.
+
+The designer has two tabs:
+
+**Schema tab** — define fields. Add, remove, rename, change type, configure select options, toggle required and showInList per field.
+
+**Layout tab** — arrange fields on a 2-column grid canvas. The canvas has a fixed 2-column structure with up to 50 rows. Fields snap to grid cells. A field can span 1 column (half width) or 2 columns (full width). A field can span multiple rows (tall). Layout elements (Divider, Section label) are canvas-only — they carry no data and do not appear in the list view or search results.
+
+**Layout elements:**
+* Divider — a horizontal rule with optional text label. Always full width.
+* Section label — a small uppercase group heading. Always full width.
+
+The layout produced by the designer directly drives the Collection item entry form and item detail view. Whatever the designer produces is exactly what users see when adding or editing items — no drift between design and reality.
+
+The layout is stored as a JSON array of rows. Each row contains two cell slots. A cell is either null (empty), a field reference (`{ kind: "field", fieldId, span }`), or a layout element (`{ kind: "divider"|"label", label, span }`). Span of 2 means the item occupies both columns in that row.
+
+---
+
+## Collection Item Entry and View
+
+Collection items have two modes: **edit mode** and **view mode**.
+
+**Edit mode** — the schema-driven form rendered according to the designer layout. Each field type renders as the appropriate input control. Required fields are marked with an asterisk. Saving validates required fields. After a successful save the view transitions to view mode.
+
+**View mode** — the same layout with inputs replaced by clean read-only displays. Borders and backgrounds drop away. The Edit button returns to edit mode.
+
+The Kase link selector is always present at the bottom of both modes — a simple dropdown to optionally attach the item to a Kase.
 
 ---
 
@@ -95,11 +192,9 @@ Logs must be easy to create, fast to edit, and easy to find.
 | Styling     | Tailwind CSS                                                       | Lightweight and flexible                                                    |
 | Container   | Single Docker container                                            | Simple deployment                                                           |
 
-Do not introduce extra services or infrastructure unless the document is updated to require them.
+Do not introduce extra services or infrastructure unless this document is updated to require them.
 
 KaseLog must run as a single container by default, with SQLite as the default database.
-
-The application should be designed with a provider-based data access layer so additional relational database platforms can be supported later without rewriting the application layer. Initial development and verification should target SQLite first.
 
 ### Editor: Tiptap
 
@@ -149,7 +244,7 @@ Functionality:
 * FloatingMenu (slash command trigger)
 * Markdown shortcuts (## → heading, ``` → code block, etc.)
 
-Do not use any Tiptap extension that requires a Tiptap account, cloud plan, or paid subscription. All extensions above are MIT licensed and free with no account requirement.
+Do not use any Tiptap extension that requires a Tiptap account, cloud plan, or paid subscription.
 
 **Structural toolbar — pinned at top of editor canvas:**
 
@@ -173,27 +268,21 @@ Contains inline formatting only. Disappears when selection is cleared:
 
 The top bar contains navigation chrome only. No editor controls belong in the top bar.
 
-If the editor experience is weak, it should be replaced rather than worked around.
-
 ### Image Handling
 
-Images are stored as flat files on disk. Each upload generates a unique identifier that is used as the filename. Images are never deduplicated — each upload is independent regardless of content.
+Images are stored as flat files on disk. Each upload generates a unique identifier. Images are never deduplicated.
 
-**UID scheme:** 40-character alphanumeric string, cryptographically random, uppercase letters and digits. Generated server-side on upload. Example: `A3F9K2M7RX4B9NPQ2WYH6JDCT8VE1SKL0F5GZ3U`
+**UID scheme:** 40-character alphanumeric string, cryptographically random, uppercase letters and digits.
 
-**Storage path:** `/data/images/{uid}.{ext}` — flat directory, no subdirectories, no date folders.
+**Storage path:** `/data/images/{uid}.{ext}` — flat directory, no subdirectories.
 
-**API endpoint:** `GET /api/images/{uid}` — serves the image file directly. The frontend never needs to know the filesystem path.
+**API endpoint:** `GET /api/images/{uid}` — serves the image file directly.
 
 **Upload flow:**
-1. User triggers upload via toolbar button, clipboard paste, or drag-drop onto canvas
+1. User triggers upload via toolbar button, clipboard paste, drag-drop, or image field in Collection item form
 2. File is sent to `POST /api/images`
 3. Server generates UID, saves file to `/data/images/{uid}.{ext}`, returns `{ uid, url }`
-4. Tiptap Image node is inserted with `src` set to `/api/images/{uid}`
-
-**In the document:** Tiptap stores the API URL as the image src attribute. Markdown serialization uses standard `![alt](/api/images/{uid})` format.
-
-**Image resizing:** Implemented as a custom Tiptap node view wrapping the Image extension. When an image is selected, resize handles appear at all four corners and four edge midpoints using the accent color. Dragging any handle resizes the image. Aspect ratio is locked by default. Width and height are stored as node attributes. A size tooltip shows current pixel dimensions while dragging.
+4. The image URL is stored as the field value for image-type Collection fields, or inserted as a Tiptap Image node in Log content
 
 ---
 
@@ -208,110 +297,118 @@ The canonical layout reference is the HTML artifact set. Refer to these files fo
 * `kaselog-settings.html` — Log settings panel detail and theme/accent switcher
 * `kaselog-search-quick.html` — Quick search overlay
 * `kaselog-search-advanced.html` — Advanced search page with composable filters
+* `kaselog-nav-collections.html` — Updated left nav with accordion Kases and Collections sections
+* `kaselog-new-content-modal.html` — New Log or Add Collection Item picker modal
+* `kaselog-collection-list.html` — Collection list view with filters, column visibility, sorting
+* `kaselog-mixed-timeline.html` — Kase timeline with mixed Log and Collection item entries
+* `kaselog-collection-designer.html` — Collection schema builder and layout designer
+* `kaselog-collection-item-entry.html` — Collection item entry form and view mode
 
 ### Left navigation
 
 Persistent across all views. Contains:
 
 * KaseLog logo and tagline
-* New Kase button
-* Kase list with log count per Kase (scrollable)
-* Search button — pinned to the bottom of the nav, outside the scrollable Kase list, always visible regardless of list length
+* Two accordion sections: **Kases** and **Collections**
+* Each section has a header with a collapse/expand arrow (▾ expanded, ▸ collapsed) and a `+ new` button that remains visible even when collapsed
+* Each section shows the 5 most recent items with a `+ N more` link to the full list page
+* Collections show a color dot matching the Collection's accent color
+* Search button — pinned to the bottom of the nav, always visible regardless of section collapse state
 
-The search button is the entry point for all search. Clicking it opens the quick search overlay. The search button label reads "Search logs..." to communicate scope immediately.
+The `+ new` button on the Kases section creates a new Kase. The `+ new` button on the Collections section creates a new Collection (opens the designer at a blank state).
+
+The search button opens the quick search overlay. The label reads "Search logs..." to communicate scope immediately.
 
 ### Top bar
 
 48px height. Navigation chrome only. No editor controls, no settings icon.
 
 **Kase view (timeline):**
-`[Kase title] [log count pill] [spacer] [+ New Log] [avatar]`
+`[Kase title] [entry count pill] [spacer] [+ New] [avatar]`
+
+The `+ New` button in Kase view opens the new content modal — a picker for New Log or Add Collection Item.
 
 **Log view (editor):**
-`[← Kase name] [/] [Log title] [spacer] [vN · history pill] [saved Xs ago] [Save button — autosave off only] [+ New Log] [avatar]`
+`[← Kase name] [/] [Log title] [spacer] [vN · history pill] [saved Xs ago] [Save button — autosave off only] [+ New] [avatar]`
 
-The Save button is only rendered in the Log view top bar and only when autosave is off for that Log. When autosave is on the Save button is absent — the save status text ("saved Xs ago") communicates state instead. When autosave is off the save status text shows "unsaved changes" in a warning color until the user saves.
+**Collection list view:**
+`[Collection dot] [Collection title] [item count pill] [spacer] [Edit schema] [+ Add item] [avatar]`
 
-The avatar opens the user profile panel (theme, accent, account info). Future admin and user management will be accessed from the profile panel. There is no settings icon in the top bar.
+**Collection designer:**
+`[← Collections] [/] [Collection title — Designer] [spacer] [Save collection]`
+
+**Collection item entry/view:**
+`[← Collection name] [/] [Collection dot] [Collection name] [/] [Item title or "New item"] [spacer] [Edit / View mode toggle] [avatar]`
+
+The Save button in Log view is only rendered when autosave is off for that Log.
+The avatar opens the user profile panel (theme, accent, account info).
 
 ### Main panel — Kase view (timeline)
 
-The Kase timeline is the primary view. It shows all Logs in a Kase in reverse-chronological order (newest at top) as a vertical timeline with a spine line and dots.
+The Kase timeline shows all Logs and linked Collection items in reverse-chronological order as a vertical timeline with a spine line and dots.
 
-Each timeline entry shows:
-
+**Log entries** show:
 * Title (clickable, navigates to Log view)
+* `log` type badge
 * Version badge (e.g. v3, monospaced, subtle)
-* Timestamp (relative for recent, absolute for older)
-* Short description (first line of content if description field is empty)
-* Tags (colored pills)
+* Timestamp
+* Short description
+* Tags
 
-Clicking any entry navigates to the Log view for that Log. New Log creates a blank Log and immediately opens it in Log view.
+**Collection item entries** show:
+* `collection item` type badge
+* Timestamp
+* An inline structured card containing: Collection color dot, Collection name, item title (first text/select field), and key field values as a compact summary row
 
-### Main panel — Log view (editor)
+Log dots are filled with the accent color. Collection item dots are square and dimmed to visually distinguish them without competing with Logs.
 
-Full canvas editor. No competing panels. Tiptap editor fills all available space with a max-width of 680px centered on the canvas.
+Clicking a Log entry navigates to the Log view. Clicking a Collection item entry navigates to the Collection item view.
 
-The Log title is an editable field at the top of the canvas (large, prominent). Below the title: timestamp, Kase name, version indicator — all small and muted.
+The `+ New` button opens a modal with two choices: New Log and Add Collection Item. New Log shows a title and description form. Add Collection Item shows a Collection picker then navigates to the item entry form.
 
-Back navigation: clicking the back arrow with Kase name in the top bar returns to the Kase timeline.
+### Main panel — Collection list view
+
+A filterable, sortable list of all items in a Collection.
+
+**Filter bar (below top bar):**
+* Text search input — searches across all text, multiline, and select field values
+* Dynamic field filter pills — one pill per filterable field (select and boolean types), pulled from the schema. Each pill opens a typeahead dropdown of that field's values
+* Active filters turn the pill teal and show a "X of N" count
+* "Clear" link removes all active filters
+* Columns button — opens a panel listing all schema fields with on/off toggles. Title field is always visible (locked). Hidden columns show a badge count on the button. "Show all" resets visibility
+
+**Table:**
+* Column headers match visible fields, clickable for sort (↑/↓)
+* Each row is a Collection item — clicking navigates to the item view
+* Status badges, star ratings, and image thumbnails render inline
+
+### Main panel — Collection designer
+
+Two-tab interface at `/collections/:id/design`.
+
+**Schema tab:**
+Left panel lists all fields (drag handle, type icon, name, type label, delete button). Right panel is the field editor for the selected field: name input, type display with change option, select options list (for select type), Required toggle, Show in list toggle.
+
+**Layout tab:**
+Left panel is the field palette — all defined fields listed with placed/unplaced state. Layout elements (Divider, Section label) at the bottom. Right panel is the 2-column canvas — drag fields from palette to drop cells. Hover a placed tile to reveal remove (×) and span controls (Full width / Half width). Add Row button extends the canvas.
+
+### Main panel — Collection item entry and view
+
+A form driven by the Collection schema and layout. Renders the designer layout with real inputs in edit mode and clean read-only displays in view mode. Mode toggle is in the top bar and in the mode bar below the top bar. Kase link selector always present at the bottom.
 
 ### Log settings panel
 
-The settings panel is a Log view only feature. It does not exist in the Kase timeline view.
-
-**Trigger:** A small tab is permanently fixed to the right edge of the screen in Log view. The tab shows a ‹ arrow and three vertical dots. Clicking it slides the settings panel in from the right. When the panel is open the tab migrates to the left edge of the panel showing a › arrow — clicking it closes the panel. The tab is always visible, always in the same position relative to the right edge.
-
-The editor canvas compresses slightly when the panel is open but remains fully usable.
-
-**Panel sections in order:**
-
-1. Title (editable input)
-2. Short description (editable input — shown as preview on timeline)
-3. Tags (pill display with remove; add tag input)
-4. Divider
-5. Autosave toggle (on/off per Log, default on; shows status text)
-6. Divider
-7. Version history (list of versions with restore; named checkpoint button)
-8. Divider
-9. Info (created, last edited, Kase — read only)
-10. Delete this log (destructive, red, requires confirmation)
+Unchanged from Phase 1. Log view only. Edge tab trigger. Sections: title, description, tags, autosave toggle, version history, info, delete.
 
 ### Search
 
-Search is a global app-level action. It is not context-specific.
+Search is a global app-level action.
 
-**Entry point:** The pinned search button at the bottom of the left nav opens the quick search overlay.
+**Quick search overlay** — opens from pinned search button. Text input, composable filter pills (Kase, Tag, Date range, Collection). Results show two groups: Logs and Collection items. Match highlighting in both. "Advanced search →" link at bottom.
 
-**Quick search overlay:**
-Appears over the current view. Contains a full-text search input and composable filter pills. Filters are typeahead dropdowns — the user types to narrow available options, not checkboxes. Available filters:
+**Advanced search page (/search)** — full-page search with same filter system. Results are paginated cards. Log cards show title, Kase, timestamp, content preview, tags. Collection item cards show Collection name with dot, item title, key field values, timestamp, linked Kase if any.
 
-* Kase (typeahead dropdown — type to find a Kase by name)
-* Tag (typeahead dropdown — type to find a tag; multiple tags can be added as separate pills)
-* Date range (from / to date inputs)
-
-Selected filters appear as colored pills in the filter row. Each pill is dismissible. Results show below the filter row with match highlighting in content previews. An "Advanced search →" link at the bottom of the overlay navigates to /search with current query and filters preserved.
-
-**Advanced search page (/search):**
-Full-page search with the same filter system. The search input lives in the top bar. Filter pills sit in a secondary row below. Results are paginated cards showing title, Kase, timestamp, content preview with match highlighting, and tags.
-
-Search queries run against: log titles, log content (current version), log descriptions, and tag names. Tags and Kases are also independently filterable without a text query.
-
-Version history is per-Log. It is not a Kase-level concept.
-
-### Autosave behavior
-
-When autosave is on (default): the system saves a new version automatically on idle (2 seconds after the user stops typing) and on navigation away. The version count increments silently. The top bar shows saved time.
-
-When autosave is off: no background saves occur. The user saves explicitly with cmd-S or a visible save button. A version is created only on explicit save. Suitable for Logs the user treats as finished documents.
-
-### Named checkpoints
-
-Available regardless of autosave state. The user can save a named checkpoint at any time from the Log settings panel with an optional label. Named checkpoints are visually distinct from autosave versions in the history list (amber badge vs no badge).
-
-### Version restore
-
-Selecting a version in the settings panel shows a preview. Restoring creates a new version (does not overwrite history). The restored content becomes the current version.
+Search queries run against: log titles, log content, log descriptions, tag names, Collection item text/multiline/select field values, and Collection names.
 
 ---
 
@@ -322,16 +419,17 @@ KaseLog supports light and dark themes and a user-selected accent color. These a
 **Themes:** Light, Dark.
 
 **Accent colors (five presets):**
-
 * Teal (default) — `#1D9E75`
 * Blue — `#378ADD`
 * Purple — `#7F77DD`
 * Coral — `#D85A30`
 * Amber — `#BA7517`
 
-The accent color applies to: timeline dots, active nav state, toggle states, tag colors, version current badge, image resize handles, and any other primary interactive element.
+The accent color applies to: timeline dots, active nav state, toggle states, tag colors, version current badge, image resize handles, Collection item type badge, active filter pills, and any other primary interactive element.
 
-All accent colors are implemented via a single CSS custom property (`--accent`) so the entire UI responds to a single variable change. Each accent also defines light and dark variants for background fills and text (`--accent-light`, `--accent-text`) that automatically adapt to the active theme.
+Collection color dots in the nav use whichever accent preset is assigned to that Collection. This is independent of the user's global accent preference.
+
+All accent colors are implemented via a single CSS custom property (`--accent`) so the entire UI responds to a single variable change.
 
 ---
 
@@ -357,6 +455,7 @@ kaselog/
 |   +-- Dockerfile
 |   +-- docker-compose.yml
 +-- AGENTS.md
++-- PROMPTS.md
 ```
 
 ---
@@ -367,20 +466,11 @@ KaseLog starts with **SQLite as the default and primary supported database**.
 
 The data access layer should be isolated so that other database providers, such as **PostgreSQL** and **SQL Server**, can be introduced later.
 
-This does not mean every SQL statement must be forced into a fake universal format. It means the application should separate:
-
-* core Kase and Log workflows
-* provider-specific data access
-* provider-specific search implementation
-* provider-specific schema initialization
-
 The application layer should depend on interfaces and services, not direct database-specific behavior.
 
 ---
 
 ## Data Model
-
-The system revolves around Kases, Logs, LogVersions, Tags, and LogTags.
 
 ```text
 Kases
@@ -415,25 +505,78 @@ Tags
 LogTags
   LogId (GUID FK -> Logs)
   TagId (GUID FK -> Tags)
+
+Collections
+  Id (GUID)
+  Title
+  Color (text — one of: teal, blue, purple, coral, amber)
+  CreatedAt
+  UpdatedAt
+
+CollectionFields
+  Id (GUID)
+  CollectionId (GUID FK -> Collections ON DELETE CASCADE)
+  Name
+  Type (text | multiline | number | date | select | rating | url | boolean | image)
+  Required (boolean, default false)
+  ShowInList (boolean, default true)
+  Options (JSON text — array of strings, select type only, nullable)
+  SortOrder (integer)
+
+CollectionLayout
+  Id (GUID)
+  CollectionId (GUID FK -> Collections ON DELETE CASCADE UNIQUE)
+  Layout (JSON text — array of row objects, see layout format)
+
+CollectionItems
+  Id (GUID)
+  CollectionId (GUID FK -> Collections ON DELETE CASCADE)
+  KaseId (GUID FK -> Kases ON DELETE SET NULL, nullable)
+  FieldValues (JSON text — object keyed by CollectionField.Id)
+  CreatedAt
+  UpdatedAt
 ```
 
-The current content of a Log is always the most recent LogVersion row for that LogId ordered by CreatedAt descending. The Logs table does not store content directly. Content lives in LogVersions.
+**Layout JSON format:**
+```json
+[
+  {
+    "cells": [
+      { "kind": "field", "fieldId": "...", "span": 2 },
+      null
+    ]
+  },
+  {
+    "cells": [
+      { "kind": "field", "fieldId": "...", "span": 1 },
+      { "kind": "field", "fieldId": "...", "span": 1 }
+    ]
+  },
+  {
+    "cells": [
+      { "kind": "divider", "label": "Details", "span": 2 },
+      null
+    ]
+  }
+]
+```
 
-Search is implemented with a provider-specific full text search strategy.
-
-For the initial build, SQLite uses FTS5.
+**Search index — extended for Collections:**
 
 ```sql
 CREATE VIRTUAL TABLE kaselog_search USING fts5(
-  log_id,
-  kase_id,
+  entity_id UNINDEXED,
+  entity_type UNINDEXED,
+  kase_id UNINDEXED,
   kase_title,
+  collection_id UNINDEXED,
+  collection_title,
   title,
   content
 );
 ```
 
-The search index must update automatically whenever Logs are created, updated, or deleted.
+`entity_type` is either `log` or `collection_item`. For logs, `title` is the Log title and `content` is the current LogVersion content. For collection items, `title` is the value of the first text or select field and `content` is the concatenation of all text, multiline, and select field values. The index updates via SQLite triggers on LogVersion insert/delete and CollectionItem insert/update/delete.
 
 ---
 
@@ -478,8 +621,6 @@ GET    /api/images/{uid}
 DELETE /api/images/{uid}
 ```
 
-`POST /api/images` accepts multipart form data, generates a 40-character alphanumeric UID, stores the file at `/data/images/{uid}.{ext}`, and returns `{ uid, url }`.
-
 ### Tags
 
 ```text
@@ -488,29 +629,89 @@ POST   /api/logs/{logId}/tags
 DELETE /api/logs/{logId}/tags/{tagId}
 ```
 
+### Collections
+
+```text
+GET    /api/collections
+POST   /api/collections
+GET    /api/collections/{id}
+PUT    /api/collections/{id}
+DELETE /api/collections/{id}
+```
+
+### Collection Fields
+
+```text
+GET    /api/collections/{id}/fields
+POST   /api/collections/{id}/fields
+PUT    /api/collections/{id}/fields/{fieldId}
+DELETE /api/collections/{id}/fields/{fieldId}
+PUT    /api/collections/{id}/fields/reorder
+```
+
+`PUT /api/collections/{id}/fields/reorder` accepts an ordered array of field IDs and updates SortOrder for all fields in a single transaction.
+
+### Collection Layout
+
+```text
+GET    /api/collections/{id}/layout
+PUT    /api/collections/{id}/layout
+```
+
+`PUT /api/collections/{id}/layout` accepts the full layout JSON and replaces the existing layout in a single operation.
+
+### Collection Items
+
+```text
+GET    /api/collections/{id}/items
+POST   /api/collections/{id}/items
+GET    /api/items/{id}
+PUT    /api/items/{id}
+DELETE /api/items/{id}
+```
+
+`GET /api/collections/{id}/items` supports query parameters:
+* `q` — full-text search
+* `kaseId` — filter by linked Kase
+* `field[fieldId]=value` — filter by field value (composable, multiple allowed)
+* `sort=fieldId` — sort by field value
+* `dir=asc|desc` — sort direction
+* `page` and `pageSize` — pagination
+
+### Kase Timeline
+
+```text
+GET    /api/kases/{id}/timeline
+```
+
+Returns a reverse-chronological merged list of Logs and Collection items linked to this Kase. Each entry includes an `entityType` field (`log` or `collection_item`) so the frontend can render them differently. Pagination supported.
+
 ### Search
 
 ```text
 GET /api/search?q={query}
-GET /api/search?q={query}&tag={tag}&tag={tag}
+GET /api/search?q={query}&type=log|collection_item
 GET /api/search?q={query}&kaseId={kaseId}
-GET /api/search?q={query}&kaseId={kaseId}&tag={tag}&from={date}&to={date}
+GET /api/search?q={query}&collectionId={collectionId}
+GET /api/search?q={query}&tag={tag}&from={date}&to={date}
 ```
 
-Search returns matching Logs using the configured provider's search implementation. For the initial build, this is SQLite FTS5. All filter parameters are optional and composable. Multiple tag parameters are treated as AND.
+Returns matched Logs and Collection items. Results grouped by entityType in the response. All parameters optional and composable.
 
 ---
 
 ## Frontend Pages
 
 ```text
-/                    Kase list (all Kases)
-/kases/{id}          Kase view, timeline of Logs
-/logs/{id}           Log view, full editor
-/search              Search results
+/                          Kase list (all Kases)
+/kases/{id}                Kase view, mixed timeline
+/logs/{id}                 Log view, full editor
+/collections               All Collections list
+/collections/{id}          Collection list view — items, filters, column picker
+/collections/{id}/design   Collection designer — schema and layout tabs
+/items/{id}                Collection item entry and view
+/search                    Search results
 ```
-
-The UI should prioritize speed, readability, minimalism, and clean kase and log workflows. Avoid dashboard clutter and unnecessary navigation layers.
 
 ---
 
@@ -519,11 +720,13 @@ The UI should prioritize speed, readability, minimalism, and clean kase and log 
 KaseLog should feel immediate.
 
 Targets:
-
-* Kase open under 50ms in normal local use
-* Log open under 50ms in normal local use
-* Search results under 100ms for typical datasets
-* Log save under 50ms in normal local use
+* Kase open under 50ms
+* Log open under 50ms
+* Collection list with 500 items under 100ms
+* Collection item open under 50ms
+* Search results (logs + collection items) under 100ms
+* Log save under 50ms
+* Collection item save under 50ms
 
 SQLite is expected to be sufficient for this phase.
 
@@ -534,7 +737,6 @@ SQLite is expected to be sufficient for this phase.
 KaseLog runs inside a **single Docker container**.
 
 The container includes:
-
 * ASP.NET Core API
 * React frontend served as static files
 * SQLite database on a mounted volume
@@ -594,75 +796,73 @@ When implementing KaseLog:
 3. Prefer speed over feature breadth
 4. Build only what the product currently needs
 5. Protect the quality of the kase and log experience
+6. Collections extend the foundation — they do not complicate it
 
 ---
 
 ## Testing Standards
 
-KaseLog uses xUnit for backend unit and integration tests. React Testing
-Library for frontend component and integration tests.
+KaseLog uses xUnit for backend unit and integration tests. React Testing Library for frontend component and integration tests.
 
 ### Backend testing
 
 Test project: `tests/KaseLog.Api.Tests`
 
-Use an in-memory SQLite database for all tests. Do not use the production
-database path in tests. Each test class should set up a fresh database.
+Use an in-memory SQLite database for all tests. Each test class sets up a fresh database.
 
-Required coverage areas:
+Required coverage areas include all Phase 1 coverage plus:
 
-**Schema and data access:**
-- Schema initializes on a fresh database without errors
-- All tables and the FTS5 index exist after initialization
-- Foreign key constraints cascade correctly on delete
-- IDs are valid GUIDs, timestamps are valid ISO 8601 UTC
+**Collections schema and data access:**
+- Collections table, CollectionFields, CollectionLayout, CollectionItems all initialize correctly
+- Foreign key cascades: deleting a Collection removes all fields, layout, and items
+- CollectionItem.KaseId SET NULL on Kase delete
+- Field reorder updates SortOrder correctly for all affected fields
+- Layout JSON stored and retrieved without mutation
 
-**API endpoints:**
-- Happy path for every endpoint (correct status code and response shape)
-- 404 returned for unknown IDs on all GET, PUT, DELETE endpoints
-- 400 returned for validation failures with field-level error details
-- Envelope shape `{ data, error, meta }` present on all responses
-- Problem Details format on all error responses
+**Collections API:**
+- CRUD happy path for Collections, Fields, Items
+- Field reorder endpoint updates all SortOrder values in one transaction
+- Layout PUT replaces full layout atomically
+- GET /api/collections/{id}/items filters by field value correctly
+- GET /api/kases/{id}/timeline returns mixed Logs and Collection items in reverse-chronological order
+- entityType field present on all timeline entries
 
-**Business logic:**
-- Creating a Log creates an initial empty LogVersion in the same transaction
-- Current Log content is always the most recent LogVersion
-- FTS5 index updates when LogVersions are inserted, updated, or deleted
-- Tag names normalized to lowercase, no duplicates created on re-use
-- Image UIDs are exactly 40 characters, alphanumeric uppercase
-- Autosave version and named checkpoint version are distinguishable
-- Version restore creates a new version, does not mutate history
+**Collections business logic:**
+- CollectionItem FieldValues validated against schema on create and update
+- Required fields enforced — 400 returned if missing
+- Image field values store the image UID, not the raw file
+- FTS5 index updated on CollectionItem create, update, delete
+- Search returns both logs and collection_items with correct entityType
 
-**Performance targets (measured in tests):**
-- Kase list with 100 Kases returns under 50ms
-- Log fetch with 50 versions returns under 50ms
-- FTS5 search across 1000 Logs returns under 100ms
+**Performance targets:**
+- Collection list with 500 items under 100ms
+- Timeline with 200 mixed entries under 100ms
+- Search across 1000 logs + 500 collection items under 100ms
 
 ### Frontend testing
 
-Use React Testing Library with mocked API responses (MSW or vi.fn()).
+Required coverage areas include all Phase 1 coverage plus:
 
-Required coverage areas:
+**Collections components:**
+- Nav accordion expands and collapses Kases and Collections independently
+- Collection list renders items with correct field values
+- Filter pills generated from schema fields
+- Column picker toggles visibility, title always locked
+- Designer schema tab: add field, edit field, delete field
+- Designer layout tab: drag field to cell, remove tile, toggle full/half width
+- Item entry form renders all field types correctly from schema and layout
+- Required field validation highlights missing fields on save attempt
+- View mode renders read-only layout, Edit button returns to edit mode
+- New content modal shows Log and Collection Item options
 
-**Components:**
-- Kase list renders correctly with data and in empty state
-- Timeline renders entries with correct title, version badge, tags, timestamp
-- Log editor renders with title and content from current version
-- Settings panel opens and closes on edge tab click
-- Autosave toggle shows/hides Save button in top bar
-- Search overlay opens, updates results on input, closes on Escape
-- Theme toggle updates data-theme on body
-- Accent picker updates --accent CSS variable
-
-**User flows:**
-- Create Kase → navigate to timeline
-- Create Log → navigate to editor
-- Edit Log title → persists on blur
-- Add tag → tag appears in settings panel and timeline
-- Save named checkpoint → version appears in history list
-- Restore version → new version created with restored content
-- Delete Log → navigate back to Kase timeline
-- Search → results appear → click result → navigate to Log
+**Collections user flows:**
+- Create Collection → navigate to designer → define fields → arrange layout → save
+- Add item → fill form → save → view mode
+- Link item to Kase → item appears on Kase timeline
+- Filter Collection list by field value → results narrow
+- Hide column → column disappears from list header and rows
+- Search → results show both logs and collection items → click item → navigate to item view
+- Delete Collection → removed from nav and collections page
 
 ### Running tests
 
@@ -699,6 +899,6 @@ A change is complete when:
 
 Do not expand the product casually.
 
-New capabilities should only be introduced after the kase and log foundation is strong and this document has been updated accordingly.
+New capabilities should only be introduced after the current foundation is strong and this document has been updated accordingly.
 
 AGENTS.md is the source of truth for the product direction.

@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KaseLog — Collection Designer</title>
+<style>
+  :root {
+    --accent: #1D9E75;
+    --accent-light: #E1F5EE;
+    --accent-text: #085041;
+    --bg: #ffffff;
+    --bg-secondary: #f7f6f3;
+    --bg-tertiary: #f0efe9;
+    --text-primary: #1a1a18;
+    --text-secondary: #5a5955;
+    --text-tertiary: #9a9890;
+    --border: rgba(0,0,0,0.08);
+    --border-mid: rgba(0,0,0,0.14);
+    --font: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'DM Mono', 'Fira Code', monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #131312; --bg-secondary: #1c1c1a; --bg-tertiary: #242422;
+    --text-primary: #e8e6df; --text-secondary: #9a9890; --text-tertiary: #5a5955;
+    --border: rgba(255,255,255,0.07); --border-mid: rgba(255,255,255,0.12);
+    --accent-light: #0a2e22; --accent-text: #5DCAA5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  body { font-family: var(--font); background: var(--bg); color: var(--text-primary); height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: background 0.2s, color 0.2s; }
+
+  /* Top bar */
+  .topbar { height: 48px; min-height: 48px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 1.25rem; gap: 0.75rem; flex-shrink: 0; background: var(--bg); }
+  .topbar-back { font-size: 12px; color: var(--text-tertiary); cursor: pointer; padding: 4px 8px; border-radius: 5px; transition: all 0.15s; }
+  .topbar-back:hover { color: var(--accent); background: var(--accent-light); }
+  .topbar-sep { font-size: 12px; color: var(--border-mid); }
+  .topbar-title { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+  .topbar-spacer { flex: 1; }
+  .topbar-save { font-size: 12px; font-weight: 500; color: white; background: var(--accent); padding: 5px 14px; border-radius: 6px; cursor: pointer; }
+
+  /* Tab bar */
+  .tab-bar { border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 1.25rem; gap: 0; flex-shrink: 0; background: var(--bg); height: 40px; }
+  .tab { padding: 0 1rem; height: 40px; display: flex; align-items: center; font-size: 12px; font-weight: 500; color: var(--text-tertiary); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; margin-bottom: -1px; gap: 0.4rem; }
+  .tab:hover { color: var(--text-secondary); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-badge { font-size: 10px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 99px; padding: 1px 6px; color: var(--text-tertiary); }
+  .tab.active .tab-badge { background: var(--accent-light); border-color: transparent; color: var(--accent-text); }
+
+  /* Panels */
+  .panel { flex: 1; display: none; overflow: hidden; }
+  .panel.active { display: flex; }
+
+  /* ============================================================
+     SCHEMA PANEL
+  ============================================================ */
+  .schema-panel { flex: 1; display: flex; overflow: hidden; }
+  .schema-left { width: 320px; min-width: 320px; border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .schema-left-header { padding: 1rem 1.25rem 0.75rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .schema-left-title { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+  .schema-left-hint { font-size: 11px; color: var(--text-tertiary); }
+  .field-list { flex: 1; overflow-y: auto; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.4rem; }
+  .field-list::-webkit-scrollbar { display: none; }
+
+  /* Field row in schema list */
+  .field-row { background: var(--bg); border: 1px solid var(--border-mid); border-radius: 8px; padding: 0.6rem 0.75rem; cursor: pointer; transition: border-color 0.15s; display: flex; align-items: center; gap: 0.6rem; }
+  .field-row:hover { border-color: var(--accent); }
+  .field-row.selected { border-color: var(--accent); background: var(--accent-light); }
+  .field-drag-handle { font-size: 11px; color: var(--text-tertiary); cursor: grab; flex-shrink: 0; opacity: 0.5; }
+  .field-type-icon { width: 28px; height: 28px; border-radius: 6px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; }
+  .field-row.selected .field-type-icon { background: rgba(255,255,255,0.5); }
+  .field-info { flex: 1; min-width: 0; }
+  .field-name { font-size: 12px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .field-row.selected .field-name { color: var(--accent-text); }
+  .field-type-label { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+  .field-row.selected .field-type-label { color: var(--accent-text); opacity: 0.65; }
+  .field-actions { display: flex; gap: 0.25rem; flex-shrink: 0; }
+  .field-action-btn { width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; color: var(--text-tertiary); transition: all 0.12s; }
+  .field-action-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+  .field-action-btn.del:hover { background: #FCEBEB; color: #A32D2D; }
+
+  /* Add field button */
+  .add-field-wrap { padding: 0.75rem; border-top: 1px solid var(--border); flex-shrink: 0; }
+  .add-field-btn { width: 100%; padding: 0.5rem; border-radius: 7px; border: 1px dashed var(--border-mid); font-size: 12px; color: var(--text-tertiary); cursor: pointer; text-align: center; transition: all 0.15s; background: transparent; font-family: var(--font); }
+  .add-field-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* Field type picker dropdown */
+  .type-picker-wrap { position: relative; }
+  .type-picker { position: absolute; bottom: calc(100% + 6px); left: 0; right: 0; background: var(--bg); border: 1px solid var(--border-mid); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 50; overflow: hidden; display: none; }
+  .type-picker.open { display: block; }
+  .type-picker-title { padding: 0.6rem 0.9rem 0.3rem; font-size: 10px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; }
+  .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 0 0.5rem 0.5rem; }
+  .type-opt { padding: 0.5rem 0.65rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: background 0.1s; }
+  .type-opt:hover { background: var(--bg-secondary); }
+  .type-opt-icon { font-size: 14px; width: 20px; text-align: center; flex-shrink: 0; }
+  .type-opt-name { font-size: 12px; color: var(--text-primary); }
+  .type-opt-hint { font-size: 10px; color: var(--text-tertiary); }
+
+  /* Schema right — field editor */
+  .schema-right { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .schema-right-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 3rem; }
+  .schema-right-empty-title { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+  .schema-right-empty-sub { font-size: 12px; color: var(--text-tertiary); text-align: center; }
+  .field-editor { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 480px; }
+  .field-editor::-webkit-scrollbar { display: none; }
+  .fe-section { display: flex; flex-direction: column; gap: 0.4rem; }
+  .fe-label { font-size: 10px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; }
+  .fe-input { background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 7px; padding: 0.5rem 0.7rem; font-size: 13px; color: var(--text-primary); font-family: var(--font); outline: none; width: 100%; transition: border-color 0.15s; }
+  .fe-input:focus { border-color: var(--accent); }
+  .fe-type-display { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 7px; }
+  .fe-type-icon { font-size: 15px; }
+  .fe-type-name { font-size: 13px; color: var(--text-primary); flex: 1; }
+  .fe-type-change { font-size: 11px; color: var(--accent); cursor: pointer; }
+  .fe-toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .fe-toggle-label { font-size: 13px; color: var(--text-secondary); }
+  .fe-toggle-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
+  .mini-toggle { width: 32px; height: 18px; border-radius: 9px; position: relative; cursor: pointer; flex-shrink: 0; transition: background 0.2s; }
+  .mini-toggle.on { background: var(--accent); }
+  .mini-toggle.off { background: var(--border-mid); }
+  .mini-thumb { position: absolute; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: white; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .mini-toggle.on .mini-thumb { left: 16px; }
+  .mini-toggle.off .mini-thumb { left: 2px; }
+  .select-options-list { display: flex; flex-direction: column; gap: 0.35rem; }
+  .select-opt-row { display: flex; align-items: center; gap: 0.4rem; }
+  .select-opt-input { flex: 1; background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 6px; padding: 0.35rem 0.6rem; font-size: 12px; color: var(--text-primary); font-family: var(--font); outline: none; }
+  .select-opt-input:focus { border-color: var(--accent); }
+  .select-opt-del { font-size: 14px; color: var(--text-tertiary); cursor: pointer; padding: 2px 4px; border-radius: 4px; }
+  .select-opt-del:hover { background: #FCEBEB; color: #A32D2D; }
+  .add-opt-btn { font-size: 11px; color: var(--accent); cursor: pointer; padding: 0.3rem 0; display: inline-block; }
+  .add-opt-btn:hover { text-decoration: underline; }
+  .fe-divider { border-top: 1px solid var(--border); }
+
+  /* ============================================================
+     LAYOUT PANEL
+  ============================================================ */
+  .layout-panel { flex: 1; display: flex; overflow: hidden; }
+
+  /* Left palette */
+  .layout-palette { width: 220px; min-width: 220px; border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; background: var(--bg-secondary); }
+  .palette-header { padding: 0.85rem 1rem 0.6rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .palette-title { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.07em; }
+  .palette-hint { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
+  .palette-section { padding: 0.5rem 0.75rem 0.25rem; font-size: 9px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0; }
+  .palette-body { flex: 1; overflow-y: auto; padding: 0 0.5rem 0.75rem; }
+  .palette-body::-webkit-scrollbar { display: none; }
+  .palette-item { padding: 0.45rem 0.6rem; border-radius: 6px; cursor: grab; display: flex; align-items: center; gap: 0.5rem; transition: background 0.1s; margin-bottom: 2px; border: 1px solid transparent; }
+  .palette-item:hover { background: var(--bg); border-color: var(--border-mid); }
+  .palette-item.dragging { opacity: 0.4; }
+  .palette-item.placed { opacity: 0.45; cursor: default; }
+  .palette-item.placed:hover { background: transparent; border-color: transparent; }
+  .palette-icon { font-size: 13px; width: 22px; text-align: center; flex-shrink: 0; }
+  .palette-name { font-size: 12px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .palette-type { font-size: 10px; color: var(--text-tertiary); }
+  .palette-placed-badge { font-size: 9px; color: var(--accent-text); background: var(--accent-light); padding: 1px 5px; border-radius: 99px; margin-left: auto; flex-shrink: 0; }
+  .palette-divider-line { border-top: 1px solid var(--border); margin: 0.35rem 0.5rem; }
+
+  /* Layout elements section */
+  .layout-el-item { padding: 0.4rem 0.6rem; border-radius: 6px; cursor: grab; display: flex; align-items: center; gap: 0.5rem; transition: background 0.1s; margin-bottom: 2px; border: 1px solid transparent; }
+  .layout-el-item:hover { background: var(--bg); border-color: var(--border-mid); }
+
+  /* Canvas area */
+  .layout-canvas-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .canvas-toolbar { padding: 0.6rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; background: var(--bg); }
+  .canvas-toolbar-label { font-size: 11px; color: var(--text-tertiary); }
+  .canvas-toolbar-spacer { flex: 1; }
+  .canvas-hint { font-size: 11px; color: var(--text-tertiary); }
+  .canvas-clear { font-size: 11px; color: var(--accent); cursor: pointer; }
+  .canvas-clear:hover { text-decoration: underline; }
+  .canvas-scroll { flex: 1; overflow-y: auto; padding: 1.25rem; background: var(--bg-tertiary); }
+  .canvas-scroll::-webkit-scrollbar { width: 4px; }
+  .canvas-scroll::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+  /* The 2-column grid */
+  .design-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-width: 640px; margin: 0 auto; }
+
+  /* A grid cell (always 2 per row — but items can span both) */
+  .grid-row { display: contents; }
+
+  /* Drop zone cell */
+  .drop-cell { min-height: 52px; border-radius: 7px; border: 1.5px dashed var(--border-mid); background: var(--bg); transition: all 0.15s; display: flex; align-items: center; justify-content: center; position: relative; }
+  .drop-cell.drag-over { border-color: var(--accent); background: var(--accent-light); }
+  .drop-cell.occupied { border: none; background: transparent; padding: 0; }
+  .drop-cell-hint { font-size: 10px; color: var(--text-tertiary); pointer-events: none; }
+
+  /* Placed field tile */
+  .field-tile { width: 100%; height: 100%; background: var(--bg); border: 1px solid var(--border-mid); border-radius: 7px; padding: 0.55rem 0.7rem; display: flex; flex-direction: column; gap: 0.25rem; cursor: default; transition: border-color 0.15s; position: relative; min-height: 52px; }
+  .field-tile:hover { border-color: var(--accent); }
+  .field-tile:hover .tile-remove { opacity: 1; }
+  .tile-header { display: flex; align-items: center; gap: 0.4rem; }
+  .tile-icon { font-size: 12px; flex-shrink: 0; opacity: 0.7; }
+  .tile-name { font-size: 12px; font-weight: 500; color: var(--text-primary); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tile-type { font-size: 10px; color: var(--text-tertiary); }
+  .tile-remove { position: absolute; top: 5px; right: 6px; font-size: 13px; color: var(--text-tertiary); cursor: pointer; opacity: 0; transition: opacity 0.15s; line-height: 1; padding: 2px; border-radius: 3px; }
+  .tile-remove:hover { color: #A32D2D; background: #FCEBEB; }
+  .tile-span-badge { font-size: 9px; color: var(--text-tertiary); margin-top: 1px; }
+
+  /* Span controls on hover */
+  .tile-controls { position: absolute; bottom: 5px; right: 6px; display: flex; gap: 3px; opacity: 0; transition: opacity 0.15s; }
+  .field-tile:hover .tile-controls { opacity: 1; }
+  .span-btn { font-size: 9px; padding: 2px 5px; border-radius: 3px; border: 1px solid var(--border-mid); color: var(--text-tertiary); cursor: pointer; background: var(--bg-secondary); transition: all 0.12s; white-space: nowrap; }
+  .span-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .span-btn.active-span { background: var(--accent-light); border-color: var(--accent); color: var(--accent-text); }
+
+  /* Full-width tile spans both columns */
+  .full-width-tile { grid-column: 1 / -1; }
+  .full-width-tile .field-tile { border-color: rgba(29,158,117,0.3); }
+
+  /* Divider tile */
+  .divider-tile { width: 100%; min-height: 32px; display: flex; align-items: center; gap: 0.5rem; padding: 0 0.5rem; position: relative; }
+  .divider-tile:hover .tile-remove { opacity: 1; }
+  .divider-line { flex: 1; height: 1px; background: var(--border-mid); }
+  .divider-label-input { font-size: 11px; color: var(--text-tertiary); background: transparent; border: none; outline: none; font-family: var(--font); min-width: 60px; }
+  .divider-label-input::placeholder { color: var(--text-tertiary); font-style: italic; }
+
+  /* Section label tile */
+  .section-label-tile { width: 100%; min-height: 36px; display: flex; align-items: center; padding: 0 0.25rem; position: relative; }
+  .section-label-tile:hover .tile-remove { opacity: 1; }
+  .section-label-input { font-size: 12px; font-weight: 600; color: var(--text-secondary); background: transparent; border: none; outline: none; font-family: var(--font); width: 100%; text-transform: uppercase; letter-spacing: 0.06em; }
+  .section-label-input::placeholder { color: var(--text-tertiary); font-style: italic; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  /* Row counter */
+  .row-num { font-size: 9px; color: var(--text-tertiary); text-align: center; margin-bottom: 2px; opacity: 0.5; }
+
+  /* Add row button */
+  .add-row-btn { display: flex; align-items: center; justify-content: center; gap: 0.4rem; max-width: 640px; margin: 0.5rem auto 0; padding: 0.5rem; border-radius: 7px; border: 1px dashed var(--border-mid); font-size: 11px; color: var(--text-tertiary); cursor: pointer; transition: all 0.15s; background: transparent; }
+  .add-row-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  .theme-toggle { position: fixed; bottom: 1rem; right: 1rem; background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 99px; padding: 6px 14px; font-size: 11px; color: var(--text-secondary); cursor: pointer; font-family: var(--font); z-index: 100; }
+</style>
+</head>
+<body data-theme="light">
+
+<div class="topbar">
+  <div class="topbar-back">← Collections</div>
+  <div class="topbar-sep">/</div>
+  <div class="topbar-title">Vinyl Records — Designer</div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-save">Save collection</div>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active" id="tab-schema" onclick="switchTab('schema')">
+    Schema
+    <span class="tab-badge" id="schema-badge">7</span>
+  </div>
+  <div class="tab" id="tab-layout" onclick="switchTab('layout')">
+    Layout
+    <span class="tab-badge" id="layout-badge">5 placed</span>
+  </div>
+</div>
+
+<!-- SCHEMA PANEL -->
+<div class="panel active" id="panel-schema">
+  <div class="schema-panel">
+    <div class="schema-left">
+      <div class="schema-left-header">
+        <div class="schema-left-title">Fields</div>
+        <div class="schema-left-hint">Click to edit</div>
+      </div>
+      <div class="field-list" id="field-list"></div>
+      <div class="add-field-wrap">
+        <div class="type-picker-wrap">
+          <button class="add-field-btn" onclick="toggleTypePicker()">+ Add field</button>
+          <div class="type-picker" id="type-picker">
+            <div class="type-picker-title">Choose field type</div>
+            <div class="type-grid" id="type-grid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="schema-right" id="schema-right">
+      <div class="schema-right-empty">
+        <div class="schema-right-empty-title">Select a field to edit</div>
+        <div class="schema-right-empty-sub">Click any field on the left to configure its name, type, and options</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LAYOUT PANEL -->
+<div class="panel" id="panel-layout">
+  <div class="layout-panel">
+    <div class="layout-palette">
+      <div class="palette-header">
+        <div class="palette-title">Fields</div>
+        <div class="palette-hint">Drag onto the canvas</div>
+      </div>
+      <div class="palette-body">
+        <div class="palette-section">Data fields</div>
+        <div id="palette-fields"></div>
+        <div class="palette-divider-line"></div>
+        <div class="palette-section">Layout elements</div>
+        <div class="layout-el-item" draggable="true" data-el="divider" ondragstart="elDragStart(event,'divider')">
+          <div class="palette-icon">—</div>
+          <div><div class="palette-name">Divider</div><div class="palette-type">Visual separator</div></div>
+        </div>
+        <div class="layout-el-item" draggable="true" data-el="label" ondragstart="elDragStart(event,'label')">
+          <div class="palette-icon">T</div>
+          <div><div class="palette-name">Section label</div><div class="palette-type">Group heading</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout-canvas-wrap">
+      <div class="canvas-toolbar">
+        <div class="canvas-toolbar-label">2-column grid · snap layout</div>
+        <div class="canvas-toolbar-spacer"></div>
+        <div class="canvas-hint" id="canvas-hint">Drag fields from the left panel</div>
+        <div class="canvas-clear" onclick="clearLayout()" style="margin-left:1rem;">Clear all</div>
+      </div>
+      <div class="canvas-scroll">
+        <div class="design-grid" id="design-grid"></div>
+        <div class="add-row-btn" onclick="addRow()">+ Add row</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="theme-toggle" onclick="document.body.setAttribute('data-theme',document.body.getAttribute('data-theme')==='dark'?'light':'dark')">Toggle dark mode</button>
+
+<script>
+/* ============================================================
+   DATA
+============================================================ */
+const FIELD_TYPES = [
+  { type:'text',      label:'Text',       icon:'T',  hint:'Single line' },
+  { type:'multiline', label:'Multiline',  icon:'¶',  hint:'Paragraph' },
+  { type:'number',    label:'Number',     icon:'#',  hint:'Int or decimal' },
+  { type:'date',      label:'Date',       icon:'📅', hint:'Calendar picker' },
+  { type:'select',    label:'Select',     icon:'⌄',  hint:'Preset options' },
+  { type:'rating',    label:'Rating',     icon:'★',  hint:'1–5 stars' },
+  { type:'url',       label:'URL',        icon:'🔗', hint:'Link' },
+  { type:'boolean',   label:'Yes / No',   icon:'◐',  hint:'Toggle' },
+  { type:'image',     label:'Image',      icon:'🖼', hint:'Photo or cover art' },
+];
+
+let fields = [
+  { id:'f1', name:'Album',     type:'text',   required:true,  showInList:true,  opts:[] },
+  { id:'f2', name:'Artist',    type:'text',   required:true,  showInList:true,  opts:[] },
+  { id:'f3', name:'Year',      type:'number', required:false, showInList:true,  opts:[] },
+  { id:'f4', name:'Label',     type:'text',   required:false, showInList:false, opts:[] },
+  { id:'f5', name:'Format',    type:'select', required:false, showInList:true,  opts:['LP','2×LP','7-inch','10-inch','Picture disc'] },
+  { id:'f6', name:'Condition', type:'select', required:false, showInList:true,  opts:['M','VG+','VG','G+','G','F'] },
+  { id:'f7', name:'Rating',    type:'rating', required:false, showInList:true,  opts:[] },
+  { id:'f8', name:'Status',    type:'select', required:false, showInList:true,  opts:['Own','Want','Sold'] },
+  { id:'f9', name:'Cover',     type:'image',  required:false, showInList:false, opts:[] },
+];
+
+// Layout: array of rows. Each row = { cells: [ cellObj, cellObj ] }
+// cellObj = null | { kind:'field'|'divider'|'label', fieldId?, label?, span:1|2 }
+// span:2 means the tile occupies both columns (stored in cell[0], cell[1]=null)
+let layoutRows = [
+  { cells: [ { kind:'field', fieldId:'f1', span:2 }, null ] },
+  { cells: [ { kind:'field', fieldId:'f2', span:1 }, { kind:'field', fieldId:'f3', span:1 } ] },
+  { cells: [ { kind:'label', label:'Details', span:2 }, null ] },
+  { cells: [ { kind:'field', fieldId:'f5', span:1 }, { kind:'field', fieldId:'f6', span:1 } ] },
+  { cells: [ { kind:'field', fieldId:'f7', span:1 }, { kind:'field', fieldId:'f8', span:1 } ] },
+  { cells: [ null, null ] },
+];
+
+let selectedFieldId = null;
+let dragFieldId = null;
+let dragElType = null;
+
+/* ============================================================
+   TABS
+============================================================ */
+function switchTab(tab) {
+  document.getElementById('panel-schema').classList.toggle('active', tab==='schema');
+  document.getElementById('panel-layout').classList.toggle('active', tab==='layout');
+  document.getElementById('tab-schema').classList.toggle('active', tab==='schema');
+  document.getElementById('tab-layout').classList.toggle('active', tab==='layout');
+  if (tab==='layout') { renderPalette(); renderGrid(); }
+  else { renderFieldList(); }
+}
+
+/* ============================================================
+   SCHEMA
+============================================================ */
+function typeIcon(type) { return (FIELD_TYPES.find(t=>t.type===type)||{icon:'?'}).icon; }
+function typeLabel(type) { return (FIELD_TYPES.find(t=>t.type===type)||{label:type}).label; }
+
+function renderFieldList() {
+  const list = document.getElementById('field-list');
+  list.innerHTML = fields.map(f => `
+    <div class="field-row ${selectedFieldId===f.id?'selected':''}" onclick="selectField('${f.id}')">
+      <div class="field-drag-handle">⠿</div>
+      <div class="field-type-icon">${typeIcon(f.type)}</div>
+      <div class="field-info">
+        <div class="field-name">${f.name||'Untitled field'}</div>
+        <div class="field-type-label">${typeLabel(f.type)}</div>
+      </div>
+      <div class="field-actions">
+        <div class="field-action-btn del" title="Delete" onclick="deleteField('${f.id}',event)">×</div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('schema-badge').textContent = fields.length;
+}
+
+function selectField(id) {
+  selectedFieldId = id;
+  renderFieldList();
+  renderFieldEditor();
+}
+
+function renderFieldEditor() {
+  const f = fields.find(x=>x.id===selectedFieldId);
+  if (!f) { document.getElementById('schema-right').innerHTML = `<div class="schema-right-empty"><div class="schema-right-empty-title">Select a field to edit</div><div class="schema-right-empty-sub">Click any field on the left</div></div>`; return; }
+  const isSelect = f.type==='select';
+  const optsHtml = isSelect ? `
+    <div class="fe-section">
+      <div class="fe-label">Options</div>
+      <div class="select-options-list" id="opts-list">
+        ${f.opts.map((o,i)=>`
+          <div class="select-opt-row">
+            <input class="select-opt-input" value="${o}" oninput="updateOpt('${f.id}',${i},this.value)" placeholder="Option ${i+1}">
+            <div class="select-opt-del" onclick="removeOpt('${f.id}',${i})">×</div>
+          </div>`).join('')}
+      </div>
+      <div class="add-opt-btn" onclick="addOpt('${f.id}')">+ Add option</div>
+    </div>` : '';
+
+  document.getElementById('schema-right').innerHTML = `
+    <div class="field-editor">
+      <div class="fe-section">
+        <div class="fe-label">Field name</div>
+        <input class="fe-input" value="${f.name}" oninput="updateField('${f.id}','name',this.value)" placeholder="e.g. Artist">
+      </div>
+      <div class="fe-section">
+        <div class="fe-label">Field type</div>
+        <div class="fe-type-display">
+          <div class="fe-type-icon">${typeIcon(f.type)}</div>
+          <div class="fe-type-name">${typeLabel(f.type)}</div>
+          <div class="fe-type-change" onclick="openTypeChange('${f.id}')">Change type</div>
+        </div>
+        <div class="type-picker" id="inline-type-picker" style="position:relative;margin-top:4px;">
+          <div class="type-grid">
+            ${FIELD_TYPES.map(t=>`
+              <div class="type-opt" onclick="changeType('${f.id}','${t.type}')">
+                <div class="type-opt-icon">${t.icon}</div>
+                <div><div class="type-opt-name">${t.label}</div><div class="type-opt-hint">${t.hint}</div></div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+      ${optsHtml}
+      <div class="fe-divider"></div>
+      <div class="fe-section">
+        <div class="fe-label">Settings</div>
+        <div class="fe-toggle-row" style="margin-bottom:0.75rem;">
+          <div><div class="fe-toggle-label">Required</div><div class="fe-toggle-sub">Must be filled when adding an item</div></div>
+          <div class="mini-toggle ${f.required?'on':'off'}" onclick="toggleField('${f.id}','required')"><div class="mini-thumb"></div></div>
+        </div>
+        <div class="fe-toggle-row">
+          <div><div class="fe-toggle-label">Show in list</div><div class="fe-toggle-sub">Display as a column in the collection list</div></div>
+          <div class="mini-toggle ${f.showInList?'on':'off'}" onclick="toggleField('${f.id}','showInList')"><div class="mini-thumb"></div></div>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('inline-type-picker').style.display = 'none';
+}
+
+function updateField(id, prop, val) {
+  const f = fields.find(x=>x.id===id);
+  if (f) { f[prop]=val; renderFieldList(); }
+}
+function toggleField(id, prop) {
+  const f = fields.find(x=>x.id===id);
+  if (f) { f[prop]=!f[prop]; renderFieldEditor(); }
+}
+function changeType(id, type) {
+  const f = fields.find(x=>x.id===id);
+  if (f) { f.type=type; if(type!=='select') f.opts=[]; renderFieldList(); renderFieldEditor(); }
+}
+function openTypeChange(id) {
+  const picker = document.getElementById('inline-type-picker');
+  picker.style.display = picker.style.display==='none' ? 'block' : 'none';
+}
+function addOpt(id) {
+  const f = fields.find(x=>x.id===id);
+  if (f) { f.opts.push(''); renderFieldEditor(); setTimeout(()=>{ const inputs=document.querySelectorAll('.select-opt-input'); if(inputs.length) inputs[inputs.length-1].focus(); },50); }
+}
+function updateOpt(id, idx, val) { const f=fields.find(x=>x.id===id); if(f) f.opts[idx]=val; }
+function removeOpt(id, idx) { const f=fields.find(x=>x.id===id); if(f){ f.opts.splice(idx,1); renderFieldEditor(); } }
+function deleteField(id, e) {
+  e.stopPropagation();
+  fields = fields.filter(x=>x.id!==id);
+  if (selectedFieldId===id) selectedFieldId=null;
+  layoutRows.forEach(row => row.cells.forEach((c,i) => { if(c&&c.fieldId===id) row.cells[i]=null; }));
+  renderFieldList(); renderFieldEditor();
+}
+
+function toggleTypePicker() {
+  const p = document.getElementById('type-picker');
+  p.classList.toggle('open');
+}
+
+function buildTypePicker() {
+  document.getElementById('type-grid').innerHTML = FIELD_TYPES.map(t=>`
+    <div class="type-opt" onclick="addField('${t.type}')">
+      <div class="type-opt-icon">${t.icon}</div>
+      <div><div class="type-opt-name">${t.label}</div><div class="type-opt-hint">${t.hint}</div></div>
+    </div>`).join('');
+}
+
+function addField(type) {
+  const id = 'f'+(Date.now());
+  fields.push({ id, name:'', type, required:false, showInList:false, opts:[] });
+  selectedFieldId = id;
+  document.getElementById('type-picker').classList.remove('open');
+  renderFieldList();
+  renderFieldEditor();
+  setTimeout(()=>{ const inp=document.querySelector('.fe-input'); if(inp) inp.focus(); },80);
+}
+
+/* ============================================================
+   LAYOUT
+============================================================ */
+function placedFieldIds() {
+  const placed = new Set();
+  layoutRows.forEach(row => row.cells.forEach(c=>{ if(c&&c.kind==='field') placed.add(c.fieldId); }));
+  return placed;
+}
+
+function renderPalette() {
+  const placed = placedFieldIds();
+  document.getElementById('palette-fields').innerHTML = fields.map(f=>`
+    <div class="palette-item ${placed.has(f.id)?'placed':''}"
+      draggable="${!placed.has(f.id)}"
+      data-field-id="${f.id}"
+      ondragstart="fieldDragStart(event,'${f.id}')"
+    >
+      <div class="palette-icon">${typeIcon(f.type)}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="palette-name">${f.name||'Untitled'}</div>
+        <div class="palette-type">${typeLabel(f.type)}</div>
+      </div>
+      ${placed.has(f.id) ? '<span class="palette-placed-badge">placed</span>' : ''}
+    </div>`).join('');
+  updateLayoutBadge();
+}
+
+function updateLayoutBadge() {
+  const placed = placedFieldIds().size;
+  document.getElementById('layout-badge').textContent = placed + ' placed';
+}
+
+function renderGrid() {
+  const grid = document.getElementById('design-grid');
+  const placed = placedFieldIds();
+  let html = '';
+  layoutRows.forEach((row, ri) => {
+    const c0 = row.cells[0];
+    const c1 = row.cells[1];
+    if (c0 && c0.span===2) {
+      // Full width tile
+      html += `<div class="full-width-tile" data-row="${ri}" data-col="0">` + renderTile(c0, ri, 0, true) + `</div>`;
+    } else {
+      // Left cell
+      html += renderDropCell(c0, ri, 0);
+      // Right cell — only render if left cell is not span:2
+      html += renderDropCell(c1, ri, 1);
+    }
+  });
+  grid.innerHTML = html;
+}
+
+function renderDropCell(cell, ri, ci) {
+  if (!cell) {
+    return `<div class="drop-cell" data-row="${ri}" data-col="${ci}"
+      ondragover="cellDragOver(event,${ri},${ci})"
+      ondragleave="cellDragLeave(event)"
+      ondrop="cellDrop(event,${ri},${ci})"
+    ><div class="drop-cell-hint">Drop here</div></div>`;
+  }
+  return `<div class="drop-cell occupied" data-row="${ri}" data-col="${ci}">${renderTile(cell, ri, ci, false)}</div>`;
+}
+
+function renderTile(cell, ri, ci, isFullWidth) {
+  if (!cell) return '';
+  if (cell.kind==='divider') {
+    return `<div class="divider-tile">
+      <div class="divider-line"></div>
+      <input class="divider-label-input" placeholder="Label (optional)" value="${cell.label||''}">
+      <div class="divider-line"></div>
+      <div class="tile-remove" onclick="removeTile(${ri},${ci})">×</div>
+    </div>`;
+  }
+  if (cell.kind==='label') {
+    return `<div class="section-label-tile">
+      <input class="section-label-input" placeholder="Section name..." value="${cell.label||''}">
+      <div class="tile-remove" onclick="removeTile(${ri},${ci})">×</div>
+    </div>`;
+  }
+  const f = fields.find(x=>x.id===cell.fieldId);
+  if (!f) return '';
+  const spanLabel = isFullWidth ? 'Full width' : '';
+  return `<div class="field-tile">
+    <div class="tile-header">
+      <div class="tile-icon">${typeIcon(f.type)}</div>
+      <div class="tile-name">${f.name||'Untitled'}</div>
+    </div>
+    <div class="tile-type">${typeLabel(f.type)}</div>
+    ${spanLabel ? `<div class="tile-span-badge">${spanLabel}</div>` : ''}
+    <div class="tile-remove" onclick="removeTile(${ri},${ci})">×</div>
+    ${!isFullWidth ? `<div class="tile-controls">
+      <div class="span-btn ${!isFullWidth&&ci===0?'':'hide'}" onclick="makeFullWidth(${ri},${ci})">Full width</div>
+    </div>` : `<div class="tile-controls">
+      <div class="span-btn" onclick="makeHalfWidth(${ri},${ci})">Half width</div>
+    </div>`}
+  </div>`;
+}
+
+/* drag from palette */
+function fieldDragStart(e, fieldId) {
+  dragFieldId = fieldId;
+  dragElType = null;
+  e.dataTransfer.effectAllowed = 'copy';
+}
+function elDragStart(e, elType) {
+  dragElType = elType;
+  dragFieldId = null;
+  e.dataTransfer.effectAllowed = 'copy';
+}
+function cellDragOver(e, ri, ci) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  const row = layoutRows[ri];
+  // don't allow dropping on occupied cell
+  if (row.cells[ci] !== null) return;
+  // don't allow if col0 has span:2
+  if (ci===1 && row.cells[0] && row.cells[0].span===2) return;
+  e.currentTarget.classList.add('drag-over');
+}
+function cellDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function cellDrop(e, ri, ci) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const row = layoutRows[ri];
+  if (row.cells[ci] !== null) return;
+  if (ci===1 && row.cells[0] && row.cells[0].span===2) return;
+  if (dragFieldId) {
+    row.cells[ci] = { kind:'field', fieldId:dragFieldId, span:1 };
+  } else if (dragElType==='divider') {
+    row.cells[ci] = { kind:'divider', label:'', span:ci===0?2:1 };
+    if (ci===0) row.cells[1] = null;
+  } else if (dragElType==='label') {
+    row.cells[ci] = { kind:'label', label:'', span:ci===0?2:1 };
+    if (ci===0) row.cells[1] = null;
+  }
+  dragFieldId = null; dragElType = null;
+  renderPalette(); renderGrid();
+}
+
+function removeTile(ri, ci) {
+  layoutRows[ri].cells[ci] = null;
+  // if was full width, also clear span marker
+  if (layoutRows[ri].cells[0] === null) layoutRows[ri].cells[1] = null;
+  renderPalette(); renderGrid();
+}
+
+function makeFullWidth(ri, ci) {
+  const cell = layoutRows[ri].cells[0] || layoutRows[ri].cells[1];
+  if (!cell) return;
+  const orig = JSON.parse(JSON.stringify(layoutRows[ri].cells[ci]));
+  layoutRows[ri].cells[0] = { ...orig, span:2 };
+  layoutRows[ri].cells[1] = null;
+  renderPalette(); renderGrid();
+}
+
+function makeHalfWidth(ri, ci) {
+  const cell = layoutRows[ri].cells[0];
+  if (!cell) return;
+  layoutRows[ri].cells[0] = { ...cell, span:1 };
+  renderPalette(); renderGrid();
+}
+
+function addRow() { layoutRows.push({ cells:[null,null] }); renderGrid(); }
+
+function clearLayout() {
+  layoutRows = layoutRows.map(()=>({ cells:[null,null] }));
+  renderPalette(); renderGrid();
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+document.addEventListener('click', e => {
+  if (!e.target.closest('.type-picker-wrap')) document.getElementById('type-picker').classList.remove('open');
+  if (!e.target.closest('.fe-type-change') && !e.target.closest('#inline-type-picker')) {
+    const p = document.getElementById('inline-type-picker');
+    if (p) p.style.display = 'none';
+  }
+});
+
+buildTypePicker();
+renderFieldList();
+</script>
+</body>
+</html>
