@@ -298,7 +298,7 @@ export default function LogViewPage() {
     if (!id || !name.trim()) return
     try {
       const tag = await tagsApi.addToLog(id, name.trim())
-      setLog((prev) => prev ? { ...prev, tags: [...prev.tags, tag] } : prev)
+      setLog((prev) => prev ? { ...prev, tags: [...(prev.tags ?? []), tag] } : prev)
       setTagInput('')
     } catch {
       // silently ignore
@@ -311,7 +311,7 @@ export default function LogViewPage() {
     if (!id) return
     try {
       await tagsApi.removeFromLog(id, tagId)
-      setLog((prev) => prev ? { ...prev, tags: prev.tags.filter(t => t.id !== tagId) } : prev)
+      setLog((prev) => prev ? { ...prev, tags: (prev.tags ?? []).filter(t => t.id !== tagId) } : prev)
     } catch {
       // silently ignore
     }
@@ -610,7 +610,7 @@ export default function LogViewPage() {
                 <div>
                   <SpLabel>Tags</SpLabel>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.4rem' }}>
-                    {log.tags.map((t: TagResponse) => {
+                    {(log.tags ?? []).map((t: TagResponse) => {
                       const s = tagStyle(t.name)
                       return (
                         <span
