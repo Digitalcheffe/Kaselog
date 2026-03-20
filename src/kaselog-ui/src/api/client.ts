@@ -6,6 +6,10 @@ import type {
   TagResponse,
   SearchResult,
   UserResponse,
+  CollectionResponse,
+  CollectionFieldResponse,
+  CollectionLayoutResponse,
+  CollectionItemResponse,
   CreateKaseRequest,
   UpdateKaseRequest,
   CreateLogRequest,
@@ -153,6 +157,55 @@ export const user = {
       method: 'PUT',
       body: JSON.stringify(body),
     }),
+}
+
+// ── Collections ───────────────────────────────────────────────────────────────
+
+export const collections = {
+  list: (): Promise<CollectionResponse[]> =>
+    request<CollectionResponse[]>('/api/collections'),
+
+  get: (id: string): Promise<CollectionResponse> =>
+    request<CollectionResponse>(`/api/collections/${id}`),
+
+  getFields: (id: string): Promise<CollectionFieldResponse[]> =>
+    request<CollectionFieldResponse[]>(`/api/collections/${id}/fields`),
+
+  getLayout: (id: string): Promise<CollectionLayoutResponse> =>
+    request<CollectionLayoutResponse>(`/api/collections/${id}/layout`),
+
+  getItems: (
+    id: string,
+    params: {
+      q?: string
+      kaseId?: string
+      fieldFilters?: Record<string, string>
+      sort?: string
+      dir?: 'asc' | 'desc'
+      page?: number
+      pageSize?: number
+    } = {},
+  ): Promise<CollectionItemResponse[]> => {
+    const qs = new URLSearchParams()
+    if (params.q) qs.set('q', params.q)
+    if (params.kaseId) qs.set('kaseId', params.kaseId)
+    if (params.fieldFilters) {
+      for (const [fieldId, value] of Object.entries(params.fieldFilters)) {
+        qs.set(`field[${fieldId}]`, value)
+      }
+    }
+    if (params.sort) qs.set('sort', params.sort)
+    if (params.dir) qs.set('dir', params.dir)
+    if (params.page != null) qs.set('page', String(params.page))
+    if (params.pageSize != null) qs.set('pageSize', String(params.pageSize))
+    const query = qs.toString()
+    return request<CollectionItemResponse[]>(
+      `/api/collections/${id}/items${query ? `?${query}` : ''}`,
+    )
+  },
+
+  getItem: (id: string): Promise<CollectionItemResponse> =>
+    request<CollectionItemResponse>(`/api/items/${id}`),
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
