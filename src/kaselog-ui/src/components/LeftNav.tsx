@@ -1,31 +1,15 @@
-import { useState, useEffect } from 'react'
-import { Link, useMatch, useNavigate } from 'react-router-dom'
-import { kases as kasesApi } from '../api/client'
-import type { KaseResponse } from '../api/types'
+import { useMatch, useNavigate } from 'react-router-dom'
+import { useKases } from '../contexts/KasesContext'
 
 interface LeftNavProps {
   onSearchOpen: () => void
 }
 
 export default function LeftNav({ onSearchOpen }: LeftNavProps) {
-  const [kaseList, setKaseList] = useState<KaseResponse[]>([])
+  const { kaseList } = useKases()
   const navigate = useNavigate()
   const kaseMatch = useMatch('/kases/:id')
   const activeKaseId = kaseMatch?.params.id
-
-  useEffect(() => {
-    kasesApi.list().then(setKaseList).catch(() => {})
-  }, [])
-
-  async function handleNewKase() {
-    try {
-      const created = await kasesApi.create({ title: 'New Kase' })
-      setKaseList(prev => [created, ...prev])
-      navigate(`/kases/${created.id}`)
-    } catch {
-      // silently ignore — shell-level error handling deferred
-    }
-  }
 
   return (
     <nav style={{
@@ -47,9 +31,9 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
         </div>
       </div>
 
-      {/* New Kase */}
+      {/* New Kase — navigates to / where the form lives */}
       <button
-        onClick={handleNewKase}
+        onClick={() => navigate('/')}
         style={{
           margin: '0.6rem 0.6rem 0.25rem',
           padding: '0.45rem 0.75rem',
@@ -89,29 +73,31 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
         {kaseList.map(kase => {
           const isActive = activeKaseId === kase.id
           return (
-            <Link key={kase.id} to={`/kases/${kase.id}`} style={{ textDecoration: 'none' }}>
-              <div style={{
+            <div
+              key={kase.id}
+              onClick={() => navigate(`/kases/${kase.id}`)}
+              style={{
                 padding: '0.45rem 0.6rem',
                 borderRadius: 6,
                 cursor: 'pointer',
                 marginBottom: 1,
                 background: isActive ? 'var(--bg-tertiary)' : 'transparent',
+              }}
+            >
+              <div style={{
+                fontSize: 12,
+                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                fontWeight: isActive ? 500 : 400,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}>
-                <div style={{
-                  fontSize: 12,
-                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  fontWeight: isActive ? 500 : 400,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}>
-                  {kase.title}
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>
-                  {kase.logCount} {kase.logCount === 1 ? 'log' : 'logs'}
-                </div>
+                {kase.title}
               </div>
-            </Link>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>
+                {kase.logCount} {kase.logCount === 1 ? 'log' : 'logs'}
+              </div>
+            </div>
           )
         })}
       </div>
