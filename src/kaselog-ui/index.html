@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KaseLog</title>
+    <!-- Apply stored theme/accent before first render to prevent flash -->
+    <script>
+      (function () {
+        var ACCENT_COLORS = {
+          teal: '#1D9E75', blue: '#378ADD', purple: '#7F77DD',
+          coral: '#D85A30', amber: '#BA7517',
+        }
+        try {
+          var p = JSON.parse(localStorage.getItem('kaselog-prefs') || '{}')
+          if (p.theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark')
+          if (p.accent && ACCENT_COLORS[p.accent]) {
+            document.documentElement.style.setProperty('--accent', ACCENT_COLORS[p.accent])
+            if (p.accent !== 'teal') document.documentElement.setAttribute('data-accent', p.accent)
+          }
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
