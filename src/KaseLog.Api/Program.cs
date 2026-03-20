@@ -1,6 +1,8 @@
 using KaseLog.Api.Data;
 using KaseLog.Api.Data.Sqlite;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.OpenApi.Models;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,6 +59,24 @@ builder.Services.AddControllers()
         };
     });
 
+// ── Swagger / OpenAPI (development only) ─────────────────────────────────────
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "KaseLog API",
+        Version = "v1",
+        Description = "KaseLog is a private ops journal for the solo technical operator. " +
+                      "Open a Kase when something needs attention, and write Logs as the work unfolds.",
+    });
+
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+        options.IncludeXmlComments(xmlPath);
+});
+
 var app = builder.Build();
 
 // ── Data directories ─────────────────────────────────────────────────────────
@@ -67,6 +87,13 @@ Directory.CreateDirectory(Path.Combine(dataDir, "images"));
 var schemaInitializer = app.Services.GetRequiredService<ISchemaInitializer>();
 await schemaInitializer.InitializeAsync();
 
+// ── Swagger UI (development only) ─────────────────────────────────────────────
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "KaseLog API v1"));
+}
+
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -74,7 +101,10 @@ app.UseStaticFiles();
 app.MapControllers();
 
 // Health check — no database dependency
-app.MapGet("/health", () => Results.Ok(new { status = "ok", version = "1.0.0" }));
+app.MapGet("/health", () => Results.Ok(new { status = "ok", version = "1.0.0" }))
+   .WithName("Health")
+   .WithSummary("Returns API health status.")
+   .WithTags("Health");
 
 // SPA fallback — return index.html for any unmatched route
 app.MapFallbackToFile("index.html");
