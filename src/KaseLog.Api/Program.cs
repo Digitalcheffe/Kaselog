@@ -87,12 +87,9 @@ Directory.CreateDirectory(Path.Combine(dataDir, "images"));
 var schemaInitializer = app.Services.GetRequiredService<ISchemaInitializer>();
 await schemaInitializer.InitializeAsync();
 
-// ── Swagger UI (development only) ─────────────────────────────────────────────
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "KaseLog API v1"));
-}
+// ── Swagger UI ────────────────────────────────────────────────────────────────
+app.UseSwagger();
+app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "KaseLog API v1"));
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.UseDefaultFiles();
