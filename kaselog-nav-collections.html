@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KaseLog — Nav + Collections</title>
+<style>
+  :root {
+    --accent: #1D9E75;
+    --accent-light: #E1F5EE;
+    --accent-text: #085041;
+    --bg: #ffffff;
+    --bg-secondary: #f7f6f3;
+    --bg-tertiary: #f0efe9;
+    --text-primary: #1a1a18;
+    --text-secondary: #5a5955;
+    --text-tertiary: #9a9890;
+    --border: rgba(0,0,0,0.08);
+    --border-mid: rgba(0,0,0,0.14);
+    --font: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'DM Mono', 'Fira Code', monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #131312; --bg-secondary: #1c1c1a; --bg-tertiary: #242422;
+    --text-primary: #e8e6df; --text-secondary: #9a9890; --text-tertiary: #5a5955;
+    --border: rgba(255,255,255,0.07); --border-mid: rgba(255,255,255,0.12);
+    --accent-light: #0a2e22; --accent-text: #5DCAA5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  body { font-family: var(--font); background: var(--bg-tertiary); display: flex; align-items: flex-start; justify-content: center; padding: 2rem; min-height: 100vh; gap: 2rem; flex-wrap: wrap; }
+
+  .demo-label { font-size: 10px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+
+  /* NAV */
+  nav {
+    width: 200px; min-width: 200px; height: 580px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-mid);
+    border-radius: 12px;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .nav-logo { padding: 1rem 1rem 0.75rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .nav-logo-name { font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.03em; }
+  .nav-logo-sub { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+
+  /* Scrollable middle */
+  .nav-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+  .nav-body::-webkit-scrollbar { display: none; }
+
+  /* Section */
+  .nav-section { flex-shrink: 0; }
+  .nav-section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.5rem 0.6rem 0.25rem 0.9rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .nav-section-header:hover .nav-section-label { color: var(--text-secondary); }
+  .nav-section-left { display: flex; align-items: center; gap: 0.35rem; }
+  .nav-section-label { font-size: 9px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; transition: color 0.15s; }
+  .nav-section-arrow { font-size: 9px; color: var(--text-tertiary); transition: transform 0.2s; line-height: 1; }
+  .nav-section-arrow.collapsed { transform: rotate(-90deg); }
+  .nav-section-new {
+    font-size: 10px; color: var(--text-tertiary);
+    padding: 2px 6px; border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    cursor: pointer; transition: all 0.15s;
+    line-height: 1.4;
+  }
+  .nav-section-new:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Items */
+  .nav-items { padding: 0 0.4rem 0.4rem; overflow: hidden; }
+  .nav-items.collapsed { display: none; }
+  .nav-item {
+    padding: 0.38rem 0.55rem; border-radius: 6px;
+    cursor: pointer; margin-bottom: 1px;
+    transition: background 0.1s;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-item:hover { background: var(--bg-tertiary); }
+  .nav-item.active { background: var(--bg-tertiary); }
+  .nav-item-name { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 400; }
+  .nav-item.active .nav-item-name { color: var(--text-primary); font-weight: 500; }
+  .nav-item-count { font-size: 10px; color: var(--text-tertiary); flex-shrink: 0; margin-left: 0.3rem; }
+  .nav-more {
+    padding: 0.25rem 0.55rem; font-size: 11px;
+    color: var(--accent); cursor: pointer;
+    border-radius: 5px; transition: background 0.1s;
+    display: inline-block; margin-bottom: 0.25rem;
+  }
+  .nav-more:hover { background: var(--accent-light); }
+
+  /* Collection icon dot */
+  .nav-item-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    flex-shrink: 0; margin-right: 0.4rem;
+  }
+
+  /* Divider */
+  .nav-divider { border-top: 1px solid var(--border); margin: 0.25rem 0; flex-shrink: 0; }
+
+  /* Search pin */
+  .nav-search-pin { border-top: 1px solid var(--border); padding: 0.6rem; flex-shrink: 0; }
+  .nav-search-btn {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 0.65rem; border-radius: 7px;
+    background: var(--bg); border: 1px solid var(--border-mid);
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .nav-search-btn:hover { border-color: var(--accent); }
+  .nav-search-label { font-size: 12px; color: var(--text-tertiary); flex: 1; }
+
+  /* Collapsed nav demo */
+  nav.compact { height: 220px; }
+
+  .theme-toggle { position: fixed; bottom: 1rem; right: 1rem; background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 99px; padding: 6px 14px; font-size: 11px; color: var(--text-secondary); cursor: pointer; font-family: var(--font); }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- Expanded nav -->
+<div>
+  <div class="demo-label">Default — both expanded</div>
+  <nav>
+    <div class="nav-logo">
+      <div class="nav-logo-name">KaseLog</div>
+      <div class="nav-logo-sub">private ops journal</div>
+    </div>
+    <div class="nav-body">
+
+      <!-- Kases section -->
+      <div class="nav-section">
+        <div class="nav-section-header" onclick="toggleSection('kases')">
+          <div class="nav-section-left">
+            <div class="nav-section-arrow" id="kases-arrow">▾</div>
+            <div class="nav-section-label">Kases</div>
+          </div>
+          <div class="nav-section-new" onclick="event.stopPropagation()">+ new</div>
+        </div>
+        <div class="nav-items" id="kases-items">
+          <div class="nav-item active">
+            <div class="nav-item-name">Proxmox Cluster</div>
+            <div class="nav-item-count">12</div>
+          </div>
+          <div class="nav-item">
+            <div class="nav-item-name">OPNsense Migration</div>
+            <div class="nav-item-count">7</div>
+          </div>
+          <div class="nav-item">
+            <div class="nav-item-name">Home Assistant</div>
+            <div class="nav-item-count">4</div>
+          </div>
+          <div class="nav-item">
+            <div class="nav-item-name">GPT-4 Research</div>
+            <div class="nav-item-count">9</div>
+          </div>
+          <div class="nav-item">
+            <div class="nav-item-name">DNS Architecture</div>
+            <div class="nav-item-count">6</div>
+          </div>
+          <div class="nav-more">+ 7 more</div>
+        </div>
+      </div>
+
+      <div class="nav-divider"></div>
+
+      <!-- Collections section -->
+      <div class="nav-section">
+        <div class="nav-section-header" onclick="toggleSection('collections')">
+          <div class="nav-section-left">
+            <div class="nav-section-arrow" id="collections-arrow">▾</div>
+            <div class="nav-section-label">Collections</div>
+          </div>
+          <div class="nav-section-new" onclick="event.stopPropagation()">+ new</div>
+        </div>
+        <div class="nav-items" id="collections-items">
+          <div class="nav-item">
+            <div style="display:flex;align-items:center;min-width:0;">
+              <div class="nav-item-dot" style="background:#1D9E75;"></div>
+              <div class="nav-item-name">Vinyl Records</div>
+            </div>
+            <div class="nav-item-count">84</div>
+          </div>
+          <div class="nav-item">
+            <div style="display:flex;align-items:center;min-width:0;">
+              <div class="nav-item-dot" style="background:#378ADD;"></div>
+              <div class="nav-item-name">Applications</div>
+            </div>
+            <div class="nav-item-count">31</div>
+          </div>
+          <div class="nav-item">
+            <div style="display:flex;align-items:center;min-width:0;">
+              <div class="nav-item-dot" style="background:#7F77DD;"></div>
+              <div class="nav-item-name">Ejuice</div>
+            </div>
+            <div class="nav-item-count">12</div>
+          </div>
+          <div class="nav-item">
+            <div style="display:flex;align-items:center;min-width:0;">
+              <div class="nav-item-dot" style="background:#BA7517;"></div>
+              <div class="nav-item-name">Gear</div>
+            </div>
+            <div class="nav-item-count">8</div>
+          </div>
+          <div class="nav-more">+ 2 more</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="nav-search-pin">
+      <div class="nav-search-btn">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.4"/><line x1="8.5" y1="8.5" x2="12" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.4"/></svg>
+        <div class="nav-search-label">Search logs...</div>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<!-- Collapsed nav -->
+<div>
+  <div class="demo-label">Compact — both collapsed</div>
+  <nav class="compact">
+    <div class="nav-logo">
+      <div class="nav-logo-name">KaseLog</div>
+      <div class="nav-logo-sub">private ops journal</div>
+    </div>
+    <div class="nav-body">
+
+      <div class="nav-section">
+        <div class="nav-section-header" onclick="toggleSection2('kases2')">
+          <div class="nav-section-left">
+            <div class="nav-section-arrow collapsed" id="kases2-arrow">▾</div>
+            <div class="nav-section-label">Kases</div>
+          </div>
+          <div class="nav-section-new" onclick="event.stopPropagation()">+ new</div>
+        </div>
+        <div class="nav-items collapsed" id="kases2-items">
+          <div class="nav-item"><div class="nav-item-name">Proxmox Cluster</div></div>
+        </div>
+      </div>
+
+      <div class="nav-divider"></div>
+
+      <div class="nav-section">
+        <div class="nav-section-header" onclick="toggleSection2('collections2')">
+          <div class="nav-section-left">
+            <div class="nav-section-arrow collapsed" id="collections2-arrow">▾</div>
+            <div class="nav-section-label">Collections</div>
+          </div>
+          <div class="nav-section-new" onclick="event.stopPropagation()">+ new</div>
+        </div>
+        <div class="nav-items collapsed" id="collections2-items">
+          <div class="nav-item"><div class="nav-item-name">Vinyl Records</div></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="nav-search-pin">
+      <div class="nav-search-btn">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.4"/><line x1="8.5" y1="8.5" x2="12" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.4"/></svg>
+        <div class="nav-search-label">Search logs...</div>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<button class="theme-toggle" onclick="document.body.setAttribute('data-theme',document.body.getAttribute('data-theme')==='dark'?'light':'dark')">Toggle dark mode</button>
+
+<script>
+function toggleSection(id) {
+  const items = document.getElementById(id + '-items');
+  const arrow = document.getElementById(id + '-arrow');
+  const collapsed = items.classList.toggle('collapsed');
+  arrow.classList.toggle('collapsed', collapsed);
+}
+function toggleSection2(id) {
+  const items = document.getElementById(id + '-items');
+  const arrow = document.getElementById(id + '-arrow');
+  const collapsed = items.classList.toggle('collapsed');
+  arrow.classList.toggle('collapsed', collapsed);
+}
+</script>
+</body>
+</html>

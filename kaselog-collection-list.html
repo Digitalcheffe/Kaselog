@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KaseLog — Collection List View</title>
+<style>
+  :root {
+    --accent: #1D9E75;
+    --accent-light: #E1F5EE;
+    --accent-text: #085041;
+    --bg: #ffffff;
+    --bg-secondary: #f7f6f3;
+    --bg-tertiary: #f0efe9;
+    --text-primary: #1a1a18;
+    --text-secondary: #5a5955;
+    --text-tertiary: #9a9890;
+    --border: rgba(0,0,0,0.08);
+    --border-mid: rgba(0,0,0,0.14);
+    --font: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'DM Mono', 'Fira Code', monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #131312; --bg-secondary: #1c1c1a; --bg-tertiary: #242422;
+    --text-primary: #e8e6df; --text-secondary: #9a9890; --text-tertiary: #5a5955;
+    --border: rgba(255,255,255,0.07); --border-mid: rgba(255,255,255,0.12);
+    --accent-light: #0a2e22; --accent-text: #5DCAA5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  body { font-family: var(--font); background: var(--bg); color: var(--text-primary); height: 100vh; display: flex; overflow: hidden; transition: background 0.2s, color 0.2s; }
+
+  nav { width: 200px; min-width: 200px; background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .nav-logo { padding: 1rem 1rem 0.75rem; border-bottom: 1px solid var(--border); }
+  .nav-logo-name { font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.03em; }
+  .nav-logo-sub { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+  .nav-body { flex: 1; overflow-y: auto; }
+  .nav-body::-webkit-scrollbar { display: none; }
+  .nav-section-header { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.6rem 0.25rem 0.9rem; cursor: pointer; user-select: none; }
+  .nav-section-left { display: flex; align-items: center; gap: 0.35rem; }
+  .nav-section-label { font-size: 9px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; }
+  .nav-section-arrow { font-size: 9px; color: var(--text-tertiary); transition: transform 0.2s; }
+  .nav-section-arrow.collapsed { transform: rotate(-90deg); }
+  .nav-section-new { font-size: 10px; color: var(--text-tertiary); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; transition: all 0.15s; }
+  .nav-section-new:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-items { padding: 0 0.4rem 0.4rem; }
+  .nav-items.hidden { display: none; }
+  .nav-item { padding: 0.38rem 0.55rem; border-radius: 6px; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; justify-content: space-between; transition: background 0.1s; }
+  .nav-item:hover { background: var(--bg-tertiary); }
+  .nav-item.active { background: var(--bg-tertiary); }
+  .nav-item-name { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nav-item.active .nav-item-name { color: var(--text-primary); font-weight: 500; }
+  .nav-item-count { font-size: 10px; color: var(--text-tertiary); flex-shrink: 0; margin-left: 0.3rem; }
+  .nav-more { padding: 0.25rem 0.55rem; font-size: 11px; color: var(--accent); cursor: pointer; display: inline-block; margin-bottom: 0.25rem; border-radius: 5px; }
+  .nav-more:hover { background: var(--accent-light); }
+  .nav-divider { border-top: 1px solid var(--border); margin: 0.25rem 0; }
+  .nav-item-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-right: 0.4rem; }
+  .nav-search-pin { border-top: 1px solid var(--border); padding: 0.6rem; }
+  .nav-search-btn { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.65rem; border-radius: 7px; background: var(--bg); border: 1px solid var(--border-mid); cursor: pointer; transition: border-color 0.15s; }
+  .nav-search-btn:hover { border-color: var(--accent); }
+  .nav-search-label { font-size: 12px; color: var(--text-tertiary); flex: 1; }
+
+  main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  .topbar { height: 48px; min-height: 48px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 1.25rem; gap: 0.75rem; flex-shrink: 0; background: var(--bg); }
+  .topbar-dot { width: 10px; height: 10px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; }
+  .topbar-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  .topbar-count { font-size: 11px; color: var(--text-tertiary); padding: 2px 8px; background: var(--bg-secondary); border-radius: 99px; border: 1px solid var(--border); white-space: nowrap; }
+  .topbar-spacer { flex: 1; }
+  .topbar-btn { font-size: 11px; color: var(--text-tertiary); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; background: var(--bg); transition: all 0.15s; white-space: nowrap; }
+  .topbar-btn:hover { border-color: var(--border-mid); color: var(--text-secondary); }
+  .topbar-add { font-size: 12px; font-weight: 500; color: white; background: var(--accent); padding: 5px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+  .topbar-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent-light); border: 1px solid var(--border-mid); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--accent-text); cursor: pointer; flex-shrink: 0; }
+
+  .filter-bar { border-bottom: 1px solid var(--border); padding: 0.5rem 1.25rem; display: flex; align-items: center; gap: 0.4rem; min-height: 44px; background: var(--bg); flex-shrink: 0; overflow-x: auto; }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-search-wrap { display: flex; align-items: center; gap: 0.4rem; background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 7px; padding: 0.3rem 0.6rem; min-width: 155px; flex-shrink: 0; transition: border-color 0.15s; }
+  .filter-search-wrap:focus-within { border-color: var(--accent); }
+  .filter-search-wrap input { font-size: 12px; color: var(--text-primary); border: none; outline: none; background: transparent; font-family: var(--font); width: 120px; }
+  .filter-search-wrap input::placeholder { color: var(--text-tertiary); }
+  .filter-pill { display: flex; align-items: center; gap: 0.3rem; padding: 4px 9px; border-radius: 6px; font-size: 11px; cursor: pointer; border: 1px solid var(--border-mid); background: var(--bg-secondary); color: var(--text-secondary); transition: all 0.12s; flex-shrink: 0; white-space: nowrap; position: relative; }
+  .filter-pill:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .filter-pill.active { background: var(--accent-light); border-color: rgba(29,158,117,0.35); color: var(--accent-text); }
+  .pill-key { color: var(--text-tertiary); font-size: 10px; margin-right: 1px; }
+  .filter-pill.active .pill-key { color: var(--accent-text); opacity: 0.65; }
+  .pill-caret { font-size: 9px; opacity: 0.45; margin-left: 1px; }
+  .field-dropdown { position: absolute; top: calc(100% + 4px); left: 0; background: var(--bg); border: 1px solid var(--border-mid); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); z-index: 50; min-width: 160px; overflow: hidden; display: none; }
+  .field-dropdown.open { display: block; }
+  .dropdown-search { padding: 0.5rem 0.65rem; border-bottom: 1px solid var(--border); }
+  .dropdown-search input { font-size: 12px; color: var(--text-primary); border: none; outline: none; background: transparent; font-family: var(--font); width: 100%; }
+  .dropdown-opt { padding: 0.4rem 0.65rem; font-size: 12px; color: var(--text-secondary); cursor: pointer; transition: background 0.1s; display: flex; align-items: center; gap: 0.4rem; }
+  .dropdown-opt:hover { background: var(--bg-secondary); color: var(--text-primary); }
+  .dropdown-check { font-size: 11px; color: var(--accent); width: 14px; flex-shrink: 0; }
+  .filter-spacer { flex: 1; min-width: 0.25rem; }
+  .filter-count { font-size: 11px; color: var(--text-tertiary); flex-shrink: 0; white-space: nowrap; }
+  .filter-clear { font-size: 11px; color: var(--accent); cursor: pointer; flex-shrink: 0; white-space: nowrap; }
+  .filter-clear:hover { text-decoration: underline; }
+
+  /* Columns button */
+  .columns-btn { display: flex; align-items: center; gap: 0.35rem; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; border: 1px solid var(--border-mid); background: var(--bg-secondary); color: var(--text-secondary); transition: all 0.12s; flex-shrink: 0; white-space: nowrap; position: relative; user-select: none; }
+  .columns-btn:hover { border-color: var(--border-mid); color: var(--text-primary); }
+  .columns-btn.has-hidden { border-color: rgba(29,158,117,0.35); color: var(--accent); background: var(--accent-light); }
+  .col-badge { font-size: 10px; background: var(--accent); color: white; border-radius: 99px; padding: 1px 5px; margin-left: 1px; }
+
+  /* Column picker panel */
+  .col-picker { position: absolute; top: calc(100% + 4px); right: 0; left: auto; background: var(--bg); border: 1px solid var(--border-mid); border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,0.12); z-index: 60; width: 230px; overflow: hidden; display: none; }
+  .col-picker.open { display: block; }
+  .col-picker-header { padding: 0.65rem 0.9rem 0.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .col-picker-title { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.07em; }
+  .col-picker-reset { font-size: 11px; color: var(--accent); cursor: pointer; }
+  .col-picker-reset:hover { text-decoration: underline; }
+  .col-picker-list { padding: 0.35rem 0; max-height: 320px; overflow-y: auto; }
+  .col-picker-list::-webkit-scrollbar { width: 3px; }
+  .col-picker-list::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+  .col-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.9rem; cursor: pointer; transition: background 0.1s; user-select: none; }
+  .col-toggle-row:hover { background: var(--bg-secondary); }
+  .col-toggle-info { display: flex; flex-direction: column; gap: 1px; }
+  .col-toggle-name { font-size: 12px; color: var(--text-primary); }
+  .col-toggle-hint { font-size: 10px; color: var(--text-tertiary); }
+
+  /* Mini toggle */
+  .mini-toggle { width: 30px; height: 17px; border-radius: 9px; position: relative; flex-shrink: 0; transition: background 0.2s; }
+  .mini-toggle.on { background: var(--accent); cursor: pointer; }
+  .mini-toggle.off { background: var(--border-mid); cursor: pointer; }
+  .mini-toggle.locked { background: var(--bg-tertiary); cursor: default; opacity: 0.5; }
+  .mini-thumb { position: absolute; top: 2px; width: 13px; height: 13px; border-radius: 50%; background: white; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .mini-toggle.on .mini-thumb, .mini-toggle.locked .mini-thumb { left: 15px; }
+  .mini-toggle.off .mini-thumb { left: 2px; }
+
+  .col-picker-footer { padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .col-picker-hint { font-size: 10px; color: var(--text-tertiary); }
+  .col-picker-showing { font-size: 10px; color: var(--text-tertiary); }
+
+  /* Table */
+  .table-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  .table-header { display: flex; align-items: center; padding: 0 1.25rem; height: 34px; min-height: 34px; border-bottom: 1px solid var(--border); background: var(--bg-secondary); flex-shrink: 0; overflow: hidden; }
+  .col-h { font-size: 10px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; transition: color 0.12s; user-select: none; overflow: hidden; white-space: nowrap; padding-right: 1rem; flex-shrink: 0; }
+  .col-h:hover { color: var(--text-secondary); }
+  .col-h.sorted { color: var(--accent); }
+  .sort-arrow { font-size: 9px; opacity: 0.7; flex-shrink: 0; }
+  .list-area { flex: 1; overflow-y: auto; overflow-x: hidden; }
+  .list-row { display: flex; align-items: center; padding: 0 1.25rem; height: 44px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; overflow: hidden; }
+  .list-row:hover { background: var(--bg-secondary); }
+  .list-row:last-child { border-bottom: none; }
+  .cell { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1rem; flex-shrink: 0; }
+  .cell.primary { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+  .cell.mono { font-family: var(--font-mono); font-size: 11px; }
+  mark { background: rgba(29,158,117,0.15); color: var(--text-primary); border-radius: 2px; padding: 0 1px; font-weight: 500; }
+  .stars { color: #BA7517; font-size: 11px; letter-spacing: -1px; }
+  .status-badge { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 99px; display: inline-block; }
+  .status-own { background: var(--accent-light); color: var(--accent-text); }
+  .status-want { background: #E6F1FB; color: #042C53; }
+  .status-sold { background: var(--bg-tertiary); color: var(--text-tertiary); border: 1px solid var(--border-mid); }
+  [data-theme="dark"] .status-want { background: #0a1e30; color: #85B7EB; }
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 3rem; }
+  .empty-title { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+  .empty-sub { font-size: 12px; color: var(--text-tertiary); text-align: center; }
+  .empty-clear { font-size: 12px; color: var(--accent); cursor: pointer; margin-top: 0.5rem; }
+  .theme-toggle { position: fixed; bottom: 1rem; right: 1rem; background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 99px; padding: 6px 14px; font-size: 11px; color: var(--text-secondary); cursor: pointer; font-family: var(--font); z-index: 100; }
+</style>
+</head>
+<body data-theme="light">
+
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-name">KaseLog</div>
+    <div class="nav-logo-sub">private ops journal</div>
+  </div>
+  <div class="nav-body">
+    <div>
+      <div class="nav-section-header" onclick="toggleNav('kases')">
+        <div class="nav-section-left"><div class="nav-section-arrow" id="kases-arr">▾</div><div class="nav-section-label">Kases</div></div>
+        <div class="nav-section-new" onclick="event.stopPropagation()">+ new</div>
+      </div>
+      <div class="nav-items" id="kases-items">
+        <div class="nav-item"><div class="nav-item-name">Proxmox Cluster</div><div class="nav-item-count">12</div></div>
+        <div class="nav-item"><div class="nav-item-name">OPNsense Migration</div><div class="nav-item-count">7</div></div>
+        <div class="nav-item"><div class="nav-item-name">Home Assistant</div><div class="nav-item-count">4</div></div>
+        <div class="nav-more">+ 5 more</div>
+      </div>
+    </div>
+    <div class="nav-divider"></div>
+    <div>
+      <div class="nav-section-header" onclick="toggleNav('cols')">
+        <div class="nav-section-left"><div class="nav-section-arrow" id="cols-arr">▾</div><div class="nav-section-label">Collections</div></div>
+        <div class="nav-section-new" onclick="event.stopPropagation()">+ new</div>
+      </div>
+      <div class="nav-items" id="cols-items">
+        <div class="nav-item active"><div style="display:flex;align-items:center;min-width:0;"><div class="nav-item-dot" style="background:#1D9E75;"></div><div class="nav-item-name">Vinyl Records</div></div><div class="nav-item-count">84</div></div>
+        <div class="nav-item"><div style="display:flex;align-items:center;min-width:0;"><div class="nav-item-dot" style="background:#378ADD;"></div><div class="nav-item-name">Applications</div></div><div class="nav-item-count">31</div></div>
+        <div class="nav-item"><div style="display:flex;align-items:center;min-width:0;"><div class="nav-item-dot" style="background:#7F77DD;"></div><div class="nav-item-name">Ejuice</div></div><div class="nav-item-count">12</div></div>
+        <div class="nav-more">+ 2 more</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-search-pin">
+    <div class="nav-search-btn">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.4"/><line x1="8.5" y1="8.5" x2="12" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.4"/></svg>
+      <div class="nav-search-label">Search logs...</div>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="topbar">
+    <div class="topbar-dot"></div>
+    <div class="topbar-title">Vinyl Records</div>
+    <div class="topbar-count" id="result-count">84 items</div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-btn">Edit schema</div>
+    <div class="topbar-add">+ Add item</div>
+    <div class="topbar-avatar">RJ</div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-search-wrap">
+      <svg width="12" height="12" viewBox="0 0 13 13" fill="none" style="flex-shrink:0;opacity:0.35;"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.5"/><line x1="8.5" y1="8.5" x2="12" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input id="text-search" placeholder="Search records..." oninput="applyFilters()">
+    </div>
+
+    <div class="filter-pill" id="pill-format" onclick="toggleDropdown('dd-format',event)">
+      <span class="pill-key">Format</span><span id="pill-format-val">Any</span><span class="pill-caret">▾</span>
+      <div class="field-dropdown" id="dd-format">
+        <div class="dropdown-search"><input placeholder="Search..." oninput="filterOpts(this,'dd-format')" onclick="event.stopPropagation()"></div>
+        <div class="dropdown-opt" onclick="setFilter('format','','pill-format','pill-format-val','dd-format',event)"><div class="dropdown-check">✓</div>Any</div>
+        <div class="dropdown-opt" onclick="setFilter('format','LP','pill-format','pill-format-val','dd-format',event)"><div class="dropdown-check"></div>LP</div>
+        <div class="dropdown-opt" onclick="setFilter('format','2×LP','pill-format','pill-format-val','dd-format',event)"><div class="dropdown-check"></div>2×LP</div>
+        <div class="dropdown-opt" onclick="setFilter('format','7-inch','pill-format','pill-format-val','dd-format',event)"><div class="dropdown-check"></div>7-inch</div>
+      </div>
+    </div>
+
+    <div class="filter-pill" id="pill-condition" onclick="toggleDropdown('dd-condition',event)">
+      <span class="pill-key">Condition</span><span id="pill-condition-val">Any</span><span class="pill-caret">▾</span>
+      <div class="field-dropdown" id="dd-condition">
+        <div class="dropdown-opt" onclick="setFilter('condition','','pill-condition','pill-condition-val','dd-condition',event)"><div class="dropdown-check">✓</div>Any</div>
+        <div class="dropdown-opt" onclick="setFilter('condition','M','pill-condition','pill-condition-val','dd-condition',event)"><div class="dropdown-check"></div>M — Mint</div>
+        <div class="dropdown-opt" onclick="setFilter('condition','VG+','pill-condition','pill-condition-val','dd-condition',event)"><div class="dropdown-check"></div>VG+</div>
+        <div class="dropdown-opt" onclick="setFilter('condition','VG','pill-condition','pill-condition-val','dd-condition',event)"><div class="dropdown-check"></div>VG</div>
+        <div class="dropdown-opt" onclick="setFilter('condition','G+','pill-condition','pill-condition-val','dd-condition',event)"><div class="dropdown-check"></div>G+</div>
+      </div>
+    </div>
+
+    <div class="filter-pill" id="pill-status" onclick="toggleDropdown('dd-status',event)">
+      <span class="pill-key">Status</span><span id="pill-status-val">Any</span><span class="pill-caret">▾</span>
+      <div class="field-dropdown" id="dd-status">
+        <div class="dropdown-opt" onclick="setFilter('status','','pill-status','pill-status-val','dd-status',event)"><div class="dropdown-check">✓</div>Any</div>
+        <div class="dropdown-opt" onclick="setFilter('status','own','pill-status','pill-status-val','dd-status',event)"><div class="dropdown-check"></div>Own</div>
+        <div class="dropdown-opt" onclick="setFilter('status','want','pill-status','pill-status-val','dd-status',event)"><div class="dropdown-check"></div>Want</div>
+        <div class="dropdown-opt" onclick="setFilter('status','sold','pill-status','pill-status-val','dd-status',event)"><div class="dropdown-check"></div>Sold</div>
+      </div>
+    </div>
+
+    <div class="filter-spacer"></div>
+    <div class="filter-count" id="filter-count" style="display:none;"></div>
+    <div class="filter-clear" id="filter-clear" style="display:none;" onclick="clearAllFilters()">Clear</div>
+
+    <div class="columns-btn" id="columns-btn" onclick="toggleColPicker(event)">
+      <svg width="13" height="11" viewBox="0 0 13 11" fill="none" style="flex-shrink:0;opacity:0.55;"><rect x="0.5" y="0.5" width="3" height="10" rx="1" stroke="currentColor" stroke-width="1.1"/><rect x="4.75" y="0.5" width="3" height="10" rx="1" stroke="currentColor" stroke-width="1.1"/><rect x="9" y="0.5" width="3" height="10" rx="1" stroke="currentColor" stroke-width="1.1"/></svg>
+      Columns
+      <span class="col-badge" id="col-badge" style="display:none;"></span>
+      <div class="col-picker" id="col-picker">
+        <div class="col-picker-header">
+          <div class="col-picker-title">Columns</div>
+          <div class="col-picker-reset" onclick="resetColumns(event)">Show all</div>
+        </div>
+        <div class="col-picker-list" id="col-picker-list"></div>
+        <div class="col-picker-footer">
+          <div class="col-picker-hint">Title is always visible</div>
+          <div class="col-picker-showing" id="col-showing"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header" id="table-header"></div>
+    <div class="list-area" id="list-area"></div>
+  </div>
+</main>
+
+<button class="theme-toggle" onclick="document.body.setAttribute('data-theme',document.body.getAttribute('data-theme')==='dark'?'light':'dark')">Toggle dark mode</button>
+
+<script>
+const SCHEMA = [
+  { key:'title',     label:'Album',       width:'flex:2',    type:'text',   locked:true  },
+  { key:'artist',    label:'Artist',      width:'flex:1.5',  type:'text',   locked:false },
+  { key:'year',      label:'Year',        width:'width:62px',type:'number', locked:false },
+  { key:'label',     label:'Label',       width:'flex:1.2',  type:'text',   locked:false },
+  { key:'format',    label:'Format',      width:'flex:1',    type:'text',   locked:false },
+  { key:'pressing',  label:'Pressing',    width:'flex:1.2',  type:'text',   locked:false },
+  { key:'condition', label:'Condition',   width:'width:90px',type:'text',   locked:false },
+  { key:'rating',    label:'Rating',      width:'width:92px',type:'rating', locked:false },
+  { key:'status',    label:'Status',      width:'width:72px',type:'status', locked:false },
+  { key:'kase',      label:'Linked Kase', width:'flex:1',    type:'text',   locked:false },
+];
+
+const ALL_ITEMS = [
+  { title:'Rumours',              artist:'Fleetwood Mac',   year:1977, label:'Warner Bros.', format:'LP',   pressing:'Original pressing', condition:'VG+', rating:5, status:'own',  kase:'' },
+  { title:'Kind of Blue',         artist:'Miles Davis',     year:1959, label:'Columbia',     format:'LP',   pressing:'180g reissue',      condition:'M',   rating:5, status:'own',  kase:'' },
+  { title:'OK Computer',          artist:'Radiohead',       year:1997, label:'Parlophone',   format:'2×LP', pressing:'OKNOTOK',           condition:'VG+', rating:4, status:'want', kase:'' },
+  { title:'Thriller',             artist:'Michael Jackson', year:1982, label:'Epic',         format:'LP',   pressing:'Original',          condition:'G+',  rating:3, status:'own',  kase:'' },
+  { title:'Blue',                 artist:'Joni Mitchell',   year:1971, label:'Reprise',      format:'LP',   pressing:'Remaster',          condition:'VG',  rating:5, status:'own',  kase:'' },
+  { title:'In Rainbows',          artist:'Radiohead',       year:2007, label:'XL Recordings',format:'2×LP', pressing:'Discbox',          condition:'M',   rating:5, status:'want', kase:'' },
+  { title:'Nevermind',            artist:'Nirvana',         year:1991, label:'DGC',          format:'LP',   pressing:'First pressing',    condition:'VG+', rating:4, status:'own',  kase:'' },
+  { title:'Purple Rain',          artist:'Prince',          year:1984, label:'Warner Bros.', format:'LP',   pressing:'Original',          condition:'VG',  rating:5, status:'own',  kase:'' },
+  { title:'Dark Side of the Moon',artist:'Pink Floyd',      year:1973, label:'Harvest',      format:'LP',   pressing:'MFSL',              condition:'M',   rating:5, status:'own',  kase:'' },
+  { title:'Abbey Road',           artist:'The Beatles',     year:1969, label:'Apple',        format:'LP',   pressing:'Apple label',       condition:'VG+', rating:5, status:'want', kase:'' },
+  { title:'Horses',               artist:'Patti Smith',     year:1975, label:'Arista',       format:'LP',   pressing:'Arista',            condition:'VG',  rating:4, status:'own',  kase:'' },
+  { title:'Unknown Pleasures',    artist:'Joy Division',    year:1979, label:'Factory',      format:'LP',   pressing:'Factory',           condition:'G+',  rating:5, status:'own',  kase:'' },
+  { title:'Marquee Moon',         artist:'Television',      year:1977, label:'Elektra',      format:'LP',   pressing:'Elektra',           condition:'VG+', rating:5, status:'want', kase:'' },
+  { title:'Aja',                  artist:'Steely Dan',      year:1977, label:'ABC',          format:'2×LP', pressing:'MFSL',              condition:'M',   rating:4, status:'own',  kase:'' },
+  { title:'Harvest',              artist:'Neil Young',      year:1972, label:'Reprise',      format:'LP',   pressing:'Reprise',           condition:'VG',  rating:4, status:'own',  kase:'' },
+];
+
+// Default view: label, pressing, kase hidden to demonstrate the feature
+let visibleCols = new Set(['title','artist','year','format','condition','rating','status']);
+let filters = { text:'', format:'', condition:'', status:'' };
+let sortField = 'title', sortDir = 1;
+
+function colCss(col) {
+  const p = col.width.split(':');
+  return p[0] + ':' + p[1] + ';min-width:0;';
+}
+
+function buildColPicker() {
+  const list = document.getElementById('col-picker-list');
+  const visible = SCHEMA.filter(c => visibleCols.has(c.key));
+  list.innerHTML = SCHEMA.map(col => {
+    const on = visibleCols.has(col.key);
+    return `
+    <div class="col-toggle-row" onclick="${col.locked ? '' : "toggleCol('"+col.key+"',event)"}">
+      <div class="col-toggle-info">
+        <div class="col-toggle-name">${col.label}</div>
+        ${col.locked ? '<div class="col-toggle-hint">always visible</div>' : ''}
+      </div>
+      <div class="mini-toggle ${col.locked ? 'locked' : (on ? 'on' : 'off')}">
+        <div class="mini-thumb"></div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('col-showing').textContent = visible.length + ' of ' + SCHEMA.length + ' shown';
+}
+
+function toggleCol(key, e) {
+  if (e) e.stopPropagation();
+  if (visibleCols.has(key)) { visibleCols.delete(key); }
+  else { visibleCols.add(key); }
+  buildColPicker();
+  updateColsBtn();
+  renderHeader();
+  applyFilters();
+}
+
+function resetColumns(e) {
+  if (e) e.stopPropagation();
+  visibleCols = new Set(SCHEMA.map(c => c.key));
+  buildColPicker();
+  updateColsBtn();
+  renderHeader();
+  applyFilters();
+}
+
+function updateColsBtn() {
+  const hidden = SCHEMA.filter(c => !c.locked && !visibleCols.has(c.key)).length;
+  const btn = document.getElementById('columns-btn');
+  const badge = document.getElementById('col-badge');
+  if (hidden > 0) {
+    btn.classList.add('has-hidden');
+    badge.style.display = '';
+    badge.textContent = visibleCols.size + '/' + SCHEMA.length;
+  } else {
+    btn.classList.remove('has-hidden');
+    badge.style.display = 'none';
+  }
+}
+
+function renderHeader() {
+  const hdr = document.getElementById('table-header');
+  hdr.innerHTML = SCHEMA.filter(c => visibleCols.has(c.key)).map(col => {
+    const sorted = sortField === col.key;
+    return `<div class="col-h ${sorted?'sorted':''}" style="${colCss(col)}" onclick="sortBy('${col.key}')">
+      ${col.label} <span class="sort-arrow">${sorted ? (sortDir===1?'↑':'↓') : ''}</span>
+    </div>`;
+  }).join('');
+}
+
+function stars(n) { return '★'.repeat(n)+'☆'.repeat(5-n); }
+
+function hl(text, q) {
+  if (!q || !text) return text ?? '—';
+  return String(text).replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark>$1</mark>');
+}
+
+function renderCell(col, item, q) {
+  const v = item[col.key];
+  if (col.type==='rating') return `<span class="stars">${stars(v||0)}</span>`;
+  if (col.type==='status') return `<span class="status-badge status-${v||'sold'}">${v||'—'}</span>`;
+  if (col.type==='number') return `<span style="font-family:var(--font-mono);font-size:11px;">${v||'—'}</span>`;
+  return v ? hl(v, q) : '<span style="color:var(--text-tertiary);">—</span>';
+}
+
+function applyFilters() {
+  filters.text = document.getElementById('text-search').value.toLowerCase();
+  let items = ALL_ITEMS.filter(item => {
+    const q = filters.text;
+    const mt = !q || ['title','artist','label','format','pressing'].some(k => String(item[k]||'').toLowerCase().includes(q));
+    const mf = !filters.format || item.format===filters.format;
+    const mc = !filters.condition || item.condition===filters.condition;
+    const ms = !filters.status || item.status===filters.status;
+    return mt && mf && mc && ms;
+  }).sort((a,b) => {
+    let av=a[sortField]??'', bv=b[sortField]??'';
+    if (typeof av==='string') av=av.toLowerCase();
+    if (typeof bv==='string') bv=bv.toLowerCase();
+    return av<bv?-sortDir:av>bv?sortDir:0;
+  });
+
+  const active = Object.values(filters).filter(Boolean).length;
+  const cntEl = document.getElementById('filter-count');
+  const clrEl = document.getElementById('filter-clear');
+  document.getElementById('result-count').textContent = items.length + ' items';
+  if (active > 0) { cntEl.style.display=''; cntEl.textContent=items.length+' of '+ALL_ITEMS.length; clrEl.style.display=''; }
+  else { cntEl.style.display='none'; clrEl.style.display='none'; }
+
+  const area = document.getElementById('list-area');
+  if (!items.length) {
+    area.innerHTML=`<div class="empty-state"><div class="empty-title">No items match</div><div class="empty-sub">Try adjusting your search or filters</div><div class="empty-clear" onclick="clearAllFilters()">Clear filters</div></div>`;
+    return;
+  }
+  const vis = SCHEMA.filter(c => visibleCols.has(c.key));
+  const q = filters.text;
+  area.innerHTML = items.map(item => `
+    <div class="list-row">
+      ${vis.map(col=>`<div class="cell ${col.key==='title'?'primary':''}" style="${colCss(col)}">${renderCell(col,item,q)}</div>`).join('')}
+    </div>`).join('');
+}
+
+function setFilter(field, value, pillId, valId, ddId, e) {
+  if(e) e.stopPropagation();
+  filters[field]=value;
+  document.getElementById(valId).textContent=value||'Any';
+  document.getElementById(pillId).classList.toggle('active',!!value);
+  document.getElementById(ddId).classList.remove('open');
+  applyFilters();
+}
+
+function clearAllFilters() {
+  filters={text:'',format:'',condition:'',status:''};
+  document.getElementById('text-search').value='';
+  ['format','condition','status'].forEach(f=>{
+    document.getElementById('pill-'+f+'-val').textContent='Any';
+    document.getElementById('pill-'+f).classList.remove('active');
+  });
+  applyFilters();
+}
+
+function toggleDropdown(id, e) {
+  e.stopPropagation();
+  document.querySelectorAll('.field-dropdown,.col-picker').forEach(d=>{ if(d.id!==id) d.classList.remove('open'); });
+  document.getElementById(id).classList.toggle('open');
+}
+
+function toggleColPicker(e) {
+  e.stopPropagation();
+  document.querySelectorAll('.field-dropdown').forEach(d=>d.classList.remove('open'));
+  document.getElementById('col-picker').classList.toggle('open');
+}
+
+function filterOpts(input, ddId) {
+  const q=input.value.toLowerCase();
+  document.querySelectorAll('#'+ddId+' .dropdown-opt').forEach(o=>{ o.style.display=o.textContent.toLowerCase().includes(q)?'':'none'; });
+}
+
+function sortBy(field) {
+  if(sortField===field) sortDir*=-1; else { sortField=field; sortDir=1; }
+  renderHeader();
+  applyFilters();
+}
+
+function toggleNav(id) {
+  const items=document.getElementById(id+'-items');
+  const arrow=document.getElementById(id+'-arr');
+  arrow.classList.toggle('collapsed', items.classList.toggle('hidden'));
+}
+
+document.addEventListener('click',()=>{ document.querySelectorAll('.field-dropdown,.col-picker').forEach(d=>d.classList.remove('open')); });
+
+buildColPicker();
+updateColsBtn();
+renderHeader();
+applyFilters();
+</script>
+</body>
+</html>

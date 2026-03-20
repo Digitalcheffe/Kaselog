@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KaseLog — New Content Modal</title>
+<style>
+  :root {
+    --accent: #1D9E75;
+    --accent-light: #E1F5EE;
+    --accent-text: #085041;
+    --bg: #ffffff;
+    --bg-secondary: #f7f6f3;
+    --bg-tertiary: #f0efe9;
+    --text-primary: #1a1a18;
+    --text-secondary: #5a5955;
+    --text-tertiary: #9a9890;
+    --border: rgba(0,0,0,0.08);
+    --border-mid: rgba(0,0,0,0.14);
+    --font: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'DM Mono', 'Fira Code', monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #131312; --bg-secondary: #1c1c1a; --bg-tertiary: #242422;
+    --text-primary: #e8e6df; --text-secondary: #9a9890; --text-tertiary: #5a5955;
+    --border: rgba(255,255,255,0.07); --border-mid: rgba(255,255,255,0.12);
+    --accent-light: #0a2e22; --accent-text: #5DCAA5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  body { font-family: var(--font); background: var(--bg-tertiary); min-height: 100vh; padding: 2rem; display: flex; flex-direction: column; gap: 2rem; align-items: center; }
+
+  .demo-label { font-size: 10px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; text-align: center; }
+
+  /* Overlay backdrop */
+  .modal-backdrop {
+    width: 600px; height: 400px;
+    background: var(--bg);
+    border: 1px solid var(--border-mid);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .backdrop-dim { position: absolute; inset: 0; background: var(--text-primary); opacity: 0.18; }
+
+  /* Step 1 — choose type modal */
+  .modal {
+    position: relative; z-index: 10;
+    background: var(--bg);
+    border: 1px solid var(--border-mid);
+    border-radius: 12px;
+    width: 340px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    overflow: hidden;
+    animation: modalIn 0.15s ease-out;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .modal-header {
+    padding: 1rem 1.25rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+  .modal-kase { font-size: 11px; color: var(--text-tertiary); }
+  .modal-close { font-size: 16px; color: var(--text-tertiary); cursor: pointer; line-height: 1; padding: 2px; }
+  .modal-body { padding: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
+
+  /* Choice cards */
+  .choice-card {
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-mid);
+    background: var(--bg-secondary);
+    cursor: pointer;
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    transition: all 0.15s;
+  }
+  .choice-card:hover { border-color: var(--accent); background: var(--accent-light); }
+  .choice-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 15px;
+  }
+  .choice-icon.log { background: var(--bg-tertiary); }
+  .choice-icon.collection { background: var(--bg-tertiary); }
+  .choice-text { flex: 1; }
+  .choice-name { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 0.2rem; }
+  .choice-desc { font-size: 11px; color: var(--text-tertiary); line-height: 1.5; }
+
+  /* Step 2a — new log form */
+  .modal-form { padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+  .form-field { display: flex; flex-direction: column; gap: 0.3rem; }
+  .form-label { font-size: 10px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; }
+  .form-input {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-mid);
+    border-radius: 7px;
+    padding: 0.5rem 0.7rem;
+    font-size: 13px;
+    color: var(--text-primary);
+    font-family: var(--font);
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-input::placeholder { color: var(--text-tertiary); font-style: italic; }
+  .form-input.textarea { resize: none; height: 70px; line-height: 1.5; font-size: 12px; }
+  .form-actions { display: flex; align-items: center; gap: 0.5rem; padding-top: 0.25rem; }
+  .btn-back { font-size: 12px; color: var(--text-tertiary); cursor: pointer; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border-mid); background: transparent; font-family: var(--font); }
+  .btn-back:hover { color: var(--text-secondary); }
+  .btn-spacer { flex: 1; }
+  .btn-primary {
+    font-size: 12px; font-weight: 500; color: white;
+    background: var(--accent); padding: 6px 16px;
+    border-radius: 6px; cursor: pointer; border: none;
+    font-family: var(--font);
+  }
+
+  /* Step 2b — collection picker */
+  .collection-list { padding: 0.5rem 0.75rem 0.75rem; display: flex; flex-direction: column; gap: 2px; }
+  .collection-opt {
+    padding: 0.55rem 0.65rem;
+    border-radius: 7px;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 0.6rem;
+    transition: background 0.1s;
+  }
+  .collection-opt:hover { background: var(--bg-secondary); }
+  .col-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .col-name { font-size: 13px; color: var(--text-primary); flex: 1; }
+  .col-count { font-size: 11px; color: var(--text-tertiary); }
+  .col-arrow { font-size: 12px; color: var(--text-tertiary); opacity: 0.5; }
+
+  .modal-subheader {
+    padding: 0.6rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .modal-back-btn { font-size: 12px; color: var(--text-tertiary); cursor: pointer; display: flex; align-items: center; gap: 0.2rem; }
+  .modal-back-btn:hover { color: var(--text-secondary); }
+  .modal-step-title { font-size: 12px; color: var(--text-secondary); }
+
+  .theme-toggle { position: fixed; bottom: 1rem; right: 1rem; background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 99px; padding: 6px 14px; font-size: 11px; color: var(--text-secondary); cursor: pointer; font-family: var(--font); }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- Step 1: choose -->
+<div>
+  <div class="demo-label">Step 1 — choose what to create</div>
+  <div class="modal-backdrop">
+    <div class="backdrop-dim"></div>
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Add to Proxmox Cluster</div>
+        </div>
+        <div class="modal-close">×</div>
+      </div>
+      <div class="modal-body">
+        <div class="choice-card" onclick="">
+          <div class="choice-icon log">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2" y="3" width="11" height="1.5" rx="0.75" fill="currentColor" opacity="0.5"/><rect x="2" y="6.5" width="8" height="1.5" rx="0.75" fill="currentColor" opacity="0.5"/><rect x="2" y="10" width="9.5" height="1.5" rx="0.75" fill="currentColor" opacity="0.5"/></svg>
+          </div>
+          <div class="choice-text">
+            <div class="choice-name">New Log</div>
+            <div class="choice-desc">A freeform note, journal entry, or session summary</div>
+          </div>
+        </div>
+        <div class="choice-card">
+          <div class="choice-icon collection">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2" y="2.5" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="8" y="2.5" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="2" y="8.5" width="5" height="4" rx="1.5" fill="currentColor" opacity="0.3"/><rect x="8" y="8.5" width="5" height="4" rx="1.5" fill="currentColor" opacity="0.3"/></svg>
+          </div>
+          <div class="choice-text">
+            <div class="choice-name">Add Collection Item</div>
+            <div class="choice-desc">Track a structured entry in one of your collections</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 2a: new log form -->
+<div>
+  <div class="demo-label">Step 2a — New Log form</div>
+  <div class="modal-backdrop">
+    <div class="backdrop-dim"></div>
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">New Log</div>
+          <div class="modal-kase">Proxmox Cluster</div>
+        </div>
+        <div class="modal-close">×</div>
+      </div>
+      <div class="modal-subheader">
+        <div class="modal-back-btn">← back</div>
+      </div>
+      <div class="modal-form">
+        <div class="form-field">
+          <div class="form-label">Title</div>
+          <input class="form-input" placeholder="What are you logging?" autofocus>
+        </div>
+        <div class="form-field">
+          <div class="form-label">Description <span style="font-weight:400;text-transform:none;font-size:10px;color:var(--text-tertiary)">optional</span></div>
+          <textarea class="form-input textarea" placeholder="Short summary shown on the timeline..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="btn-back">Cancel</button>
+          <div class="btn-spacer"></div>
+          <button class="btn-primary">Create Log →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 2b: collection picker -->
+<div>
+  <div class="demo-label">Step 2b — pick a Collection</div>
+  <div class="modal-backdrop">
+    <div class="backdrop-dim"></div>
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Add Collection Item</div>
+          <div class="modal-kase">Proxmox Cluster</div>
+        </div>
+        <div class="modal-close">×</div>
+      </div>
+      <div class="modal-subheader">
+        <div class="modal-back-btn">← back</div>
+        <div class="modal-step-title">Choose a collection</div>
+      </div>
+      <div class="collection-list">
+        <div class="collection-opt">
+          <div class="col-dot" style="background:#1D9E75;"></div>
+          <div class="col-name">Vinyl Records</div>
+          <div class="col-count">84 items</div>
+          <div class="col-arrow">›</div>
+        </div>
+        <div class="collection-opt">
+          <div class="col-dot" style="background:#378ADD;"></div>
+          <div class="col-name">Applications</div>
+          <div class="col-count">31 items</div>
+          <div class="col-arrow">›</div>
+        </div>
+        <div class="collection-opt">
+          <div class="col-dot" style="background:#7F77DD;"></div>
+          <div class="col-name">Ejuice</div>
+          <div class="col-count">12 items</div>
+          <div class="col-arrow">›</div>
+        </div>
+        <div class="collection-opt">
+          <div class="col-dot" style="background:#BA7517;"></div>
+          <div class="col-name">Gear</div>
+          <div class="col-count">8 items</div>
+          <div class="col-arrow">›</div>
+        </div>
+        <div style="padding: 0.5rem 0.65rem;">
+          <span style="font-size:11px;color:var(--accent);cursor:pointer;">+ Create new collection</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="theme-toggle" onclick="document.body.setAttribute('data-theme',document.body.getAttribute('data-theme')==='dark'?'light':'dark')">Toggle dark mode</button>
+</body>
+</html>

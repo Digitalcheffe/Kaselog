@@ -13,7 +13,27 @@
       "Bash(dotnet *)",
       "Bash(pwsh *)",
       "Bash(powershell *)",
-      "Read(**)"
+      "Read(**)",
+      "Bash(cmd.exe /c \"dotnet build C:\\\\Users\\\\digitalcheffe\\\\OneDrive\\\\Documents\\\\GitRepos\\\\Kaselog\\\\src\\\\KaseLog.Api\\\\KaseLog.Api.csproj 2>&1\")",
+      "Bash(cmd.exe /c \"cd /d C:\\\\Users\\\\digitalcheffe\\\\OneDrive\\\\Documents\\\\GitRepos\\\\Kaselog\\\\src\\\\KaseLog.Api && dotnet build 2>&1\")",
+      "Bash(powershell.exe -Command \"cd ''C:\\\\Users\\\\digitalcheffe\\\\OneDrive\\\\Documents\\\\GitRepos\\\\Kaselog\\\\src\\\\KaseLog.Api''; dotnet build 2>&1\")",
+      "Bash(powershell.exe -Command \"Get-Command dotnet -ErrorAction SilentlyContinue; \\(Get-ChildItem ''C:\\\\Program Files\\\\dotnet\\\\'' -ErrorAction SilentlyContinue\\) | Select-Object -First 5\")",
+      "Bash(powershell.exe -Command \"Test-Path ''C:\\\\Program Files\\\\dotnet\\\\dotnet.exe''\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem ''C:\\\\'' -Recurse -Filter ''dotnet.exe'' -ErrorAction SilentlyContinue | Select-Object -First 3 FullName\")",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe'' images docker-kaselog --format ''{{.Repository}}:{{.Tag}} {{.ID}}''\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe'' build -t docker-kaselog ''C:\\\\Users\\\\digitalcheffe\\\\OneDrive\\\\Documents\\\\GitRepos\\\\Kaselog'' 2>&1\")",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe'' build -f ''C:\\\\Users\\\\digitalcheffe\\\\OneDrive\\\\Documents\\\\GitRepos\\\\Kaselog\\\\docker\\\\Dockerfile'' -t docker-kaselog ''C:\\\\Users\\\\digitalcheffe\\\\OneDrive\\\\Documents\\\\GitRepos\\\\Kaselog'' 2>&1\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":5001\")",
+      "Bash(taskkill /PID 13148 /F)",
+      "Bash(taskkill /PID 4044 /F)",
+      "Bash(cmd /c \"taskkill /PID 13148 /F\")",
+      "Bash(cmd /c \"taskkill /PID 4044 /F\")",
+      "Bash(cmd /c \"netstat -ano | findstr :5001\")",
+      "Bash(cmd /c \"tasklist /FI \"\"PID eq 13148\"\"\")",
+      "Bash(cmd /c \"tasklist /FI \"\"PID eq 13148\"\" /FO LIST\")",
+      "Bash(cmd /c \"wmic process where processid=13148 get name,processid,commandline 2>&1\")"
     ]
   }
 }
