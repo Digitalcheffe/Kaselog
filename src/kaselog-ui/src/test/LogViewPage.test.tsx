@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import LogViewPage from '../pages/LogViewPage'
-import type { KaseResponse, LogResponse, LogVersionResponse } from '../api/types'
+import type { KaseResponse, LogResponse, LogVersionResponse, TagResponse } from '../api/types'
 
 // ── Mock the API client ───────────────────────────────────────────────────────
 
@@ -61,7 +61,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
 
 const mockNavigate = vi.fn()
 
-import { kases as kasesApi, logs as logsApi, versions as versionsApi, images as imagesApi } from '../api/client'
+import { kases as kasesApi, logs as logsApi, versions as versionsApi, images as imagesApi, tags as tagsApi } from '../api/client'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -334,5 +334,224 @@ describe('LogViewPage', () => {
 
     // unsaved changes -> Save button still present
     expect(screen.getByRole('button', { name: /^Save$/ })).toBeInTheDocument()
+  })
+
+  // ── 11. Panel closes on second edge tab click ─────────────────────────────
+
+  it('hides settings panel after second edge tab click', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog())
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('edge-tab'))
+    await user.click(screen.getByTestId('edge-tab'))
+    await waitFor(() => screen.getByText('Log settings'))
+
+    await user.click(screen.getByTestId('edge-tab'))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Log settings')).not.toBeInTheDocument()
+    })
+  })
+
+  // ── 12. Edge tab arrow toggles ────────────────────────────────────────────
+
+  it('toggles edge tab arrow between ‹ and › on click', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog())
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('edge-tab'))
+    expect(screen.getByTestId('edge-tab')).toHaveTextContent('‹')
+
+    await user.click(screen.getByTestId('edge-tab'))
+    await waitFor(() => expect(screen.getByTestId('edge-tab')).toHaveTextContent('›'))
+
+    await user.click(screen.getByTestId('edge-tab'))
+    await waitFor(() => expect(screen.getByTestId('edge-tab')).toHaveTextContent('‹'))
+  })
+
+  // ── 13. Panel title calls PUT and updates breadcrumb ─────────────────────
+
+  it('panel title change calls PUT and updates top bar breadcrumb', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog({ title: 'Old Title' }))
+    vi.mocked(logsApi.update).mockResolvedValue(makeLog({ title: 'Renamed Title' }))
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('edge-tab'))
+    await user.click(screen.getByTestId('edge-tab'))
+
+    const panelTitle = await screen.findByRole('textbox', { name: /panel title/i })
+    await user.clear(panelTitle)
+    await user.type(panelTitle, 'Renamed Title')
+    await user.tab()
+
+    await waitFor(() => {
+      expect(logsApi.update).toHaveBeenCalledWith(
+        'log-1',
+        expect.objectContaining({ title: 'Renamed Title' }),
+      )
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('topbar-log-title')).toHaveTextContent('Renamed Title')
+    })
+  })
+
+  // ── 14. Tag add ───────────────────────────────────────────────────────────
+
+  it('tag add calls POST /api/logs/{logId}/tags', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog())
+    vi.mocked(tagsApi.addToLog).mockResolvedValue({
+      id: 'tag-new',
+      name: 'networking',
+      createdAt: new Date().toISOString(),
+    } as TagResponse)
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('edge-tab'))
+    await user.click(screen.getByTestId('edge-tab'))
+
+    const tagInput = await screen.findByPlaceholderText('add tag…')
+    await user.type(tagInput, 'networking')
+    await user.keyboard('{Enter}')
+
+    await waitFor(() => {
+      expect(tagsApi.addToLog).toHaveBeenCalledWith('log-1', 'networking')
+    })
+  })
+
+  // ── 15. Tag remove ────────────────────────────────────────────────────────
+
+  it('tag remove calls DELETE /api/logs/{logId}/tags/{tagId}', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(
+      makeLog({
+        tags: [{ id: 'tag-1', name: 'networking', createdAt: new Date().toISOString() }],
+      }),
+    )
+    vi.mocked(tagsApi.removeFromLog).mockImplementation(() => Promise.resolve())
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('edge-tab'))
+    await user.click(screen.getByTestId('edge-tab'))
+
+    await waitFor(() => screen.getByText('networking'))
+    await user.click(screen.getByText('✕'))
+
+    await waitFor(() => {
+      expect(tagsApi.removeFromLog).toHaveBeenCalledWith('log-1', 'tag-1')
+    })
+  })
+
+  // ── 16. Autosave toggle ───────────────────────────────────────────────────
+
+  it('autosave toggle calls PUT and shows Save button when disabled', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog({ autosaveEnabled: true }))
+    vi.mocked(logsApi.update).mockResolvedValue(makeLog({ autosaveEnabled: false }))
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('edge-tab'))
+    expect(screen.queryByRole('button', { name: /^Save$/ })).not.toBeInTheDocument()
+
+    await user.click(screen.getByTestId('edge-tab'))
+    const toggle = await screen.findByTestId('autosave-toggle')
+    await user.click(toggle)
+
+    await waitFor(() => {
+      expect(logsApi.update).toHaveBeenCalledWith(
+        'log-1',
+        expect.objectContaining({ autosaveEnabled: false }),
+      )
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^Save$/ })).toBeInTheDocument()
+    })
+  })
+
+  // ── 17. Named checkpoint ──────────────────────────────────────────────────
+
+  it('named checkpoint calls POST with isAutosave: false and label', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog())
+    vi.mocked(versionsApi.create).mockResolvedValue(
+      makeVersion({ isAutosave: false, label: 'before rewrite' }),
+    )
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('edge-tab'))
+    await user.click(screen.getByTestId('edge-tab'))
+
+    const cpInput = await screen.findByPlaceholderText('checkpoint label…')
+    await user.type(cpInput, 'before rewrite')
+    await user.click(screen.getByRole('button', { name: /\+ checkpoint/i }))
+
+    await waitFor(() => {
+      expect(versionsApi.create).toHaveBeenCalledWith(
+        'log-1',
+        expect.objectContaining({ isAutosave: false, label: 'before rewrite' }),
+      )
+    })
+  })
+
+  // ── 18. Restore version ───────────────────────────────────────────────────
+
+  it('restore calls POST .../restore and updates editor content', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog())
+    vi.mocked(versionsApi.list).mockResolvedValue([
+      makeVersion({ id: 'v-current', content: '<p>Current</p>' }),
+      makeVersion({ id: 'v-old', content: '<p>Old content</p>' }),
+    ])
+    vi.mocked(versionsApi.restore).mockResolvedValue(
+      makeVersion({ id: 'v-restored', content: '<p>Old content</p>' }),
+    )
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('edge-tab'))
+    await user.click(screen.getByTestId('edge-tab'))
+
+    const oldEntry = await screen.findByTestId('version-entry-v-old')
+    await user.click(oldEntry)
+
+    await waitFor(() => {
+      expect(versionsApi.restore).toHaveBeenCalledWith('log-1', 'v-old')
+    })
+  })
+
+  // ── 19. Delete with confirmation ──────────────────────────────────────────
+
+  it('delete shows confirmation, calls DELETE, navigates to kase', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog())
+    vi.mocked(logsApi.delete).mockImplementation(() => Promise.resolve())
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('edge-tab'))
+    await user.click(screen.getByTestId('edge-tab'))
+
+    const deleteBtn = await screen.findByRole('button', { name: /delete this log/i })
+    await user.click(deleteBtn)
+
+    const confirmBtn = await screen.findByRole('button', { name: /confirm delete/i })
+    await user.click(confirmBtn)
+
+    await waitFor(() => {
+      expect(logsApi.delete).toHaveBeenCalledWith('log-1')
+      expect(mockNavigate).toHaveBeenCalledWith('/kases/kase-1')
+    })
   })
 })

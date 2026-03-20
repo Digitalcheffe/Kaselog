@@ -65,16 +65,19 @@ function SpInput({
   placeholder,
   onBlur,
   onChange,
+  ariaLabel,
 }: {
   value: string
   placeholder?: string
   onBlur?: (val: string) => void
   onChange?: (val: string) => void
+  ariaLabel?: string
 }) {
   const [local, setLocal] = useState(value)
   useEffect(() => setLocal(value), [value])
   return (
     <input
+      aria-label={ariaLabel}
       value={local}
       placeholder={placeholder}
       onChange={(e) => { setLocal(e.target.value); onChange?.(e.target.value) }}
@@ -429,15 +432,18 @@ export default function LogViewPage() {
           ← {kase?.title ?? 'Kase'}
         </button>
         <span style={{ fontSize: 12, color: 'var(--border-mid)', flexShrink: 0 }}>/</span>
-        <span style={{
-          fontSize: 13,
-          fontWeight: 500,
-          color: 'var(--text-primary)',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          minWidth: 0,
-        }}>
+        <span
+          data-testid="topbar-log-title"
+          style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: 'var(--text-primary)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            minWidth: 0,
+          }}
+        >
           {log.title}
         </span>
         <div style={{ flex: 1, minWidth: '0.5rem' }} />
@@ -592,7 +598,7 @@ export default function LogViewPage() {
                 {/* Title */}
                 <div>
                   <SpLabel>Title</SpLabel>
-                  <SpInput value={spTitle} onChange={setSpTitle} onBlur={handleSpTitleBlur} />
+                  <SpInput value={spTitle} onChange={setSpTitle} onBlur={handleSpTitleBlur} ariaLabel="Panel title" />
                 </div>
 
                 {/* Description */}
@@ -693,6 +699,7 @@ export default function LogViewPage() {
                       </div>
                     </div>
                     <div
+                      data-testid="autosave-toggle"
                       onClick={handleAutosaveToggle}
                       style={{
                         width: 32,
@@ -729,6 +736,7 @@ export default function LogViewPage() {
                     {versions.map((v, i) => (
                       <div
                         key={v.id}
+                        data-testid={`version-entry-${v.id}`}
                         onClick={() => { if (i > 0) void handleRestoreVersion(v.id) }}
                         style={{
                           padding: '0.45rem 0.55rem',
