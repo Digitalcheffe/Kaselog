@@ -24,9 +24,10 @@ public sealed class SqliteCollectionRepository : ICollectionRepository
     {
         using var conn = await _db.OpenAsync();
         var rows = await conn.QueryAsync<CollectionRow>("""
-            SELECT Id, Title, Color, CreatedAt, UpdatedAt
-            FROM Collections
-            ORDER BY UpdatedAt DESC
+            SELECT c.Id, c.Title, c.Color, c.CreatedAt, c.UpdatedAt,
+                   (SELECT COUNT(*) FROM CollectionItems ci WHERE ci.CollectionId = c.Id) AS ItemCount
+            FROM Collections c
+            ORDER BY c.UpdatedAt DESC
             """);
         return rows.Select(MapCollection);
     }
@@ -35,8 +36,9 @@ public sealed class SqliteCollectionRepository : ICollectionRepository
     {
         using var conn = await _db.OpenAsync();
         var row = await conn.QuerySingleOrDefaultAsync<CollectionRow>("""
-            SELECT Id, Title, Color, CreatedAt, UpdatedAt
-            FROM Collections WHERE Id = @Id
+            SELECT c.Id, c.Title, c.Color, c.CreatedAt, c.UpdatedAt,
+                   (SELECT COUNT(*) FROM CollectionItems ci WHERE ci.CollectionId = c.Id) AS ItemCount
+            FROM Collections c WHERE c.Id = @Id
             """, new { Id = id.ToString() });
         return row is null ? null : MapCollection(row);
     }
@@ -60,6 +62,7 @@ public sealed class SqliteCollectionRepository : ICollectionRepository
             Id        = id,
             Title     = request.Title,
             Color     = color,
+            ItemCount = 0,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -439,6 +442,7 @@ public sealed class SqliteCollectionRepository : ICollectionRepository
         Id        = Guid.Parse(r.Id),
         Title     = r.Title,
         Color     = r.Color,
+        ItemCount = r.ItemCount,
         CreatedAt = DateTime.Parse(r.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
         UpdatedAt = DateTime.Parse(r.UpdatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
     };
@@ -484,6 +488,7 @@ public sealed class SqliteCollectionRepository : ICollectionRepository
         public string Id        { get; set; } = string.Empty;
         public string Title     { get; set; } = string.Empty;
         public string Color     { get; set; } = "teal";
+        public int    ItemCount { get; set; }
         public string CreatedAt { get; set; } = string.Empty;
         public string UpdatedAt { get; set; } = string.Empty;
     }
