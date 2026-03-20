@@ -1,5 +1,6 @@
 using KaseLog.Api.Data;
 using KaseLog.Api.Data.Sqlite;
+using KaseLog.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
@@ -17,6 +18,11 @@ var connString = !string.IsNullOrEmpty(connStringEnv)
                  ? connStringEnv
                  : $"Data Source={dataPath};";
 
+// ── Image storage ─────────────────────────────────────────────────────────────
+var dataDir = Path.GetDirectoryName(dataPath) ?? "/data";
+var imagesDir = Path.Combine(dataDir, "images");
+builder.Services.AddSingleton(new ImageStorageOptions(imagesDir));
+
 if (dbProvider.Equals("sqlite", StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddSingleton<IDbConnectionFactory>(
@@ -24,6 +30,7 @@ if (dbProvider.Equals("sqlite", StringComparison.OrdinalIgnoreCase))
     builder.Services.AddSingleton<ISchemaInitializer, SqliteSchemaInitializer>();
     builder.Services.AddScoped<IKaseRepository, SqliteKaseRepository>();
     builder.Services.AddScoped<ILogRepository, SqliteLogRepository>();
+    builder.Services.AddScoped<ITagRepository, SqliteTagRepository>();
 }
 else
 {
@@ -80,8 +87,7 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // ── Data directories ─────────────────────────────────────────────────────────
-var dataDir = Path.GetDirectoryName(dataPath) ?? "/data";
-Directory.CreateDirectory(Path.Combine(dataDir, "images"));
+Directory.CreateDirectory(imagesDir);
 
 // ── Schema initialization ─────────────────────────────────────────────────────
 var schemaInitializer = app.Services.GetRequiredService<ISchemaInitializer>();

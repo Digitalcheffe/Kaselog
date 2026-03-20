@@ -359,9 +359,9 @@ function TimelineEntry({
         )}
 
         {/* Tags */}
-        {log.tags.length > 0 && (
+        {(log.tags ?? []).length > 0 && (
           <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-            {log.tags.map(tag => (
+            {(log.tags ?? []).map(tag => (
               <span
                 key={tag.id}
                 className={`tag-${tagColorClass(tag.name)}`}
