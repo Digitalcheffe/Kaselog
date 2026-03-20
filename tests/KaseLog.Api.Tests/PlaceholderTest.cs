@@ -1,3 +1,5 @@
+using Xunit;
+
 namespace KaseLog.Api.Tests;
 
 public class PlaceholderTest
