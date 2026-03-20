@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTheme, ACCENT_DEFS } from '../contexts/ThemeContext'
 import { useUser } from '../contexts/UserContext'
 
 export default function ProfilePage() {
+  const navigate = useNavigate()
   const { theme, accent, setTheme, setAccent } = useTheme()
   const { user, saveProfile, saveAppearance } = useUser()
 
@@ -90,6 +92,24 @@ export default function ProfilePage() {
         gap: '0.75rem',
         flexShrink: 0,
       }}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 13,
+            color: 'var(--text-secondary)',
+            fontFamily: 'var(--font)',
+            padding: '4px 6px',
+            borderRadius: 5,
+          }}
+        >
+          ← Back
+        </button>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
           Profile
         </div>
