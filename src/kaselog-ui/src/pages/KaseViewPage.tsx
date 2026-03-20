@@ -3,11 +3,26 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { kases as kasesApi, logs as logsApi } from '../api/client'
 import type { KaseResponse, LogResponse } from '../api/types'
 
+// ── Tag color palette ─────────────────────────────────────────────────────────
+
+const TAG_PALETTES = ['green', 'purple', 'amber', 'blue', 'coral'] as const
+type TagPalette = (typeof TAG_PALETTES)[number]
+
+/** Deterministic hash: same tag name always maps to the same palette. */
+function tagColorClass(name: string): TagPalette {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = (Math.imul(31, hash) + name.charCodeAt(i)) | 0
+  }
+  return TAG_PALETTES[Math.abs(hash) % TAG_PALETTES.length]
+}
+
+// ── Timestamp formatting ──────────────────────────────────────────────────────
+
 function formatTimestamp(iso: string): string {
   const d = new Date(iso)
   const now = new Date()
-  const diffMs = now.getTime() - d.getTime()
-  const diffDays = Math.floor(diffMs / 86400000)
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000)
   if (diffDays === 0) {
     return `today ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
   }
@@ -17,16 +32,35 @@ function formatTimestamp(iso: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function KaseViewPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+
   const [kase, setKase] = useState<KaseResponse | null>(null)
   const [logList, setLogList] = useState<LogResponse[]>([])
+  const [notFound, setNotFound] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
-    kasesApi.get(id).then(setKase).catch(() => {})
-    logsApi.listByKase(id).then(setLogList).catch(() => {})
+    setLoading(true)
+    setNotFound(false)
+
+    Promise.all([
+      kasesApi.get(id).catch(() => null),
+      logsApi.listByKase(id).catch(() => []),
+    ]).then(([fetchedKase, fetchedLogs]) => {
+      if (fetchedKase === null) {
+        setNotFound(true)
+      } else {
+        setKase(fetchedKase)
+        setLogList(fetchedLogs)
+      }
+      setLoading(false)
+    })
   }, [id])
 
   async function handleNewLog() {
@@ -35,10 +69,51 @@ export default function KaseViewPage() {
       const log = await logsApi.create(id, { title: 'New Log' })
       navigate(`/logs/${log.id}`)
     } catch {
-      // silently ignore
+      // silently ignore — user remains on timeline
     }
   }
 
+  // ── 404 state ───────────────────────────────────────────────────────────────
+  if (!loading && notFound) {
+    return (
+      <>
+        <div style={{
+          height: 48,
+          minHeight: 48,
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 1.25rem',
+          gap: '0.75rem',
+          flexShrink: 0,
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            Kase not found
+          </div>
+          <div style={{ flex: 1 }} />
+          <Avatar />
+        </div>
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          color: 'var(--text-tertiary)',
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)' }}>
+            This kase doesn&rsquo;t exist
+          </div>
+          <div style={{ fontSize: 13 }}>
+            It may have been deleted or the link is incorrect.
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  // ── Normal render ────────────────────────────────────────────────────────────
   return (
     <>
       {/* Top bar */}
@@ -53,7 +128,7 @@ export default function KaseViewPage() {
         flexShrink: 0,
       }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-          {kase?.title ?? '…'}
+          {kase?.title ?? '\u2026'}
         </div>
         <div style={{
           fontSize: 11,
@@ -63,7 +138,7 @@ export default function KaseViewPage() {
           borderRadius: 99,
           border: '1px solid var(--border)',
         }}>
-          {kase?.logCount ?? 0} logs
+          {logList.length} {logList.length === 1 ? 'log' : 'logs'}
         </div>
         <div style={{ flex: 1 }} />
         <button
@@ -82,122 +157,227 @@ export default function KaseViewPage() {
         >
           + New Log
         </button>
-        <div style={{
-          width: 30,
-          height: 30,
-          borderRadius: '50%',
-          background: 'var(--accent-light)',
-          border: '1px solid var(--border-mid)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 11,
-          fontWeight: 600,
-          color: 'var(--accent-text)',
-          cursor: 'pointer',
-        }}>
-          K
-        </div>
+        <Avatar />
       </div>
 
       {/* Timeline */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
-        {logList.length === 0 ? (
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
-            No logs yet. Click &ldquo;+ New Log&rdquo; to get started.
-          </p>
+        {loading ? (
+          <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Loading&hellip;</div>
+        ) : logList.length === 0 ? (
+          <EmptyState onNewLog={handleNewLog} />
         ) : (
           logList.map((log, i) => (
-            <div
+            <TimelineEntry
               key={log.id}
-              style={{ display: 'flex', gap: '1rem', cursor: 'pointer' }}
+              log={log}
+              index={i}
+              isLast={i === logList.length - 1}
+              isHovered={hoveredId === log.id}
+              onMouseEnter={() => setHoveredId(log.id)}
+              onMouseLeave={() => setHoveredId(null)}
               onClick={() => navigate(`/logs/${log.id}`)}
-            >
-              {/* Spine */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                paddingTop: 4,
-                width: 14,
-                flexShrink: 0,
-              }}>
-                <div style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  background: i === 0 ? 'var(--accent)' : 'var(--bg-tertiary)',
-                  border: '2px solid var(--bg)',
-                  boxShadow: i === 0
-                    ? '0 0 0 1.5px var(--accent)'
-                    : '0 0 0 1.5px var(--border-mid)',
-                  flexShrink: 0,
-                }} />
-                {i < logList.length - 1 && (
-                  <div style={{
-                    width: 1,
-                    flex: 1,
-                    background: 'var(--border)',
-                    marginTop: 4,
-                    minHeight: '1.25rem',
-                  }} />
-                )}
-              </div>
-
-              {/* Entry body */}
-              <div style={{
-                flex: 1,
-                paddingBottom: '1.25rem',
-                borderBottom: i < logList.length - 1 ? '1px solid var(--border)' : 'none',
-                marginBottom: 0,
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '0.5rem',
-                  marginBottom: '0.25rem',
-                }}>
-                  <div style={{
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: 'var(--text-primary)',
-                    flex: 1,
-                    lineHeight: 1.3,
-                  }}>
-                    {log.title}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
-                    <span style={{
-                      fontSize: 10,
-                      color: 'var(--text-tertiary)',
-                      padding: '1px 6px',
-                      background: 'var(--bg-secondary)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 4,
-                      fontFamily: 'var(--font-mono)',
-                    }}>
-                      v{log.versionCount}
-                    </span>
-                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
-                      {formatTimestamp(log.updatedAt)}
-                    </span>
-                  </div>
-                </div>
-                {log.description && (
-                  <div style={{
-                    fontSize: 12,
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.6,
-                    marginBottom: '0.45rem',
-                  }}>
-                    {log.description}
-                  </div>
-                )}
-              </div>
-            </div>
+            />
           ))
         )}
       </div>
     </>
+  )
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function Avatar() {
+  return (
+    <div style={{
+      width: 30,
+      height: 30,
+      borderRadius: '50%',
+      background: 'var(--accent-light)',
+      border: '1px solid var(--border-mid)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 11,
+      fontWeight: 600,
+      color: 'var(--accent-text)',
+      cursor: 'pointer',
+      flexShrink: 0,
+    }}>
+      K
+    </div>
+  )
+}
+
+function EmptyState({ onNewLog }: { onNewLog: () => void }) {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingTop: '4rem',
+      gap: '0.75rem',
+    }}>
+      <div style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 500 }}>
+        No logs yet
+      </div>
+      <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
+        Create your first log to start capturing work in this kase
+      </div>
+      <button
+        onClick={onNewLog}
+        style={{
+          marginTop: '0.5rem',
+          fontSize: 13,
+          fontWeight: 500,
+          color: 'var(--bg)',
+          background: 'var(--accent)',
+          padding: '8px 20px',
+          borderRadius: 7,
+          cursor: 'pointer',
+          border: 'none',
+          fontFamily: 'var(--font)',
+        }}
+      >
+        + New Log
+      </button>
+    </div>
+  )
+}
+
+interface TimelineEntryProps {
+  log: LogResponse
+  index: number
+  isLast: boolean
+  isHovered: boolean
+  onMouseEnter: () => void
+  onMouseLeave: () => void
+  onClick: () => void
+}
+
+function TimelineEntry({
+  log,
+  index,
+  isLast,
+  isHovered,
+  onMouseEnter,
+  onMouseLeave,
+  onClick,
+}: TimelineEntryProps) {
+  const isNewest = index === 0
+
+  return (
+    <div
+      style={{ display: 'flex', gap: '1rem', cursor: 'pointer', paddingBottom: '1.25rem' }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onClick={onClick}
+    >
+      {/* Spine */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        paddingTop: 4,
+        width: 14,
+        flexShrink: 0,
+      }}>
+        <div style={{
+          width: 10,
+          height: 10,
+          borderRadius: '50%',
+          background: isNewest ? 'var(--accent)' : 'var(--bg-tertiary)',
+          border: '2px solid var(--bg)',
+          boxShadow: isNewest
+            ? '0 0 0 1.5px var(--accent)'
+            : '0 0 0 1.5px var(--border-mid)',
+          flexShrink: 0,
+        }} />
+        {!isLast && (
+          <div style={{
+            width: 1,
+            flex: 1,
+            background: 'var(--border)',
+            marginTop: 4,
+            minHeight: '1.25rem',
+          }} />
+        )}
+      </div>
+
+      {/* Entry body */}
+      <div style={{
+        flex: 1,
+        paddingBottom: '1.25rem',
+        borderBottom: isLast ? 'none' : '1px solid var(--border)',
+      }}>
+        {/* Header row */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '0.5rem',
+          marginBottom: '0.25rem',
+        }}>
+          <div style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: isHovered ? 'var(--accent)' : 'var(--text-primary)',
+            flex: 1,
+            lineHeight: 1.3,
+            transition: 'color 0.15s',
+          }}>
+            {log.title}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+            <span style={{
+              fontSize: 10,
+              color: 'var(--text-tertiary)',
+              padding: '1px 6px',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 4,
+              fontFamily: 'var(--font-mono)',
+            }}>
+              v{log.versionCount}
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+              {formatTimestamp(log.updatedAt)}
+            </span>
+          </div>
+        </div>
+
+        {/* Description */}
+        {log.description && (
+          <div style={{
+            fontSize: 12,
+            color: 'var(--text-secondary)',
+            lineHeight: 1.6,
+            marginBottom: '0.45rem',
+          }}>
+            {log.description}
+          </div>
+        )}
+
+        {/* Tags */}
+        {log.tags.length > 0 && (
+          <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+            {log.tags.map(tag => (
+              <span
+                key={tag.id}
+                className={`tag-${tagColorClass(tag.name)}`}
+                style={{
+                  fontSize: 10,
+                  padding: '2px 8px',
+                  borderRadius: 99,
+                  fontWeight: 500,
+                }}
+              >
+                {tag.name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

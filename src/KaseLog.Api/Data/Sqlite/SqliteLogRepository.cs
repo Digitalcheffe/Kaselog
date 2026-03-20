@@ -12,15 +12,20 @@ public sealed class SqliteLogRepository : ILogRepository
     public async Task<IEnumerable<LogResponse>> GetByKaseIdAsync(Guid kaseId)
     {
         using var conn = await _db.OpenAsync();
-        var rows = await conn.QueryAsync<LogRow>("""
+        var rows = (await conn.QueryAsync<LogRow>("""
             SELECT l.Id, l.KaseId, l.Title, l.Description, l.AutosaveEnabled, l.CreatedAt, l.UpdatedAt,
                    COALESCE((SELECT Content FROM LogVersions WHERE LogId = l.Id ORDER BY CreatedAt DESC LIMIT 1), '') AS Content,
                    (SELECT COUNT(*) FROM LogVersions WHERE LogId = l.Id) AS VersionCount
             FROM Logs l
             WHERE l.KaseId = @KaseId
             ORDER BY l.UpdatedAt DESC
-            """, new { KaseId = kaseId.ToString() });
-        return rows.Select(Map);
+            """, new { KaseId = kaseId.ToString() })).ToList();
+
+        if (rows.Count == 0) return [];
+
+        var logIds = rows.Select(r => r.Id).ToList();
+        var tagsByLogId = await FetchTagsByLogIdsAsync(conn, logIds);
+        return rows.Select(r => Map(r, tagsByLogId.GetValueOrDefault(r.Id, [])));
     }
 
     public async Task<LogResponse?> GetByIdAsync(Guid id)
@@ -33,7 +38,10 @@ public sealed class SqliteLogRepository : ILogRepository
             FROM Logs l
             WHERE l.Id = @Id
             """, new { Id = id.ToString() });
-        return row is null ? null : Map(row);
+        if (row is null) return null;
+
+        var tagsByLogId = await FetchTagsByLogIdsAsync(conn, [row.Id]);
+        return Map(row, tagsByLogId.GetValueOrDefault(row.Id, []));
     }
 
     public async Task<LogResponse?> CreateAsync(Guid kaseId, string title, string? description, bool autosaveEnabled)
@@ -193,7 +201,29 @@ public sealed class SqliteLogRepository : ILogRepository
         return await GetVersionByIdAsync(logId, newVersionId);
     }
 
-    private static LogResponse Map(LogRow row) => new()
+    private static async Task<Dictionary<string, IReadOnlyList<TagDto>>> FetchTagsByLogIdsAsync(
+        System.Data.IDbConnection conn, IEnumerable<string> logIds)
+    {
+        var ids = logIds.ToList();
+        if (ids.Count == 0) return [];
+
+        var tagRows = await conn.QueryAsync<TagRow>(
+            "SELECT t.Id, t.Name, t.CreatedAt, lt.LogId FROM Tags t JOIN LogTags lt ON lt.TagId = t.Id WHERE lt.LogId IN @Ids",
+            new { Ids = ids });
+
+        return tagRows
+            .GroupBy(r => r.LogId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<TagDto>)g.Select(r => new TagDto
+                {
+                    Id = Guid.Parse(r.Id),
+                    Name = r.Name,
+                    CreatedAt = DateTime.Parse(r.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
+                }).ToList());
+    }
+
+    private static LogResponse Map(LogRow row, IReadOnlyList<TagDto> tags) => new()
     {
         Id = Guid.Parse(row.Id),
         KaseId = Guid.Parse(row.KaseId),
@@ -202,6 +232,7 @@ public sealed class SqliteLogRepository : ILogRepository
         AutosaveEnabled = row.AutosaveEnabled != 0,
         Content = row.Content,
         VersionCount = (int)row.VersionCount,
+        Tags = tags,
         CreatedAt = DateTime.Parse(row.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
         UpdatedAt = DateTime.Parse(row.UpdatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
     };
@@ -237,5 +268,13 @@ public sealed class SqliteLogRepository : ILogRepository
         public string? Label { get; set; }
         public int IsAutosave { get; set; }
         public string CreatedAt { get; set; } = string.Empty;
+    }
+
+    private sealed class TagRow
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string CreatedAt { get; set; } = string.Empty;
+        public string LogId { get; set; } = string.Empty;
     }
 }

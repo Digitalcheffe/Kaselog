@@ -24,6 +24,12 @@ export interface KaseResponse {
   updatedAt: string
 }
 
+export interface TagResponse {
+  id: string
+  name: string
+  createdAt: string
+}
+
 export interface LogResponse {
   id: string
   kaseId: string
@@ -32,6 +38,7 @@ export interface LogResponse {
   autosaveEnabled: boolean
   content: string
   versionCount: number
+  tags: TagResponse[]
   createdAt: string
   updatedAt: string
 }
