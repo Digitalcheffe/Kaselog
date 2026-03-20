@@ -33,6 +33,7 @@ if (dbProvider.Equals("sqlite", StringComparison.OrdinalIgnoreCase))
     builder.Services.AddScoped<ITagRepository, SqliteTagRepository>();
     builder.Services.AddScoped<ISearchRepository, SqliteSearchRepository>();
     builder.Services.AddScoped<IUserRepository, SqliteUserRepository>();
+    builder.Services.AddScoped<ICollectionRepository, SqliteCollectionRepository>();
 }
 else
 {
