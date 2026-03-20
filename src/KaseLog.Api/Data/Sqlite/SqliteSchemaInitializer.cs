@@ -76,11 +76,16 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
         """,
 
         // ── FTS5 virtual table ───────────────────────────────────────────────
+        // entity_id  — Log.Id or CollectionItem.Id
+        // entity_type — 'log' or 'collection_item'
         """
         CREATE VIRTUAL TABLE IF NOT EXISTS kaselog_search USING fts5(
-          log_id    UNINDEXED,
-          kase_id   UNINDEXED,
+          entity_id        UNINDEXED,
+          entity_type      UNINDEXED,
+          kase_id          UNINDEXED,
           kase_title,
+          collection_id    UNINDEXED,
+          collection_title,
           title,
           content
         )
@@ -101,16 +106,59 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
         )
         """,
 
-        // ── FTS5 sync triggers ───────────────────────────────────────────────
+        // ── Collections tables ───────────────────────────────────────────────
+        """
+        CREATE TABLE IF NOT EXISTS Collections (
+          Id        TEXT PRIMARY KEY,
+          Title     TEXT NOT NULL,
+          Color     TEXT NOT NULL DEFAULT 'teal',
+          CreatedAt TEXT NOT NULL,
+          UpdatedAt TEXT NOT NULL
+        )
+        """,
+
+        """
+        CREATE TABLE IF NOT EXISTS CollectionFields (
+          Id           TEXT PRIMARY KEY,
+          CollectionId TEXT NOT NULL REFERENCES Collections(Id) ON DELETE CASCADE,
+          Name         TEXT NOT NULL,
+          Type         TEXT NOT NULL,
+          Required     INTEGER NOT NULL DEFAULT 0,
+          ShowInList   INTEGER NOT NULL DEFAULT 1,
+          Options      TEXT,
+          SortOrder    INTEGER NOT NULL DEFAULT 0
+        )
+        """,
+
+        """
+        CREATE TABLE IF NOT EXISTS CollectionLayout (
+          Id           TEXT PRIMARY KEY,
+          CollectionId TEXT NOT NULL UNIQUE REFERENCES Collections(Id) ON DELETE CASCADE,
+          Layout       TEXT NOT NULL
+        )
+        """,
+
+        """
+        CREATE TABLE IF NOT EXISTS CollectionItems (
+          Id           TEXT PRIMARY KEY,
+          CollectionId TEXT NOT NULL REFERENCES Collections(Id) ON DELETE CASCADE,
+          KaseId       TEXT REFERENCES Kases(Id) ON DELETE SET NULL,
+          FieldValues  TEXT NOT NULL,
+          CreatedAt    TEXT NOT NULL,
+          UpdatedAt    TEXT NOT NULL
+        )
+        """,
+
+        // ── FTS5 sync triggers: Logs ─────────────────────────────────────────
         // One FTS row per Log, always reflecting the most recent LogVersion.
         // INSERT: replace existing FTS entry with the new version's content.
         """
         CREATE TRIGGER IF NOT EXISTS fts_logversion_insert
         AFTER INSERT ON LogVersions
         BEGIN
-          DELETE FROM kaselog_search WHERE log_id = NEW.LogId;
-          INSERT INTO kaselog_search(log_id, kase_id, kase_title, title, content)
-          SELECT NEW.LogId, l.KaseId, k.Title, l.Title, NEW.Content
+          DELETE FROM kaselog_search WHERE entity_id = NEW.LogId AND entity_type = 'log';
+          INSERT INTO kaselog_search(entity_id, entity_type, kase_id, kase_title, collection_id, collection_title, title, content)
+          SELECT NEW.LogId, 'log', l.KaseId, k.Title, NULL, NULL, l.Title, NEW.Content
           FROM Logs l
           JOIN Kases k ON k.Id = l.KaseId
           WHERE l.Id = NEW.LogId;
@@ -123,9 +171,9 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
         CREATE TRIGGER IF NOT EXISTS fts_logversion_update
         AFTER UPDATE ON LogVersions
         BEGIN
-          DELETE FROM kaselog_search WHERE log_id = NEW.LogId;
-          INSERT INTO kaselog_search(log_id, kase_id, kase_title, title, content)
-          SELECT NEW.LogId, l.KaseId, k.Title, l.Title, NEW.Content
+          DELETE FROM kaselog_search WHERE entity_id = NEW.LogId AND entity_type = 'log';
+          INSERT INTO kaselog_search(entity_id, entity_type, kase_id, kase_title, collection_id, collection_title, title, content)
+          SELECT NEW.LogId, 'log', l.KaseId, k.Title, NULL, NULL, l.Title, NEW.Content
           FROM Logs l
           JOIN Kases k ON k.Id = l.KaseId
           WHERE l.Id = NEW.LogId;
@@ -138,9 +186,9 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
         CREATE TRIGGER IF NOT EXISTS fts_logversion_delete
         AFTER DELETE ON LogVersions
         BEGIN
-          DELETE FROM kaselog_search WHERE log_id = OLD.LogId;
-          INSERT INTO kaselog_search(log_id, kase_id, kase_title, title, content)
-          SELECT lv.LogId, l.KaseId, k.Title, l.Title, lv.Content
+          DELETE FROM kaselog_search WHERE entity_id = OLD.LogId AND entity_type = 'log';
+          INSERT INTO kaselog_search(entity_id, entity_type, kase_id, kase_title, collection_id, collection_title, title, content)
+          SELECT lv.LogId, 'log', l.KaseId, k.Title, NULL, NULL, l.Title, lv.Content
           FROM LogVersions lv
           JOIN Logs l ON l.Id = lv.LogId
           JOIN Kases k ON k.Id = l.KaseId
@@ -157,7 +205,73 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
         CREATE TRIGGER IF NOT EXISTS fts_log_delete
         AFTER DELETE ON Logs
         BEGIN
-          DELETE FROM kaselog_search WHERE log_id = OLD.Id;
+          DELETE FROM kaselog_search WHERE entity_id = OLD.Id AND entity_type = 'log';
+        END
+        """,
+
+        // ── FTS5 sync triggers: CollectionItems ──────────────────────────────
+        // title   = value of the first text/select field by SortOrder
+        // content = space-separated values of all text/multiline/select fields
+        """
+        CREATE TRIGGER IF NOT EXISTS fts_collectionitem_insert
+        AFTER INSERT ON CollectionItems
+        BEGIN
+          INSERT INTO kaselog_search(entity_id, entity_type, kase_id, kase_title, collection_id, collection_title, title, content)
+          SELECT
+            NEW.Id,
+            'collection_item',
+            NEW.KaseId,
+            (SELECT Title FROM Kases WHERE Id = NEW.KaseId),
+            NEW.CollectionId,
+            c.Title,
+            (SELECT json_extract(NEW.FieldValues, '$.' || cf.Id)
+             FROM CollectionFields cf
+             WHERE cf.CollectionId = NEW.CollectionId
+               AND cf.Type IN ('text', 'select')
+             ORDER BY cf.SortOrder
+             LIMIT 1),
+            (SELECT COALESCE(group_concat(COALESCE(json_extract(NEW.FieldValues, '$.' || cf.Id), ''), ' '), '')
+             FROM CollectionFields cf
+             WHERE cf.CollectionId = NEW.CollectionId
+               AND cf.Type IN ('text', 'multiline', 'select'))
+          FROM Collections c
+          WHERE c.Id = NEW.CollectionId;
+        END
+        """,
+
+        """
+        CREATE TRIGGER IF NOT EXISTS fts_collectionitem_update
+        AFTER UPDATE ON CollectionItems
+        BEGIN
+          DELETE FROM kaselog_search WHERE entity_id = OLD.Id AND entity_type = 'collection_item';
+          INSERT INTO kaselog_search(entity_id, entity_type, kase_id, kase_title, collection_id, collection_title, title, content)
+          SELECT
+            NEW.Id,
+            'collection_item',
+            NEW.KaseId,
+            (SELECT Title FROM Kases WHERE Id = NEW.KaseId),
+            NEW.CollectionId,
+            c.Title,
+            (SELECT json_extract(NEW.FieldValues, '$.' || cf.Id)
+             FROM CollectionFields cf
+             WHERE cf.CollectionId = NEW.CollectionId
+               AND cf.Type IN ('text', 'select')
+             ORDER BY cf.SortOrder
+             LIMIT 1),
+            (SELECT COALESCE(group_concat(COALESCE(json_extract(NEW.FieldValues, '$.' || cf.Id), ''), ' '), '')
+             FROM CollectionFields cf
+             WHERE cf.CollectionId = NEW.CollectionId
+               AND cf.Type IN ('text', 'multiline', 'select'))
+          FROM Collections c
+          WHERE c.Id = NEW.CollectionId;
+        END
+        """,
+
+        """
+        CREATE TRIGGER IF NOT EXISTS fts_collectionitem_delete
+        AFTER DELETE ON CollectionItems
+        BEGIN
+          DELETE FROM kaselog_search WHERE entity_id = OLD.Id AND entity_type = 'collection_item';
         END
         """,
     ];

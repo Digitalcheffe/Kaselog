@@ -44,6 +44,7 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
             LogId = r.LogId,
             KaseId = r.KaseId,
             KaseTitle = r.KaseTitle,
+            EntityType = r.EntityType,
             Title = r.Title,
             Highlight = BuildHighlight(r.Content, hasQ ? q : null),
             Tags = tagMap.TryGetValue(r.LogId, out var t) ? t : [],
@@ -64,15 +65,17 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
         var ftsQuery = BuildFtsQuery(q);
         var sql = new StringBuilder("""
             SELECT
-                kaselog_search.log_id     AS LogId,
-                kaselog_search.kase_id    AS KaseId,
-                kaselog_search.kase_title AS KaseTitle,
-                kaselog_search.title      AS Title,
-                kaselog_search.content    AS Content,
+                kaselog_search.entity_id   AS LogId,
+                kaselog_search.kase_id     AS KaseId,
+                kaselog_search.kase_title  AS KaseTitle,
+                kaselog_search.entity_type AS EntityType,
+                kaselog_search.title       AS Title,
+                kaselog_search.content     AS Content,
                 l.UpdatedAt
             FROM kaselog_search
-            JOIN Logs l ON l.Id = kaselog_search.log_id
+            JOIN Logs l ON l.Id = kaselog_search.entity_id
             WHERE kaselog_search MATCH @ftsQuery
+              AND kaselog_search.entity_type = 'log'
             """);
 
         var p = new DynamicParameters();
@@ -84,7 +87,7 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
             p.Add("kaseId", kaseId);
         }
 
-        AppendDateAndTagFilters(sql, p, tags, from, to, "kaselog_search.log_id");
+        AppendDateAndTagFilters(sql, p, tags, from, to, "kaselog_search.entity_id");
 
         sql.AppendLine(" ORDER BY rank LIMIT 100");
 
@@ -277,6 +280,7 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
         public string LogId { get; init; } = string.Empty;
         public string KaseId { get; init; } = string.Empty;
         public string KaseTitle { get; init; } = string.Empty;
+        public string EntityType { get; init; } = "log";
         public string Title { get; init; } = string.Empty;
         public string Content { get; init; } = string.Empty;
         public string UpdatedAt { get; init; } = string.Empty;

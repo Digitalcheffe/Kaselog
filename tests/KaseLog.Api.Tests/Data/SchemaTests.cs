@@ -82,6 +82,38 @@ public sealed class SchemaTests : IAsyncDisposable
             new { LogId = logId, TagId = tagId });
     }
 
+    private async Task InsertCollectionAsync(IDbConnection conn, string id, string title = "Test Collection", string color = "teal")
+    {
+        var now = Now();
+        await conn.ExecuteAsync(
+            "INSERT INTO Collections(Id, Title, Color, CreatedAt, UpdatedAt) VALUES (@Id, @Title, @Color, @Now, @Now)",
+            new { Id = id, Title = title, Color = color, Now = now });
+    }
+
+    private async Task InsertCollectionFieldAsync(IDbConnection conn, string id, string collectionId,
+        string name = "Field", string type = "text", int sortOrder = 0)
+    {
+        await conn.ExecuteAsync(
+            "INSERT INTO CollectionFields(Id, CollectionId, Name, Type, SortOrder) VALUES (@Id, @CollectionId, @Name, @Type, @SortOrder)",
+            new { Id = id, CollectionId = collectionId, Name = name, Type = type, SortOrder = sortOrder });
+    }
+
+    private async Task InsertCollectionLayoutAsync(IDbConnection conn, string id, string collectionId, string layout = "[]")
+    {
+        await conn.ExecuteAsync(
+            "INSERT INTO CollectionLayout(Id, CollectionId, Layout) VALUES (@Id, @CollectionId, @Layout)",
+            new { Id = id, CollectionId = collectionId, Layout = layout });
+    }
+
+    private async Task InsertCollectionItemAsync(IDbConnection conn, string id, string collectionId,
+        string fieldValues = "{}", string? kaseId = null)
+    {
+        var now = Now();
+        await conn.ExecuteAsync(
+            "INSERT INTO CollectionItems(Id, CollectionId, KaseId, FieldValues, CreatedAt, UpdatedAt) VALUES (@Id, @CollectionId, @KaseId, @FieldValues, @Now, @Now)",
+            new { Id = id, CollectionId = collectionId, KaseId = kaseId, FieldValues = fieldValues, Now = now });
+    }
+
     // ── Tests ─────────────────────────────────────────────────────────────────
 
     [Fact]
@@ -186,7 +218,7 @@ public sealed class SchemaTests : IAsyncDisposable
         await InsertLogVersionAsync(conn, versionId, logId, "searchable content here");
 
         var count = await conn.ExecuteScalarAsync<long>(
-            "SELECT count(*) FROM kaselog_search WHERE log_id = @LogId",
+            "SELECT count(*) FROM kaselog_search WHERE entity_id = @LogId AND entity_type = 'log'",
             new { LogId = logId });
 
         Assert.Equal(1L, count);
@@ -209,13 +241,15 @@ public sealed class SchemaTests : IAsyncDisposable
 
         // Confirm FTS entry exists
         Assert.Equal(1L, await conn.ExecuteScalarAsync<long>(
-            "SELECT count(*) FROM kaselog_search WHERE log_id = @LogId", new { LogId = logId }));
+            "SELECT count(*) FROM kaselog_search WHERE entity_id = @LogId AND entity_type = 'log'",
+            new { LogId = logId }));
 
         await conn.ExecuteAsync("DELETE FROM LogVersions WHERE Id = @Id", new { Id = versionId });
 
         // No remaining versions — FTS entry should be gone
         Assert.Equal(0L, await conn.ExecuteScalarAsync<long>(
-            "SELECT count(*) FROM kaselog_search WHERE log_id = @LogId", new { LogId = logId }));
+            "SELECT count(*) FROM kaselog_search WHERE entity_id = @LogId AND entity_type = 'log'",
+            new { LogId = logId }));
     }
 
     [Fact]
@@ -242,9 +276,262 @@ public sealed class SchemaTests : IAsyncDisposable
         await conn.ExecuteAsync("DELETE FROM LogVersions WHERE Id = @Id", new { Id = v1Id });
 
         var ftsContent = await conn.ExecuteScalarAsync<string>(
-            "SELECT content FROM kaselog_search WHERE log_id = @LogId",
+            "SELECT content FROM kaselog_search WHERE entity_id = @LogId AND entity_type = 'log'",
             new { LogId = logId });
 
         Assert.Equal("version two content", ftsContent);
+    }
+
+    // ── Collections schema tests ───────────────────────────────────────────────
+
+    [Fact]
+    public async Task Collections_AllTablesInitializeCorrectly()
+    {
+        await InitializeAsync();
+
+        using var conn = await _factory.OpenAsync();
+
+        var tables = (await conn.QueryAsync<string>(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"))
+            .ToHashSet();
+
+        Assert.Contains("Collections",       tables);
+        Assert.Contains("CollectionFields",  tables);
+        Assert.Contains("CollectionLayout",  tables);
+        Assert.Contains("CollectionItems",   tables);
+    }
+
+    [Fact]
+    public async Task Collections_Cascade_DeletingCollection_RemovesFieldsLayoutAndItems()
+    {
+        await InitializeAsync();
+
+        using var conn = await _factory.OpenAsync();
+
+        var collectionId = NewId();
+        var fieldId      = NewId();
+        var layoutId     = NewId();
+        var itemId       = NewId();
+
+        await InsertCollectionAsync(conn, collectionId);
+        await InsertCollectionFieldAsync(conn, fieldId, collectionId);
+        await InsertCollectionLayoutAsync(conn, layoutId, collectionId);
+        await InsertCollectionItemAsync(conn, itemId, collectionId);
+
+        await conn.ExecuteAsync("DELETE FROM Collections WHERE Id = @Id", new { Id = collectionId });
+
+        Assert.Equal(0L, await conn.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM CollectionFields WHERE CollectionId = @Id", new { Id = collectionId }));
+        Assert.Equal(0L, await conn.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM CollectionLayout WHERE CollectionId = @Id", new { Id = collectionId }));
+        Assert.Equal(0L, await conn.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM CollectionItems WHERE CollectionId = @Id", new { Id = collectionId }));
+    }
+
+    [Fact]
+    public async Task Collections_DeletingKase_SetsKaseIdNullOnLinkedItems()
+    {
+        await InitializeAsync();
+
+        using var conn = await _factory.OpenAsync();
+
+        var kaseId       = NewId();
+        var collectionId = NewId();
+        var itemId       = NewId();
+
+        await InsertKaseAsync(conn, kaseId);
+        await InsertCollectionAsync(conn, collectionId);
+        await InsertCollectionItemAsync(conn, itemId, collectionId, kaseId: kaseId);
+
+        // Sanity: KaseId is set before delete
+        var kaseIdBefore = await conn.ExecuteScalarAsync<string?>(
+            "SELECT KaseId FROM CollectionItems WHERE Id = @Id", new { Id = itemId });
+        Assert.Equal(kaseId, kaseIdBefore);
+
+        await conn.ExecuteAsync("DELETE FROM Kases WHERE Id = @Id", new { Id = kaseId });
+
+        // Item still exists, KaseId is NULL
+        var kaseIdAfter = await conn.ExecuteScalarAsync<string?>(
+            "SELECT KaseId FROM CollectionItems WHERE Id = @Id", new { Id = itemId });
+        Assert.Null(kaseIdAfter);
+
+        Assert.Equal(1L, await conn.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM CollectionItems WHERE Id = @Id", new { Id = itemId }));
+    }
+
+    [Fact]
+    public async Task Collections_FieldReorder_UpdatesSortOrderAtomically()
+    {
+        await InitializeAsync();
+
+        using var conn = await _factory.OpenAsync();
+
+        var collectionId = NewId();
+        var fieldA       = NewId();
+        var fieldB       = NewId();
+        var fieldC       = NewId();
+
+        await InsertCollectionAsync(conn, collectionId);
+        await InsertCollectionFieldAsync(conn, fieldA, collectionId, "Field A", sortOrder: 0);
+        await InsertCollectionFieldAsync(conn, fieldB, collectionId, "Field B", sortOrder: 1);
+        await InsertCollectionFieldAsync(conn, fieldC, collectionId, "Field C", sortOrder: 2);
+
+        // Reverse the order atomically
+        using var tx = conn.BeginTransaction();
+        await conn.ExecuteAsync("UPDATE CollectionFields SET SortOrder = @S WHERE Id = @Id",
+            new { Id = fieldA, S = 2 }, tx);
+        await conn.ExecuteAsync("UPDATE CollectionFields SET SortOrder = @S WHERE Id = @Id",
+            new { Id = fieldB, S = 1 }, tx);
+        await conn.ExecuteAsync("UPDATE CollectionFields SET SortOrder = @S WHERE Id = @Id",
+            new { Id = fieldC, S = 0 }, tx);
+        tx.Commit();
+
+        var orders = (await conn.QueryAsync<(string Id, int SortOrder)>(
+            "SELECT Id, SortOrder FROM CollectionFields WHERE CollectionId = @Id ORDER BY SortOrder",
+            new { Id = collectionId })).ToList();
+
+        Assert.Equal(fieldC, orders[0].Id);
+        Assert.Equal(fieldB, orders[1].Id);
+        Assert.Equal(fieldA, orders[2].Id);
+    }
+
+    [Fact]
+    public async Task Collections_Layout_UniquePerCollection_UpsertBehavior()
+    {
+        await InitializeAsync();
+
+        using var conn = await _factory.OpenAsync();
+
+        var collectionId = NewId();
+        var layoutId1    = NewId();
+        var layoutId2    = NewId();
+
+        await InsertCollectionAsync(conn, collectionId);
+        await InsertCollectionLayoutAsync(conn, layoutId1, collectionId, "[{\"cells\":[]}]");
+
+        // Upsert: replace layout for same collection
+        await conn.ExecuteAsync("""
+            INSERT INTO CollectionLayout(Id, CollectionId, Layout)
+            VALUES (@Id, @CollectionId, @Layout)
+            ON CONFLICT(CollectionId) DO UPDATE SET Layout = excluded.Layout
+            """,
+            new { Id = layoutId2, CollectionId = collectionId, Layout = "[{\"cells\":[]},{\"cells\":[]}]" });
+
+        var count = await conn.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM CollectionLayout WHERE CollectionId = @Id", new { Id = collectionId });
+        var layout = await conn.ExecuteScalarAsync<string>(
+            "SELECT Layout FROM CollectionLayout WHERE CollectionId = @Id", new { Id = collectionId });
+
+        Assert.Equal(1L, count);
+        Assert.Equal("[{\"cells\":[]},{\"cells\":[]}]", layout);
+    }
+
+    [Fact]
+    public async Task Collections_Fts_UpdatesOnCollectionItemInsert()
+    {
+        await InitializeAsync();
+
+        using var conn = await _factory.OpenAsync();
+
+        var collectionId = NewId();
+        var fieldId      = NewId();
+        var itemId       = NewId();
+
+        await InsertCollectionAsync(conn, collectionId, "My Books");
+        await InsertCollectionFieldAsync(conn, fieldId, collectionId, "Title", "text", sortOrder: 0);
+        var fieldValues = $"{{\"{fieldId}\": \"Dune\"}}";
+        await InsertCollectionItemAsync(conn, itemId, collectionId, fieldValues);
+
+        var entityType = await conn.ExecuteScalarAsync<string>(
+            "SELECT entity_type FROM kaselog_search WHERE entity_id = @Id",
+            new { Id = itemId });
+
+        Assert.Equal("collection_item", entityType);
+    }
+
+    [Fact]
+    public async Task Collections_Fts_UpdatesOnCollectionItemUpdate()
+    {
+        await InitializeAsync();
+
+        using var conn = await _factory.OpenAsync();
+
+        var collectionId = NewId();
+        var fieldId      = NewId();
+        var itemId       = NewId();
+
+        await InsertCollectionAsync(conn, collectionId);
+        await InsertCollectionFieldAsync(conn, fieldId, collectionId, "Title", "text", sortOrder: 0);
+        var fieldValues = $"{{\"{fieldId}\": \"Original\"}}";
+        await InsertCollectionItemAsync(conn, itemId, collectionId, fieldValues);
+
+        // Update the item with new field values
+        var updatedValues = $"{{\"{fieldId}\": \"Updated\"}}";
+        await conn.ExecuteAsync(
+            "UPDATE CollectionItems SET FieldValues = @FV, UpdatedAt = @Now WHERE Id = @Id",
+            new { FV = updatedValues, Now = Now(), Id = itemId });
+
+        var ftsTitle = await conn.ExecuteScalarAsync<string>(
+            "SELECT title FROM kaselog_search WHERE entity_id = @Id AND entity_type = 'collection_item'",
+            new { Id = itemId });
+
+        Assert.Equal("Updated", ftsTitle);
+    }
+
+    [Fact]
+    public async Task Collections_Fts_EntryRemovedOnCollectionItemDelete()
+    {
+        await InitializeAsync();
+
+        using var conn = await _factory.OpenAsync();
+
+        var collectionId = NewId();
+        var itemId       = NewId();
+
+        await InsertCollectionAsync(conn, collectionId);
+        await InsertCollectionItemAsync(conn, itemId, collectionId);
+
+        Assert.Equal(1L, await conn.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM kaselog_search WHERE entity_id = @Id AND entity_type = 'collection_item'",
+            new { Id = itemId }));
+
+        await conn.ExecuteAsync("DELETE FROM CollectionItems WHERE Id = @Id", new { Id = itemId });
+
+        Assert.Equal(0L, await conn.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM kaselog_search WHERE entity_id = @Id AND entity_type = 'collection_item'",
+            new { Id = itemId }));
+    }
+
+    [Fact]
+    public async Task Collections_Fts_SearchReturnsBothLogAndCollectionItemEntityTypes()
+    {
+        await InitializeAsync();
+
+        using var conn = await _factory.OpenAsync();
+
+        // Insert a log with FTS entry
+        var kaseId       = NewId();
+        var logId        = NewId();
+        var versionId    = NewId();
+        var collectionId = NewId();
+        var fieldId      = NewId();
+        var itemId       = NewId();
+
+        await InsertKaseAsync(conn, kaseId);
+        await InsertLogAsync(conn, logId, kaseId);
+        await InsertLogVersionAsync(conn, versionId, logId, "searchable log content");
+
+        // Insert a collection item with FTS entry
+        await InsertCollectionAsync(conn, collectionId);
+        await InsertCollectionFieldAsync(conn, fieldId, collectionId, "Name", "text", sortOrder: 0);
+        var fieldValues = $"{{\"{fieldId}\": \"searchable item\"}}";
+        await InsertCollectionItemAsync(conn, itemId, collectionId, fieldValues);
+
+        var entityTypes = (await conn.QueryAsync<string>(
+            "SELECT entity_type FROM kaselog_search ORDER BY entity_type"))
+            .ToList();
+
+        Assert.Contains("log",             entityTypes);
+        Assert.Contains("collection_item", entityTypes);
     }
 }
