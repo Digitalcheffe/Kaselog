@@ -134,5 +134,16 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
           LIMIT 1;
         END
         """,
+
+        // LOG DELETE: SQLite cascade deletes (LogVersions removed via FK) do not
+        // fire row-level triggers on the child table. This trigger ensures the FTS
+        // entry is always removed when a Log itself is deleted.
+        """
+        CREATE TRIGGER IF NOT EXISTS fts_log_delete
+        AFTER DELETE ON Logs
+        BEGIN
+          DELETE FROM kaselog_search WHERE log_id = OLD.Id;
+        END
+        """,
     ];
 }
