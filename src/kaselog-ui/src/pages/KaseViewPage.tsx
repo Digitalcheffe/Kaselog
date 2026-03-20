@@ -91,7 +91,6 @@ export default function KaseViewPage() {
             Kase not found
           </div>
           <div style={{ flex: 1 }} />
-          <Avatar />
         </div>
         <div style={{
           flex: 1,
@@ -157,7 +156,6 @@ export default function KaseViewPage() {
         >
           + New Log
         </button>
-        <Avatar />
       </div>
 
       {/* Timeline */}
@@ -186,28 +184,6 @@ export default function KaseViewPage() {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-
-function Avatar() {
-  return (
-    <div style={{
-      width: 30,
-      height: 30,
-      borderRadius: '50%',
-      background: 'var(--accent-light)',
-      border: '1px solid var(--border-mid)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 11,
-      fontWeight: 600,
-      color: 'var(--accent-text)',
-      cursor: 'pointer',
-      flexShrink: 0,
-    }}>
-      K
-    </div>
-  )
-}
 
 function EmptyState({ onNewLog }: { onNewLog: () => void }) {
   return (

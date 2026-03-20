@@ -4,6 +4,7 @@ import KaseListPage from './pages/KaseListPage'
 import KaseViewPage from './pages/KaseViewPage'
 import LogViewPage from './pages/LogViewPage'
 import SearchPage from './pages/SearchPage'
+import ProfilePage from './pages/ProfilePage'
 
 const router = createBrowserRouter([
   {
@@ -13,6 +14,7 @@ const router = createBrowserRouter([
       { path: '/kases/:id', element: <KaseViewPage /> },
       { path: '/logs/:id', element: <LogViewPage /> },
       { path: '/search', element: <SearchPage /> },
+      { path: '/profile', element: <ProfilePage /> },
     ],
   },
 ])

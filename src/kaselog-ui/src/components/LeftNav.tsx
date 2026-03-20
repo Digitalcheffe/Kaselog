@@ -4,7 +4,6 @@ import { useUser } from '../contexts/UserContext'
 
 interface LeftNavProps {
   onSearchOpen: () => void
-  onProfileOpen: () => void
 }
 
 function getInitials(firstName: string | null | undefined, lastName: string | null | undefined): string {
@@ -13,7 +12,7 @@ function getInitials(firstName: string | null | undefined, lastName: string | nu
   return f || l ? `${f}${l}` : 'U'
 }
 
-export default function LeftNav({ onSearchOpen, onProfileOpen }: LeftNavProps) {
+export default function LeftNav({ onSearchOpen }: LeftNavProps) {
   const { kaseList } = useKases()
   const { user } = useUser()
   const navigate = useNavigate()
@@ -117,7 +116,7 @@ export default function LeftNav({ onSearchOpen, onProfileOpen }: LeftNavProps) {
       {/* Avatar + Search — pinned */}
       <div style={{ borderTop: '1px solid var(--border)', padding: '0.5rem 0.6rem 0.6rem', background: 'var(--bg-secondary)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
         <button
-          onClick={onProfileOpen}
+          onClick={() => navigate('/profile')}
           aria-label="Open user profile"
           style={{
             display: 'flex',

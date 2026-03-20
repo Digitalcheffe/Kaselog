@@ -17,12 +17,22 @@ import type {
 // ── Base request helper ───────────────────────────────────────────────────────
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    ...options,
-  })
+  let res: Response
+  try {
+    res = await fetch(path, {
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      ...options,
+    })
+  } catch {
+    throw new Error('Network error — backend is not reachable.')
+  }
   if (res.status === 204) return undefined as unknown as T
-  const envelope: ApiResponse<T> = await res.json() as ApiResponse<T>
+  let envelope: ApiResponse<T>
+  try {
+    envelope = await res.json() as ApiResponse<T>
+  } catch {
+    throw new Error(`Server returned an unexpected response (${res.status}).`)
+  }
   if (!res.ok) {
     throw new Error(envelope.error?.detail ?? `Request failed: ${res.status}`)
   }

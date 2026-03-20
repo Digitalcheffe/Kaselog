@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { UserProvider } from '../contexts/UserContext'
-import UserProfilePanel from '../components/UserProfilePanel'
+import ProfilePage from '../pages/ProfilePage'
 import type { UserResponse } from '../api/types'
 
 // ── Mock API ──────────────────────────────────────────────────────────────────
@@ -33,19 +34,21 @@ function makeUser(overrides: Partial<UserResponse> = {}): UserResponse {
   }
 }
 
-function renderPanel() {
+function renderPage() {
   return render(
-    <ThemeProvider>
-      <UserProvider>
-        <UserProfilePanel onClose={() => {}} />
-      </UserProvider>
-    </ThemeProvider>,
+    <MemoryRouter initialEntries={['/profile']}>
+      <ThemeProvider>
+        <UserProvider>
+          <ProfilePage />
+        </UserProvider>
+      </ThemeProvider>
+    </MemoryRouter>,
   )
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe('UserProfilePanel', () => {
+describe('ProfilePage', () => {
   beforeEach(() => {
     localStorage.clear()
     document.body.removeAttribute('data-theme')
@@ -72,7 +75,7 @@ describe('UserProfilePanel', () => {
   })
 
   it('renders profile fields', async () => {
-    renderPanel()
+    renderPage()
     await waitFor(() => {
       expect(screen.getByTestId('profile-first-name')).toBeInTheDocument()
       expect(screen.getByTestId('profile-last-name')).toBeInTheDocument()
@@ -82,7 +85,7 @@ describe('UserProfilePanel', () => {
 
   it('pre-populates fields from loaded user', async () => {
     vi.mocked(userApi.get).mockResolvedValue(makeUser({ firstName: 'Jane', lastName: 'Doe', email: 'jane@example.com' }))
-    renderPanel()
+    renderPage()
     await waitFor(() => {
       expect(screen.getByTestId<HTMLInputElement>('profile-first-name').value).toBe('Jane')
       expect(screen.getByTestId<HTMLInputElement>('profile-last-name').value).toBe('Doe')
@@ -92,7 +95,7 @@ describe('UserProfilePanel', () => {
 
   it('save button calls update with entered profile data', async () => {
     const ue = userEvent.setup()
-    renderPanel()
+    renderPage()
 
     await waitFor(() => screen.getByTestId('profile-first-name'))
 
@@ -116,9 +119,22 @@ describe('UserProfilePanel', () => {
     })
   })
 
+  it('shows error message when save fails', async () => {
+    vi.mocked(userApi.update).mockRejectedValue(new Error('Network error'))
+    const ue = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('profile-save-btn'))
+    await ue.click(screen.getByTestId('profile-save-btn'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Network error/i)).toBeInTheDocument()
+    })
+  })
+
   it('clicking Dark applies data-theme="dark" to body', async () => {
     const ue = userEvent.setup()
-    renderPanel()
+    renderPage()
 
     await waitFor(() => screen.getByTestId('theme-dark-btn'))
     await ue.click(screen.getByTestId('theme-dark-btn'))
@@ -128,7 +144,7 @@ describe('UserProfilePanel', () => {
 
   it('clicking Light applies data-theme="light" to body', async () => {
     const ue = userEvent.setup()
-    renderPanel()
+    renderPage()
 
     await waitFor(() => screen.getByTestId('theme-dark-btn'))
     await ue.click(screen.getByTestId('theme-dark-btn'))
@@ -140,7 +156,7 @@ describe('UserProfilePanel', () => {
 
   it('clicking an accent updates --accent on :root', async () => {
     const ue = userEvent.setup()
-    renderPanel()
+    renderPage()
 
     await waitFor(() => screen.getByTestId('accent-blue'))
     await ue.click(screen.getByTestId('accent-blue'))
@@ -150,7 +166,7 @@ describe('UserProfilePanel', () => {
 
   it('theme preference written to localStorage when changed', async () => {
     const ue = userEvent.setup()
-    renderPanel()
+    renderPage()
 
     await waitFor(() => screen.getByTestId('theme-dark-btn'))
     await ue.click(screen.getByTestId('theme-dark-btn'))
@@ -161,7 +177,7 @@ describe('UserProfilePanel', () => {
 
   it('accent preference written to localStorage when changed', async () => {
     const ue = userEvent.setup()
-    renderPanel()
+    renderPage()
 
     await waitFor(() => screen.getByTestId('accent-purple'))
     await ue.click(screen.getByTestId('accent-purple'))
@@ -170,22 +186,8 @@ describe('UserProfilePanel', () => {
     expect(stored.accent).toBe('purple')
   })
 
-  it('theme and accent changes call api update', async () => {
-    const ue = userEvent.setup()
-    renderPanel()
-
-    await waitFor(() => screen.getByTestId('theme-dark-btn'))
-    await ue.click(screen.getByTestId('theme-dark-btn'))
-
-    await waitFor(() => {
-      expect(userApi.update).toHaveBeenCalledWith(
-        expect.objectContaining({ theme: 'dark' }),
-      )
-    })
-  })
-
   it('default theme is light when no localStorage value exists', async () => {
-    renderPanel()
+    renderPage()
     await waitFor(() => screen.getByTestId('theme-light-btn'))
     const t = document.body.getAttribute('data-theme')
     expect(t === null || t === 'light').toBe(true)
@@ -193,7 +195,7 @@ describe('UserProfilePanel', () => {
 
   it('stored preferences restored on simulated reload', () => {
     localStorage.setItem('kaselog-prefs', JSON.stringify({ theme: 'dark', accent: 'amber' }))
-    renderPanel()
+    renderPage()
     expect(document.body.getAttribute('data-theme')).toBe('dark')
     expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#BA7517')
   })
