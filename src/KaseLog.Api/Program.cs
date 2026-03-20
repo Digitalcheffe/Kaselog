@@ -21,6 +21,7 @@ if (dbProvider.Equals("sqlite", StringComparison.OrdinalIgnoreCase))
         new SqliteConnectionFactory(connString));
     builder.Services.AddSingleton<ISchemaInitializer, SqliteSchemaInitializer>();
     builder.Services.AddScoped<IKaseRepository, SqliteKaseRepository>();
+    builder.Services.AddScoped<ILogRepository, SqliteLogRepository>();
 }
 else
 {
