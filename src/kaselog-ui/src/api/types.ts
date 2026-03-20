@@ -74,6 +74,40 @@ export interface UserResponse {
   updatedAt: string
 }
 
+export interface CollectionResponse {
+  id: string
+  title: string
+  color: string
+  itemCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CollectionFieldResponse {
+  id: string
+  collectionId: string
+  name: string
+  type: string
+  required: boolean
+  showInList: boolean
+  options: string[] | null
+  sortOrder: number
+}
+
+export interface CollectionLayoutResponse {
+  collectionId: string
+  layout: string
+}
+
+export interface CollectionItemResponse {
+  id: string
+  collectionId: string
+  kaseId: string | null
+  fieldValues: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
+}
+
 // ── Request bodies ────────────────────────────────────────────────────────────
 
 export interface CreateKaseRequest {

@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import LeftNav from './LeftNav'
 import SearchOverlay from './SearchOverlay'
 import { KasesProvider } from '../contexts/KasesContext'
+import { CollectionsProvider } from '../contexts/CollectionsContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { UserProvider } from '../contexts/UserContext'
 
@@ -13,6 +14,7 @@ export default function Shell() {
     <ThemeProvider>
       <UserProvider>
         <KasesProvider>
+          <CollectionsProvider>
           <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
             <LeftNav onSearchOpen={() => setOverlayOpen(true)} />
             <main style={{
@@ -26,6 +28,7 @@ export default function Shell() {
             </main>
           </div>
           {overlayOpen && <SearchOverlay onClose={() => setOverlayOpen(false)} />}
+          </CollectionsProvider>
         </KasesProvider>
       </UserProvider>
     </ThemeProvider>
