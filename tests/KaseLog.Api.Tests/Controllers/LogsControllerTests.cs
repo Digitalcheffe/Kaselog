@@ -292,14 +292,14 @@ public sealed class LogsControllerTests : IAsyncLifetime
         // Verify FTS entry exists before delete
         await using var conn = await OpenTestConnectionAsync();
         var beforeCount = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM kaselog_search WHERE log_id = @LogId",
+            "SELECT COUNT(*) FROM kaselog_search WHERE entity_id = @LogId AND entity_type = 'log'",
             new { LogId = logId });
         Assert.Equal(1, beforeCount);
 
         await _client.DeleteAsync($"/api/logs/{logId}");
 
         var afterCount = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM kaselog_search WHERE log_id = @LogId",
+            "SELECT COUNT(*) FROM kaselog_search WHERE entity_id = @LogId AND entity_type = 'log'",
             new { LogId = logId });
         Assert.Equal(0, afterCount);
     }
