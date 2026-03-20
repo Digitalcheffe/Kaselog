@@ -7,6 +7,7 @@ import SearchPage from './pages/SearchPage'
 import ProfilePage from './pages/ProfilePage'
 import CollectionsIndexPage from './pages/CollectionsIndexPage'
 import CollectionListPage from './pages/CollectionListPage'
+import CollectionDesignerPage from './pages/CollectionDesignerPage'
 
 const router = createBrowserRouter([
   {
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
       { path: '/profile', element: <ProfilePage /> },
       { path: '/collections', element: <CollectionsIndexPage /> },
       { path: '/collections/:id', element: <CollectionListPage /> },
+      { path: '/collections/:id/design', element: <CollectionDesignerPage /> },
     ],
   },
 ])
