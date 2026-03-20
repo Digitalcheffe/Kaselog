@@ -1,7 +1,9 @@
+using System.Data;
 using Dapper;
 using KaseLog.Api.Data;
 using KaseLog.Api.Data.Sqlite;
 using Microsoft.Data.Sqlite;
+using Xunit;
 
 namespace KaseLog.Api.Tests.Data;
 
