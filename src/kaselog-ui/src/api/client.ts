@@ -25,6 +25,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   try {
     res = await fetch(path, {
       headers: { 'Content-Type': 'application/json', ...options?.headers },
+      cache: 'no-store',
       ...options,
     })
   } catch {
