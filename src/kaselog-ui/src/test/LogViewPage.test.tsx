@@ -11,7 +11,7 @@ vi.mock('../api/client', () => ({
   kases: { get: vi.fn() },
   logs: { get: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() },
   versions: { list: vi.fn(), create: vi.fn(), restore: vi.fn() },
-  tags: { addToLog: vi.fn(), removeFromLog: vi.fn() },
+  tags: { list: vi.fn(), addToLog: vi.fn(), removeFromLog: vi.fn() },
   images: { upload: vi.fn() },
 }))
 
@@ -124,6 +124,7 @@ describe('LogViewPage', () => {
 
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
     vi.mocked(versionsApi.list).mockResolvedValue([makeVersion()])
+    vi.mocked(tagsApi.list).mockResolvedValue([])
   })
 
   afterEach(() => {

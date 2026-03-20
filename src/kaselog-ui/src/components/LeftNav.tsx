@@ -23,10 +23,10 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
     }}>
       {/* Logo */}
       <div style={{ padding: '1rem 1rem 0.75rem', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
           KaseLog
         </div>
-        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1, letterSpacing: '0.02em' }}>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1, letterSpacing: '0.02em' }}>
           private ops journal
         </div>
       </div>
@@ -40,7 +40,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
           background: 'var(--bg)',
           border: '1px solid var(--border-mid)',
           borderRadius: 'var(--radius)',
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: 500,
           color: 'var(--text-secondary)',
           cursor: 'pointer',
@@ -53,7 +53,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
 
       {/* Section label */}
       <div style={{
-        fontSize: 9,
+        fontSize: 10,
         fontWeight: 600,
         color: 'var(--text-tertiary)',
         padding: '0.5rem 1rem 0.25rem',
@@ -66,7 +66,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
       {/* Kase list */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 0.4rem' }}>
         {kaseList.length === 0 && (
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '0.5rem 0.6rem', fontStyle: 'italic' }}>
+          <div style={{ fontSize: 13, color: 'var(--text-tertiary)', padding: '0.5rem 0.6rem', fontStyle: 'italic' }}>
             No kases yet
           </div>
         )}
@@ -85,7 +85,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
               }}
             >
               <div style={{
-                fontSize: 12,
+                fontSize: 13,
                 color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
                 fontWeight: isActive ? 500 : 400,
                 whiteSpace: 'nowrap',
@@ -94,7 +94,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
               }}>
                 {kase.title}
               </div>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>
                 {kase.logCount} {kase.logCount === 1 ? 'log' : 'logs'}
               </div>
             </div>
@@ -123,7 +123,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
             <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.4" />
             <line x1="8.5" y1="8.5" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.4" />
           </svg>
-          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', flex: 1, textAlign: 'left' }}>
+          <span style={{ fontSize: 13, color: 'var(--text-tertiary)', flex: 1, textAlign: 'left' }}>
             Search logs...
           </span>
         </button>
