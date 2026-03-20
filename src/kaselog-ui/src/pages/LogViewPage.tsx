@@ -48,7 +48,7 @@ function timeAgo(iso: string): string {
 function SpLabel({ children }: { children: string }) {
   return (
     <div style={{
-      fontSize: 9,
+      fontSize: 10,
       fontWeight: 600,
       color: 'var(--text-tertiary)',
       textTransform: 'uppercase',
@@ -87,7 +87,7 @@ function SpInput({
         border: '1px solid var(--border-mid)',
         borderRadius: 6,
         padding: '0.4rem 0.6rem',
-        fontSize: 11,
+        fontSize: 12,
         color: 'var(--text-primary)',
         fontFamily: 'var(--font)',
         width: '100%',
@@ -126,6 +126,8 @@ export default function LogViewPage() {
   const [spTitle, setSpTitle] = useState('')
   const [spDesc, setSpDesc] = useState('')
   const [tagInput, setTagInput] = useState('')
+  const [availableTags, setAvailableTags] = useState<TagResponse[]>([])
+  const [tagDropdownVisible, setTagDropdownVisible] = useState(false)
   const [checkpointLabel, setCheckpointLabel] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
@@ -151,6 +153,13 @@ export default function LogViewPage() {
 
     versionsApi.list(id).then(setVersions).catch(() => {})
   }, [id])
+
+  // ── Load available tags when panel opens ────────────────────────────────────
+
+  useEffect(() => {
+    if (!panelOpen) return
+    tagsApi.list().then(setAvailableTags).catch(() => {})
+  }, [panelOpen])
 
   // ── Autosave on unmount ──────────────────────────────────────────────────────
 
@@ -414,7 +423,7 @@ export default function LogViewPage() {
         <button
           onClick={() => navigate(`/kases/${log.kaseId}`)}
           style={{
-            fontSize: 12,
+            fontSize: 13,
             color: 'var(--text-tertiary)',
             cursor: 'pointer',
             padding: '4px 8px',
@@ -431,11 +440,11 @@ export default function LogViewPage() {
         >
           ← {kase?.title ?? 'Kase'}
         </button>
-        <span style={{ fontSize: 12, color: 'var(--border-mid)', flexShrink: 0 }}>/</span>
+        <span style={{ fontSize: 13, color: 'var(--border-mid)', flexShrink: 0 }}>/</span>
         <span
           data-testid="topbar-log-title"
           style={{
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 500,
             color: 'var(--text-primary)',
             whiteSpace: 'nowrap',
@@ -448,7 +457,7 @@ export default function LogViewPage() {
         </span>
         <div style={{ flex: 1, minWidth: '0.5rem' }} />
         <span style={{
-          fontSize: 10,
+          fontSize: 11,
           color: 'var(--text-tertiary)',
           padding: '3px 9px',
           background: 'var(--bg-secondary)',
@@ -464,7 +473,7 @@ export default function LogViewPage() {
           v{log.versionCount} · history
         </span>
         <span style={{
-          fontSize: 10,
+          fontSize: 11,
           color: unsaved && !log.autosaveEnabled ? '#BA7517' : 'var(--text-tertiary)',
           whiteSpace: 'nowrap',
           flexShrink: 0,
@@ -475,7 +484,7 @@ export default function LogViewPage() {
           <button
             onClick={handleManualSave}
             style={{
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 500,
               color: 'var(--text-secondary)',
               background: 'var(--bg-secondary)',
@@ -494,7 +503,7 @@ export default function LogViewPage() {
         <button
           onClick={handleNewLog}
           style={{
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 500,
             color: 'white',
             background: 'var(--accent)',
@@ -518,7 +527,7 @@ export default function LogViewPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 600,
           color: 'var(--accent-text)',
           cursor: 'pointer',
@@ -538,12 +547,12 @@ export default function LogViewPage() {
           <div style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '2.5rem 0',
+            padding: '2.5rem 3rem',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
+            alignItems: 'flex-start',
           }}>
-            <div style={{ width: '100%', maxWidth: 700, padding: '0 3rem' }}>
+            <div style={{ width: '100%', maxWidth: 700 }}>
               {/* Log title */}
               <TitleInput
                 value={log.title}
@@ -552,7 +561,7 @@ export default function LogViewPage() {
 
               {/* Meta line */}
               <div style={{
-                fontSize: 11,
+                fontSize: 12,
                 color: 'var(--text-tertiary)',
                 display: 'flex',
                 alignItems: 'center',
@@ -591,7 +600,7 @@ export default function LogViewPage() {
           {panelOpen && (
             <>
               <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>Log settings</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Log settings</div>
               </div>
               <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
@@ -622,7 +631,7 @@ export default function LogViewPage() {
                         <span
                           key={t.id}
                           style={{
-                            fontSize: 10,
+                            fontSize: 11,
                             fontWeight: 500,
                             padding: '2px 7px',
                             borderRadius: 99,
@@ -643,11 +652,13 @@ export default function LogViewPage() {
                       )
                     })}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.3rem' }}>
+                  <div style={{ display: 'flex', gap: '0.3rem', position: 'relative' }}>
                     <input
                       value={tagInput}
                       placeholder="add tag…"
                       onChange={(e) => setTagInput(e.target.value)}
+                      onFocus={() => setTagDropdownVisible(true)}
+                      onBlur={() => setTagDropdownVisible(false)}
                       onKeyDown={(e) => {
                         if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
                           e.preventDefault()
@@ -660,7 +671,7 @@ export default function LogViewPage() {
                         border: '1px solid var(--border-mid)',
                         borderRadius: 5,
                         padding: '0.3rem 0.5rem',
-                        fontSize: 11,
+                        fontSize: 12,
                         color: 'var(--text-primary)',
                         fontFamily: 'var(--font)',
                         outline: 'none',
@@ -673,7 +684,7 @@ export default function LogViewPage() {
                         border: '1px solid var(--border-mid)',
                         borderRadius: 5,
                         padding: '0.3rem 0.6rem',
-                        fontSize: 11,
+                        fontSize: 12,
                         color: 'var(--text-tertiary)',
                         cursor: 'pointer',
                         fontFamily: 'var(--font)',
@@ -681,6 +692,45 @@ export default function LogViewPage() {
                     >
                       +
                     </button>
+                    {tagDropdownVisible && (() => {
+                      const currentNames = new Set((log.tags ?? []).map(t => t.name.toLowerCase()))
+                      const filtered = availableTags.filter(t =>
+                        t.name.toLowerCase().includes(tagInput.toLowerCase()) &&
+                        !currentNames.has(t.name.toLowerCase())
+                      )
+                      return filtered.length > 0 ? (
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 36,
+                          background: 'var(--bg)',
+                          border: '1px solid var(--border-mid)',
+                          borderRadius: 5,
+                          marginTop: 2,
+                          zIndex: 100,
+                          overflow: 'hidden',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        }}>
+                          {filtered.map(t => (
+                            <div
+                              key={t.id}
+                              onMouseDown={(e) => { e.preventDefault(); void handleAddTag(t.name) }}
+                              style={{
+                                padding: '0.35rem 0.5rem',
+                                fontSize: 12,
+                                color: 'var(--text-secondary)',
+                                cursor: 'pointer',
+                              }}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)' }}
+                              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                            >
+                              {t.name}
+                            </div>
+                          ))}
+                        </div>
+                      ) : null
+                    })()}
                   </div>
                 </div>
 
@@ -691,8 +741,8 @@ export default function LogViewPage() {
                   <SpLabel>Autosave</SpLabel>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
                     <div>
-                      <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Save automatically</div>
-                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>
+                      <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Save automatically</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>
                         {log.autosaveEnabled
                           ? (lastSavedAt ? `Last saved ${timeAgo(lastSavedAt)}` : 'Enabled')
                           : 'Manual saves only'}
@@ -747,12 +797,12 @@ export default function LogViewPage() {
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.1rem' }}>
-                          <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                             v{versions.length - i}
                           </span>
                           {i === 0 && (
                             <span style={{
-                              fontSize: 9, padding: '1px 5px', borderRadius: 99, fontWeight: 500,
+                              fontSize: 10, padding: '1px 5px', borderRadius: 99, fontWeight: 500,
                               background: 'var(--accent-light)', color: 'var(--accent-text)',
                             }}>
                               current
@@ -760,14 +810,14 @@ export default function LogViewPage() {
                           )}
                           {v.label && (
                             <span style={{
-                              fontSize: 9, padding: '1px 5px', borderRadius: 99, fontWeight: 500,
+                              fontSize: 10, padding: '1px 5px', borderRadius: 99, fontWeight: 500,
                               background: '#FAEEDA', color: '#412402',
                             }}>
                               {v.label}
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
                           {formatTs(v.createdAt)} · {v.isAutosave ? 'autosaved' : v.label ? 'checkpoint' : 'saved'}
                         </div>
                       </div>
@@ -786,7 +836,7 @@ export default function LogViewPage() {
                         border: '1px solid var(--border)',
                         borderRadius: 5,
                         padding: '0.35rem 0.5rem',
-                        fontSize: 11,
+                        fontSize: 12,
                         color: 'var(--text-tertiary)',
                         fontFamily: 'var(--font)',
                         outline: 'none',
@@ -799,7 +849,7 @@ export default function LogViewPage() {
                         border: '1px solid var(--border)',
                         borderRadius: 5,
                         padding: '0.35rem 0.5rem',
-                        fontSize: 11,
+                        fontSize: 12,
                         color: 'var(--text-tertiary)',
                         cursor: 'pointer',
                         fontFamily: 'var(--font)',
@@ -823,8 +873,8 @@ export default function LogViewPage() {
                       { key: 'Kase', val: kase?.title ?? '—' },
                     ].map(({ key, val }) => (
                       <div key={key} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
-                        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{key}</span>
-                        <span style={{ fontSize: 11, color: 'var(--text-secondary)', textAlign: 'right' }}>{val}</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{key}</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'right' }}>{val}</span>
                       </div>
                     ))}
                   </div>
@@ -839,7 +889,7 @@ export default function LogViewPage() {
                       onClick={() => void handleDelete()}
                       style={{
                         flex: 1,
-                        fontSize: 11,
+                        fontSize: 12,
                         color: 'white',
                         background: '#A32D2D',
                         border: 'none',
@@ -854,7 +904,7 @@ export default function LogViewPage() {
                     <button
                       onClick={() => setShowDeleteConfirm(false)}
                       style={{
-                        fontSize: 11,
+                        fontSize: 12,
                         color: 'var(--text-tertiary)',
                         background: 'var(--bg)',
                         border: '1px solid var(--border-mid)',
@@ -872,7 +922,7 @@ export default function LogViewPage() {
                     onClick={() => setShowDeleteConfirm(true)}
                     style={{
                       width: '100%',
-                      fontSize: 11,
+                      fontSize: 12,
                       color: '#A32D2D',
                       cursor: 'pointer',
                       textAlign: 'center',
@@ -908,7 +958,7 @@ export default function LogViewPage() {
               border: '1px solid var(--border-mid)',
               borderRight: 'none',
               borderRadius: '8px 0 0 8px',
-              padding: '0.6rem 0.35rem',
+              padding: '0.9rem 0.55rem',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
@@ -917,12 +967,12 @@ export default function LogViewPage() {
               boxShadow: '-2px 0 8px rgba(0,0,0,0.06)',
             }}
           >
-            <span style={{ fontSize: 14, color: 'var(--text-tertiary)', lineHeight: 1 }}>
+            <span style={{ fontSize: 18, color: 'var(--text-tertiary)', lineHeight: 1 }}>
               {panelOpen ? '›' : '‹'}
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center' }}>
               {[0, 1, 2].map(i => (
-                <div key={i} style={{ width: 2.5, height: 2.5, borderRadius: '50%', background: 'var(--text-tertiary)', opacity: 0.5 }} />
+                <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: 'var(--text-tertiary)', opacity: 0.5 }} />
               ))}
             </div>
           </div>

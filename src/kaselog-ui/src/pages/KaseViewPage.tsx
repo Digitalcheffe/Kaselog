@@ -87,7 +87,7 @@ export default function KaseViewPage() {
           gap: '0.75rem',
           flexShrink: 0,
         }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
             Kase not found
           </div>
           <div style={{ flex: 1 }} />
@@ -102,7 +102,7 @@ export default function KaseViewPage() {
           gap: '0.5rem',
           color: 'var(--text-tertiary)',
         }}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)' }}>
+          <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-secondary)' }}>
             This kase doesn&rsquo;t exist
           </div>
           <div style={{ fontSize: 13 }}>
@@ -127,11 +127,11 @@ export default function KaseViewPage() {
         gap: '0.75rem',
         flexShrink: 0,
       }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
           {kase?.title ?? '\u2026'}
         </div>
         <div style={{
-          fontSize: 11,
+          fontSize: 12,
           color: 'var(--text-tertiary)',
           padding: '2px 8px',
           background: 'var(--bg-secondary)',
@@ -144,7 +144,7 @@ export default function KaseViewPage() {
         <button
           onClick={handleNewLog}
           style={{
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 500,
             color: 'var(--bg)',
             background: 'var(--accent)',
@@ -319,7 +319,7 @@ function TimelineEntry({
           marginBottom: '0.25rem',
         }}>
           <div style={{
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 500,
             color: isHovered ? 'var(--accent)' : 'var(--text-primary)',
             flex: 1,
@@ -330,7 +330,7 @@ function TimelineEntry({
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
             <span style={{
-              fontSize: 10,
+              fontSize: 11,
               color: 'var(--text-tertiary)',
               padding: '1px 6px',
               background: 'var(--bg-secondary)',
@@ -340,7 +340,7 @@ function TimelineEntry({
             }}>
               v{log.versionCount}
             </span>
-            <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
               {formatTimestamp(log.updatedAt)}
             </span>
           </div>
@@ -349,7 +349,7 @@ function TimelineEntry({
         {/* Description */}
         {log.description && (
           <div style={{
-            fontSize: 12,
+            fontSize: 13,
             color: 'var(--text-secondary)',
             lineHeight: 1.6,
             marginBottom: '0.45rem',
@@ -366,7 +366,7 @@ function TimelineEntry({
                 key={tag.id}
                 className={`tag-${tagColorClass(tag.name)}`}
                 style={{
-                  fontSize: 10,
+                  fontSize: 11,
                   padding: '2px 8px',
                   borderRadius: 99,
                   fontWeight: 500,
