@@ -1,0 +1,248 @@
+/* ── Editor content prose styles ─────────────────────────────────────────── */
+
+.tiptap-editor .ProseMirror {
+  outline: none;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  font-size: 15px;
+  min-height: 200px;
+}
+
+.tiptap-editor .ProseMirror p {
+  margin-bottom: 1rem;
+}
+
+.tiptap-editor .ProseMirror h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 1.75rem 0 0.6rem;
+  letter-spacing: -0.02em;
+}
+
+.tiptap-editor .ProseMirror h2 {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 1.75rem 0 0.6rem;
+  letter-spacing: -0.02em;
+}
+
+.tiptap-editor .ProseMirror h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 1.5rem 0 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tiptap-editor .ProseMirror code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+
+.tiptap-editor .ProseMirror pre {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.7;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.tiptap-editor .ProseMirror pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.tiptap-editor .ProseMirror blockquote {
+  border-left: 3px solid var(--border-mid);
+  padding-left: 1rem;
+  color: var(--text-tertiary);
+  margin: 1rem 0;
+  font-style: italic;
+}
+
+.tiptap-editor .ProseMirror ul,
+.tiptap-editor .ProseMirror ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.tiptap-editor .ProseMirror li {
+  margin-bottom: 0.25rem;
+}
+
+.tiptap-editor .ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.tiptap-editor .ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.tiptap-editor .ProseMirror ul[data-type="taskList"] li > label {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tiptap-editor .ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+.tiptap-editor .ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  font-size: 14px;
+}
+
+.tiptap-editor .ProseMirror table td,
+.tiptap-editor .ProseMirror table th {
+  border: 1px solid var(--border-mid);
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+}
+
+.tiptap-editor .ProseMirror table th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tiptap-editor .ProseMirror hr {
+  border: none;
+  border-top: 1px solid var(--border-mid);
+  margin: 1.5rem 0;
+}
+
+.tiptap-editor .ProseMirror a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tiptap-editor .ProseMirror mark {
+  background: rgba(29, 158, 117, 0.18);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+.tiptap-editor .ProseMirror img {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 0.5rem 0;
+}
+
+/* Placeholder */
+.tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--text-tertiary);
+  pointer-events: none;
+  height: 0;
+  font-style: italic;
+}
+
+/* Selected node */
+.tiptap-editor .ProseMirror .ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+  border-radius: 4px;
+}
+
+/* Bubble menu */
+.bubble-menu {
+  background: var(--text-primary);
+  border-radius: 7px;
+  padding: 3px;
+  display: flex;
+  gap: 1px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  z-index: 100;
+}
+
+.bubble-btn {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  font-family: var(--font);
+  line-height: 1.2;
+  transition: background 0.1s;
+}
+
+.bubble-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+}
+
+.bubble-btn.is-active {
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+}
+
+.bubble-sep {
+  width: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 3px 1px;
+}
+
+/* Resizable image */
+.resizable-image-wrapper {
+  display: inline-block;
+  position: relative;
+  max-width: 100%;
+}
+
+.resizable-image-wrapper img {
+  display: block;
+  max-width: 100%;
+}
+
+.resize-handle {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 10px;
+  height: 10px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: se-resize;
+  border: 2px solid white;
+}
+
+/* Katex math */
+.tiptap-editor .ProseMirror .Tiptap-mathematics-editor {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+.tiptap-editor .ProseMirror .Tiptap-mathematics-render {
+  cursor: default;
+}

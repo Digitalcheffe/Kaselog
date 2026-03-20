@@ -3,6 +3,7 @@ import type {
   KaseResponse,
   LogResponse,
   LogVersionResponse,
+  TagResponse,
   SearchResult,
   CreateKaseRequest,
   UpdateKaseRequest,
@@ -96,6 +97,37 @@ export const versions = {
       `/api/logs/${logId}/versions/${versionId}/restore`,
       { method: 'POST' },
     ),
+}
+
+// ── Tags ──────────────────────────────────────────────────────────────────────
+
+export const tags = {
+  list: (): Promise<TagResponse[]> =>
+    request<TagResponse[]>('/api/tags'),
+
+  addToLog: (logId: string, name: string): Promise<TagResponse> =>
+    request<TagResponse>(`/api/logs/${logId}/tags`, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+
+  removeFromLog: (logId: string, tagId: string): Promise<void> =>
+    request<void>(`/api/logs/${logId}/tags/${tagId}`, { method: 'DELETE' }),
+}
+
+// ── Images ────────────────────────────────────────────────────────────────────
+
+export const images = {
+  upload: async (file: File): Promise<{ uid: string; url: string }> => {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch('/api/images', { method: 'POST', body: form })
+    const envelope = await res.json() as ApiResponse<{ uid: string; url: string }>
+    if (!res.ok) {
+      throw new Error(envelope.error?.detail ?? `Upload failed: ${res.status}`)
+    }
+    return envelope.data as { uid: string; url: string }
+  },
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
