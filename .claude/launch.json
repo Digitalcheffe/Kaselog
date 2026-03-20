@@ -1,0 +1,25 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kaselog-ui (Vite dev server)",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js", "vite"],
+      "cwd": "src/kaselog-ui",
+      "port": 5173
+    },
+    {
+      "name": "KaseLog.Api (ASP.NET Core)",
+      "runtimeExecutable": "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe",
+      "runtimeArgs": [
+        "run", "--rm",
+        "-p", "5001:5000",
+        "-e", "KASELOG_DATA_PATH=/tmp/kaselog.db",
+        "-e", "KASELOG_DB_PROVIDER=sqlite",
+        "docker-kaselog"
+      ],
+      "port": 5001,
+      "autoPort": false
+    }
+  ]
+}
