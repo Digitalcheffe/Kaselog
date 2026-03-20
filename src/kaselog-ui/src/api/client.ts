@@ -168,11 +168,51 @@ export const collections = {
   get: (id: string): Promise<CollectionResponse> =>
     request<CollectionResponse>(`/api/collections/${id}`),
 
+  update: (id: string, body: { title: string; color: string }): Promise<CollectionResponse> =>
+    request<CollectionResponse>(`/api/collections/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+
   getFields: (id: string): Promise<CollectionFieldResponse[]> =>
     request<CollectionFieldResponse[]>(`/api/collections/${id}/fields`),
 
+  createField: (
+    id: string,
+    body: { name: string; type: string; required: boolean; showInList: boolean; options: string[] | null },
+  ): Promise<CollectionFieldResponse> =>
+    request<CollectionFieldResponse>(`/api/collections/${id}/fields`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateField: (
+    collectionId: string,
+    fieldId: string,
+    body: { name: string; required: boolean; showInList: boolean; options: string[] | null },
+  ): Promise<CollectionFieldResponse> =>
+    request<CollectionFieldResponse>(`/api/collections/${collectionId}/fields/${fieldId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+
+  deleteField: (collectionId: string, fieldId: string): Promise<void> =>
+    request<void>(`/api/collections/${collectionId}/fields/${fieldId}`, { method: 'DELETE' }),
+
+  reorderFields: (collectionId: string, fieldIds: string[]): Promise<void> =>
+    request<void>(`/api/collections/${collectionId}/fields/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify(fieldIds),
+    }),
+
   getLayout: (id: string): Promise<CollectionLayoutResponse> =>
     request<CollectionLayoutResponse>(`/api/collections/${id}/layout`),
+
+  updateLayout: (id: string, layout: unknown[]): Promise<void> =>
+    request<void>(`/api/collections/${id}/layout`, {
+      method: 'PUT',
+      body: JSON.stringify({ layout: JSON.stringify(layout) }),
+    }),
 
   getItems: (
     id: string,
