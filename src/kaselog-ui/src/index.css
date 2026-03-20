@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS custom properties ───────────────────────────────────────────────── */
+
+:root {
+  --accent: #1D9E75;
+  --accent-light: #E1F5EE;
+  --accent-text: #085041;
+  --bg: #ffffff;
+  --bg-secondary: #f7f6f3;
+  --bg-tertiary: #f0efe9;
+  --text-primary: #1a1a18;
+  --text-secondary: #5a5955;
+  --text-tertiary: #9a9890;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-mid: rgba(0, 0, 0, 0.14);
+  --nav-width: 200px;
+  --radius: 8px;
+  --font: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', 'Fira Code', monospace;
+}
+
+[data-theme='dark'] {
+  --bg: #131312;
+  --bg-secondary: #1c1c1a;
+  --bg-tertiary: #242422;
+  --text-primary: #e8e6df;
+  --text-secondary: #9a9890;
+  --text-tertiary: #5a5955;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-mid: rgba(255, 255, 255, 0.12);
+  --accent-light: #0a2e22;
+  --accent-text: #5dcaa5;
+}
+
+/* ── Accent presets ───────────────────────────────────────────────────────── */
+
+[data-accent='blue']   { --accent: #378ADD; --accent-light: #E6F1FB; --accent-text: #042C53; }
+[data-accent='purple'] { --accent: #7F77DD; --accent-light: #EEEDFE; --accent-text: #26215C; }
+[data-accent='coral']  { --accent: #D85A30; --accent-light: #FAECE7; --accent-text: #4A1B0C; }
+[data-accent='amber']  { --accent: #BA7517; --accent-light: #FAEEDA; --accent-text: #412402; }
+
+[data-theme='dark'][data-accent='blue']   { --accent-light: #0a1e30; --accent-text: #85B7EB; }
+[data-theme='dark'][data-accent='purple'] { --accent-light: #1e1a3a; --accent-text: #AFA9EC; }
+[data-theme='dark'][data-accent='coral']  { --accent-light: #2a1008; --accent-text: #F0997B; }
+[data-theme='dark'][data-accent='amber']  { --accent-light: #2a1e08; --accent-text: #EF9F27; }
+
+/* ── Base reset ─────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text-primary);
+  height: 100vh;
+  overflow: hidden;
+  transition: background 0.2s, color 0.2s;
+}
+
+/* ── Tag colors ─────────────────────────────────────────────────────────── */
+
+.tag-green  { background: var(--accent-light); color: var(--accent-text); }
+.tag-purple { background: #EEEDFE; color: #26215C; }
+.tag-amber  { background: #FAEEDA; color: #412402; }
+.tag-blue   { background: #E6F1FB; color: #042C53; }
+.tag-coral  { background: #FAECE7; color: #4A1B0C; }
+
+[data-theme='dark'] .tag-purple { background: #1e1a3a; color: #AFA9EC; }
+[data-theme='dark'] .tag-amber  { background: #2a1e08; color: #EF9F27; }
+[data-theme='dark'] .tag-blue   { background: #0a1e30; color: #85B7EB; }
+[data-theme='dark'] .tag-coral  { background: #2a1008; color: #F0997B; }
