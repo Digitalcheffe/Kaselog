@@ -86,6 +86,21 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
         )
         """,
 
+        // ── Users ────────────────────────────────────────────────────────────
+        // Single-user table. Always one row identified by a well-known ID.
+        """
+        CREATE TABLE IF NOT EXISTS Users (
+          Id        TEXT PRIMARY KEY,
+          FirstName TEXT,
+          LastName  TEXT,
+          Email     TEXT,
+          Theme     TEXT NOT NULL DEFAULT 'light',
+          Accent    TEXT NOT NULL DEFAULT 'teal',
+          CreatedAt TEXT NOT NULL,
+          UpdatedAt TEXT NOT NULL
+        )
+        """,
+
         // ── FTS5 sync triggers ───────────────────────────────────────────────
         // One FTS row per Log, always reflecting the most recent LogVersion.
         // INSERT: replace existing FTS entry with the new version's content.
