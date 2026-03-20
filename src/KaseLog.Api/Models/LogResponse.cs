@@ -9,6 +9,7 @@ public sealed class LogResponse
     public bool AutosaveEnabled { get; init; }
     public string Content { get; init; } = string.Empty;
     public int VersionCount { get; init; }
+    public IReadOnlyList<TagDto> Tags { get; init; } = [];
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; init; }
 }
