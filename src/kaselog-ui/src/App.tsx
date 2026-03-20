@@ -8,6 +8,7 @@ import ProfilePage from './pages/ProfilePage'
 import CollectionsIndexPage from './pages/CollectionsIndexPage'
 import CollectionListPage from './pages/CollectionListPage'
 import CollectionDesignerPage from './pages/CollectionDesignerPage'
+import NewCollectionPage from './pages/NewCollectionPage'
 
 const router = createBrowserRouter([
   {
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
       { path: '/search', element: <SearchPage /> },
       { path: '/profile', element: <ProfilePage /> },
       { path: '/collections', element: <CollectionsIndexPage /> },
+      { path: '/collections/new', element: <NewCollectionPage /> },
       { path: '/collections/:id', element: <CollectionListPage /> },
       { path: '/collections/:id/design', element: <CollectionDesignerPage /> },
     ],
