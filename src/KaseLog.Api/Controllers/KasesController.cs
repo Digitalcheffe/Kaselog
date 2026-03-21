@@ -12,9 +12,14 @@ namespace KaseLog.Api.Controllers;
 public sealed class KasesController : ControllerBase
 {
     private readonly IKaseRepository _kases;
+    private readonly ILogger<KasesController> _logger;
 
     /// <summary>Initialises a new instance of <see cref="KasesController"/>.</summary>
-    public KasesController(IKaseRepository kases) => _kases = kases;
+    public KasesController(IKaseRepository kases, ILogger<KasesController> logger)
+    {
+        _kases  = kases;
+        _logger = logger;
+    }
 
     /// <summary>Returns all Kases.</summary>
     /// <returns>A list of every Kase in the system.</returns>
@@ -35,6 +40,7 @@ public sealed class KasesController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateKaseRequest request)
     {
         var kase = await _kases.CreateAsync(request.Title, request.Description);
+        _logger.LogInformation("[KASE] Created kase {Id} — {Title}", kase.Id, kase.Title);
         return CreatedAtAction(nameof(GetById), new { id = kase.Id },
             ApiResponse<KaseResponse>.Success(kase));
     }
@@ -66,6 +72,7 @@ public sealed class KasesController : ControllerBase
         var kase = await _kases.UpdateAsync(id, request.Title, request.Description);
         if (kase is null)
             return NotFound(ApiResponse<KaseResponse>.NotFound($"Kase with ID '{id}' was not found."));
+        _logger.LogInformation("[KASE] Updated kase {Id} — {Title}", id, kase.Title);
         return Ok(ApiResponse<KaseResponse>.Success(kase));
     }
 
@@ -80,6 +87,7 @@ public sealed class KasesController : ControllerBase
         var deleted = await _kases.DeleteAsync(id);
         if (!deleted)
             return NotFound(ApiResponse<KaseResponse>.NotFound($"Kase with ID '{id}' was not found."));
+        _logger.LogInformation("[KASE] Deleted kase {Id}", id);
         return NoContent();
     }
 

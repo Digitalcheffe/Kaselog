@@ -12,12 +12,14 @@ public sealed class TagsController : ControllerBase
 {
     private readonly ITagRepository _tags;
     private readonly ILogRepository _logs;
+    private readonly ILogger<TagsController> _logger;
 
     /// <summary>Initialises a new instance of <see cref="TagsController"/>.</summary>
-    public TagsController(ITagRepository tags, ILogRepository logs)
+    public TagsController(ITagRepository tags, ILogRepository logs, ILogger<TagsController> logger)
     {
-        _tags = tags;
-        _logs = logs;
+        _tags   = tags;
+        _logs   = logs;
+        _logger = logger;
     }
 
     /// <summary>Returns all known tags.</summary>
@@ -41,6 +43,7 @@ public sealed class TagsController : ControllerBase
         var tag = await _tags.AddToLogAsync(logId, request.Name);
         if (tag is null)
             return NotFound(ApiResponse<TagDto>.NotFound($"Log with ID '{logId}' was not found."));
+        _logger.LogInformation("[TAG] Added tag '{Name}' ({TagId}) to log {LogId}", tag.Name, tag.Id, logId);
         return CreatedAtAction(nameof(GetAll), ApiResponse<TagDto>.Success(tag));
     }
 
@@ -56,6 +59,7 @@ public sealed class TagsController : ControllerBase
         var removed = await _tags.RemoveFromLogAsync(logId, tagId);
         if (!removed)
             return NotFound(ApiResponse<TagDto>.NotFound($"Tag association not found."));
+        _logger.LogInformation("[TAG] Removed tag {TagId} from log {LogId}", tagId, logId);
         return NoContent();
     }
 }

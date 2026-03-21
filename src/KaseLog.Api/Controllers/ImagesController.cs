@@ -9,13 +9,15 @@ namespace KaseLog.Api.Controllers;
 public sealed class ImagesController : ControllerBase
 {
     private readonly string _imagesDir;
+    private readonly ILogger<ImagesController> _logger;
     private static readonly char[] _uidChars =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".ToCharArray();
 
     /// <summary>Initialises a new instance of <see cref="ImagesController"/>.</summary>
-    public ImagesController(ImageStorageOptions options)
+    public ImagesController(ImageStorageOptions options, ILogger<ImagesController> logger)
     {
         _imagesDir = options.ImagesDirectory;
+        _logger    = logger;
     }
 
     /// <summary>Uploads an image and returns its UID and serving URL.</summary>
@@ -36,10 +38,14 @@ public sealed class ImagesController : ControllerBase
         var fileName = $"{uid}{ext}";
         var filePath = Path.Combine(_imagesDir, fileName);
 
+        _logger.LogInformation("[IMAGE] Upload received — {FileName} ({Bytes} bytes)", file.FileName, file.Length);
+
         Directory.CreateDirectory(_imagesDir);
 
         await using var stream = System.IO.File.Create(filePath);
         await file.CopyToAsync(stream);
+
+        _logger.LogInformation("[IMAGE] Stored — {Uid}{Ext}", uid, ext);
 
         var response = new ImageUploadResponse
         {

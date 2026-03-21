@@ -6,5 +6,10 @@ namespace KaseLog.Api.Data;
 /// </summary>
 public interface ISchemaInitializer
 {
-    Task InitializeAsync();
+    /// <summary>
+    /// Runs all DDL statements idempotently.
+    /// Returns <c>true</c> when this is a fresh (empty) database, <c>false</c> when
+    /// the schema already existed.
+    /// </summary>
+    Task<bool> InitializeAsync();
 }
