@@ -22,6 +22,10 @@ interface LayoutRow {
   cells: (LayoutCell | null)[]
 }
 
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+}
+
 const COLOR_MAP: Record<string, string> = {
   teal: '#1D9E75',
   blue: '#378ADD',
@@ -475,6 +479,7 @@ export default function CollectionItemPage() {
   const [mode, setMode] = useState<'edit' | 'view'>(isNew ? 'edit' : 'view')
   const [errors, setErrors] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
 
   // Load data
@@ -532,16 +537,8 @@ export default function CollectionItemPage() {
     }
   }
 
-  async function handleKaseChange(newKaseId: string) {
+  function handleKaseChange(newKaseId: string) {
     setKaseId(newKaseId)
-    if (!isNew && item) {
-      try {
-        await collectionsApi.updateItem(item.id, {
-          kaseId: newKaseId || null,
-          fieldValues: values,
-        })
-      } catch { /* ignore */ }
-    }
   }
 
   async function handleSave() {
@@ -554,6 +551,7 @@ export default function CollectionItemPage() {
       return
     }
     setErrors(new Set())
+    setSaveError(null)
     setSaving(true)
     try {
       const payload = { kaseId: kaseId || null, fieldValues: values }
@@ -566,8 +564,8 @@ export default function CollectionItemPage() {
         setValues(updated.fieldValues as Record<string, unknown>)
         setMode('view')
       }
-    } catch {
-      // stay in edit mode
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save item. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -704,6 +702,18 @@ export default function CollectionItemPage() {
             </select>
             <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Optional — appears on the Kase timeline</span>
           </div>
+
+          {/* Metadata footer */}
+          {!isNew && item && (
+            <div style={{
+              marginTop: 16,
+              display: 'flex', gap: 20,
+              fontSize: 11, color: 'var(--text-tertiary)',
+            }}>
+              <span>Created {formatDate(item.createdAt)}</span>
+              <span>Updated {formatDate(item.updatedAt)}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -715,7 +725,11 @@ export default function CollectionItemPage() {
           display: 'flex', alignItems: 'center', gap: 10,
           flexShrink: 0, background: 'var(--bg)',
         }}>
-          <div style={{ flex: 1 }} />
+          {saveError ? (
+            <div style={{ fontSize: 11, color: '#B91C1C', flex: 1 }}>{saveError}</div>
+          ) : (
+            <div style={{ flex: 1 }} />
+          )}
           <button
             onClick={() => isNew ? navigate(`/collections/${collectionId}`) : setMode('view')}
             style={{

@@ -10,6 +10,7 @@ import type {
   CollectionFieldResponse,
   CollectionLayoutResponse,
   CollectionItemResponse,
+  TimelineEntryResponse,
   CreateKaseRequest,
   UpdateKaseRequest,
   CreateLogRequest,
@@ -278,16 +279,9 @@ export const collections = {
 
 // ── Kase timeline ─────────────────────────────────────────────────────────────
 
-export interface TimelineEntry {
-  entityType: 'log' | 'collection_item'
-  id: string
-  title: string
-  updatedAt: string
-}
-
 export const timeline = {
-  list: (kaseId: string): Promise<TimelineEntry[]> =>
-    request<TimelineEntry[]>(`/api/kases/${kaseId}/timeline`),
+  list: (kaseId: string): Promise<TimelineEntryResponse[]> =>
+    request<TimelineEntryResponse[]>(`/api/kases/${kaseId}/timeline`),
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────

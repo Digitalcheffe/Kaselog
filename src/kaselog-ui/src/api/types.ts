@@ -108,6 +108,30 @@ export interface CollectionItemResponse {
   updatedAt: string
 }
 
+export interface TimelineSummaryField {
+  name: string
+  value: string
+}
+
+export interface TimelineEntryResponse {
+  entityType: 'log' | 'collection_item'
+  id: string
+  createdAt: string
+  updatedAt: string
+  // Log-specific
+  title?: string | null
+  description?: string | null
+  versionCount?: number | null
+  tags?: string[]
+  // Collection item-specific
+  collectionId?: string | null
+  collectionTitle?: string | null
+  collectionColor?: string | null
+  kaseId?: string | null
+  itemTitle?: string | null
+  summaryFields?: TimelineSummaryField[]
+}
+
 // ── Request bodies ────────────────────────────────────────────────────────────
 
 export interface CreateKaseRequest {
