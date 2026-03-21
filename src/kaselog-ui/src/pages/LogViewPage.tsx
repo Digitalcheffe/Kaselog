@@ -175,8 +175,8 @@ export default function LogViewPage() {
 
   // ── Content change from editor ───────────────────────────────────────────────
 
-  const handleContentChange = useCallback((html: string) => {
-    setPendingContent(html)
+  const handleContentChange = useCallback((markdown: string) => {
+    setPendingContent(markdown)
     hasPendingRef.current = true
 
     if (!log?.autosaveEnabled) {
@@ -189,7 +189,7 @@ export default function LogViewPage() {
     autosaveTimer.current = setTimeout(async () => {
       if (!id) return
       try {
-        const v = await versionsApi.create(id, { content: html, isAutosave: true })
+        const v = await versionsApi.create(id, { content: markdown, isAutosave: true })
         setLastSavedAt(v.createdAt)
         setUnsaved(false)
         hasPendingRef.current = false

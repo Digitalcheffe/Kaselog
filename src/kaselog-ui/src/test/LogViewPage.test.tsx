@@ -16,9 +16,12 @@ vi.mock('../api/client', () => ({
 }))
 
 // ── Mock TiptapEditor ─────────────────────────────────────────────────────────
-// Stores the latest onChange so tests can trigger it directly.
+// The real TiptapEditor accepts markdown as `content` and calls onChange with markdown.
+// The mock preserves this contract: it displays content directly and forwards
+// onChange calls with markdown strings.
 
-let capturedOnChange: ((html: string) => void) | null = null
+let capturedOnChange: ((markdown: string) => void) | null = null
+let capturedContent: string | null = null
 
 vi.mock('../components/TiptapEditor', () => ({
   default: ({
@@ -27,10 +30,11 @@ vi.mock('../components/TiptapEditor', () => ({
     onImageUpload,
   }: {
     content: string
-    onChange: (html: string) => void
+    onChange: (markdown: string) => void
     onImageUpload: (file: File) => Promise<string>
   }) => {
     capturedOnChange = onChange
+    capturedContent = content
     return (
       <div data-testid="tiptap-editor">
         <textarea
@@ -44,7 +48,7 @@ vi.mock('../components/TiptapEditor', () => ({
           onClick={async () => {
             const file = new File(['img'], 'test.png', { type: 'image/png' })
             const url = await onImageUpload(file)
-            onChange(`<img src="${url}" />`)
+            onChange(`![uploaded](${url})`)
           }}
         >
           Upload image
@@ -84,7 +88,7 @@ function makeLog(overrides: Partial<LogResponse> = {}): LogResponse {
     title: 'VLAN trunk configuration',
     description: null,
     autosaveEnabled: true,
-    content: '<p>Hello world</p>',
+    content: '# Hello world\n\nSome content here.',
     versionCount: 3,
     tags: [],
     createdAt: new Date(Date.now() - 86400000).toISOString(),
@@ -97,7 +101,7 @@ function makeVersion(overrides: Partial<LogVersionResponse> = {}): LogVersionRes
   return {
     id: 'v-1',
     logId: 'log-1',
-    content: '<p>Hello world</p>',
+    content: '# Hello world\n\nSome content here.',
     label: null,
     isAutosave: true,
     createdAt: new Date().toISOString(),
@@ -121,6 +125,7 @@ describe('LogViewPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     capturedOnChange = null
+    capturedContent = null
 
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
     vi.mocked(versionsApi.list).mockResolvedValue([makeVersion()])
@@ -131,10 +136,11 @@ describe('LogViewPage', () => {
     vi.useRealTimers()
   })
 
-  // ── 1. Editor renders with content from current LogVersion ──────────────────
+  // ── 1. Editor receives markdown content ───────────────────────────────────
 
-  it('renders editor with content from current LogVersion', async () => {
-    vi.mocked(logsApi.get).mockResolvedValue(makeLog({ content: '<p>Hello world</p>' }))
+  it('passes markdown content string to TiptapEditor', async () => {
+    const mdContent = '# Hello world\n\nSome content here.'
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog({ content: mdContent }))
 
     renderPage()
 
@@ -142,8 +148,7 @@ describe('LogViewPage', () => {
       expect(screen.getByTestId('tiptap-editor')).toBeInTheDocument()
     })
 
-    const textarea = screen.getByTestId('editor-textarea') as HTMLTextAreaElement
-    expect(textarea.defaultValue).toBe('<p>Hello world</p>')
+    expect(capturedContent).toBe(mdContent)
   })
 
   // ── 2. Title calls PUT /api/logs/{id} on blur ────────────────────────────────
@@ -170,36 +175,34 @@ describe('LogViewPage', () => {
     })
   })
 
-  // ── 3. Autosave fires 2s after typing when AutosaveEnabled true ──────────────
+  // ── 3. Autosave fires 2s after typing with markdown content ──────────────────
 
-  it('fires autosave 2s after typing when autosaveEnabled is true', async () => {
+  it('fires autosave with markdown string 2s after typing when autosaveEnabled is true', async () => {
     vi.mocked(logsApi.get).mockResolvedValue(makeLog({ autosaveEnabled: true }))
     vi.mocked(versionsApi.create).mockResolvedValue(makeVersion())
 
     renderPage()
 
-    // Wait for component to fully load before switching to fake timers
     await waitFor(() => screen.getByTestId('editor-textarea'))
 
-    // Switch to fake timers only after the component is mounted
     vi.useFakeTimers()
 
-    // Simulate typing via the captured onChange callback
     act(() => {
-      capturedOnChange?.('<p>Updated content</p>')
+      capturedOnChange?.('## Updated heading\n\nNew paragraph.')
     })
 
-    // Before 2s: no save
     expect(versionsApi.create).not.toHaveBeenCalled()
 
-    // Advance 2s
     await act(async () => {
       vi.advanceTimersByTime(2000)
     })
 
     expect(versionsApi.create).toHaveBeenCalledWith(
       'log-1',
-      expect.objectContaining({ isAutosave: true }),
+      expect.objectContaining({
+        isAutosave: true,
+        content: '## Updated heading\n\nNew paragraph.',
+      }),
     )
   })
 
@@ -215,7 +218,7 @@ describe('LogViewPage', () => {
     vi.useFakeTimers()
 
     act(() => {
-      capturedOnChange?.('<p>Updated</p>')
+      capturedOnChange?.('# Updated')
     })
 
     await act(async () => {
@@ -247,9 +250,9 @@ describe('LogViewPage', () => {
     expect(screen.queryByRole('button', { name: /^Save$/ })).not.toBeInTheDocument()
   })
 
-  // ── 6. Save button calls POST .../versions with isAutosave: false ────────────
+  // ── 6. Save button calls POST with markdown content ──────────────────────────
 
-  it('Save button calls POST versions with isAutosave: false', async () => {
+  it('Save button calls POST versions with markdown content and isAutosave: false', async () => {
     vi.mocked(logsApi.get).mockResolvedValue(makeLog({ autosaveEnabled: false }))
     vi.mocked(versionsApi.create).mockResolvedValue(makeVersion({ isAutosave: false }))
     const user = userEvent.setup()
@@ -263,12 +266,15 @@ describe('LogViewPage', () => {
     await waitFor(() => {
       expect(versionsApi.create).toHaveBeenCalledWith(
         'log-1',
-        expect.objectContaining({ isAutosave: false }),
+        expect.objectContaining({
+          isAutosave: false,
+          content: expect.stringContaining('Hello world'),
+        }),
       )
     })
   })
 
-  // ── 7. Image upload calls POST /api/images ────────────────────────────────────
+  // ── 7. Image upload calls POST /api/images ─────────────────────────────────
 
   it('calls POST /api/images on image upload and inserts node with correct src', async () => {
     vi.mocked(logsApi.get).mockResolvedValue(makeLog())
@@ -320,7 +326,7 @@ describe('LogViewPage', () => {
     })
   })
 
-  // ── 10. Textarea content reflects prop ───────────────────────────────────────
+  // ── 10. Textarea content reflects markdown prop ───────────────────────────────
 
   it('onChange on editor textarea triggers handleContentChange', async () => {
     vi.mocked(logsApi.get).mockResolvedValue(makeLog({ autosaveEnabled: false }))
@@ -330,7 +336,7 @@ describe('LogViewPage', () => {
     await waitFor(() => screen.getByTestId('editor-textarea'))
 
     fireEvent.change(screen.getByTestId('editor-textarea'), {
-      target: { value: '<p>Changed</p>' },
+      target: { value: '## Changed heading' },
     })
 
     // unsaved changes -> Save button still present
@@ -511,11 +517,11 @@ describe('LogViewPage', () => {
   it('restore calls POST .../restore and updates editor content', async () => {
     vi.mocked(logsApi.get).mockResolvedValue(makeLog())
     vi.mocked(versionsApi.list).mockResolvedValue([
-      makeVersion({ id: 'v-current', content: '<p>Current</p>' }),
-      makeVersion({ id: 'v-old', content: '<p>Old content</p>' }),
+      makeVersion({ id: 'v-current', content: '# Current' }),
+      makeVersion({ id: 'v-old', content: '# Old content' }),
     ])
     vi.mocked(versionsApi.restore).mockResolvedValue(
-      makeVersion({ id: 'v-restored', content: '<p>Old content</p>' }),
+      makeVersion({ id: 'v-restored', content: '# Old content' }),
     )
     const user = userEvent.setup()
 
@@ -553,6 +559,166 @@ describe('LogViewPage', () => {
     await waitFor(() => {
       expect(logsApi.delete).toHaveBeenCalledWith('log-1')
       expect(mockNavigate).toHaveBeenCalledWith('/kases/kase-1')
+    })
+  })
+})
+
+// ── Markdown round-trip tests ─────────────────────────────────────────────────
+
+describe('LogViewPage — markdown content handling', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    capturedOnChange = null
+    capturedContent = null
+    vi.mocked(kasesApi.get).mockResolvedValue({
+      id: 'kase-1', title: 'Test Kase', description: null, logCount: 1,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    })
+    vi.mocked(versionsApi.list).mockResolvedValue([])
+    vi.mocked(tagsApi.list).mockResolvedValue([])
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('passes a markdown string (not HTML or JSON) as content to TiptapEditor', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(
+      makeLog({ content: '## My Heading\n\nSome **bold** text.' }),
+    )
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId('tiptap-editor')).toBeInTheDocument())
+
+    // TiptapEditor receives the raw markdown string — conversion happens inside it
+    expect(capturedContent).toBe('## My Heading\n\nSome **bold** text.')
+    expect(capturedContent).not.toContain('<h2>')
+    expect(capturedContent).not.toContain('"type"')
+  })
+
+  it('autosave sends a markdown string starting with # for heading content', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog({ autosaveEnabled: true }))
+    vi.mocked(versionsApi.create).mockResolvedValue(makeVersion())
+
+    renderPage()
+    await waitFor(() => screen.getByTestId('editor-textarea'))
+
+    vi.useFakeTimers()
+
+    act(() => {
+      // Simulate TiptapEditor emitting markdown from onChange
+      capturedOnChange?.('# Heading 1\n\nParagraph text.')
+    })
+
+    await act(async () => { vi.advanceTimersByTime(2000) })
+
+    expect(versionsApi.create).toHaveBeenCalledWith(
+      'log-1',
+      expect.objectContaining({ content: '# Heading 1\n\nParagraph text.' }),
+    )
+    const saved = vi.mocked(versionsApi.create).mock.calls[0][1].content
+    expect(saved).toMatch(/^#/)
+    expect(saved).not.toContain('<h1>')
+    expect(saved).not.toContain('"type"')
+  })
+
+  it('autosave sends markdown with ** markers for bold content', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog({ autosaveEnabled: true }))
+    vi.mocked(versionsApi.create).mockResolvedValue(makeVersion())
+
+    renderPage()
+    await waitFor(() => screen.getByTestId('editor-textarea'))
+
+    vi.useFakeTimers()
+
+    act(() => {
+      capturedOnChange?.('Some **bold** and *italic* text.')
+    })
+
+    await act(async () => { vi.advanceTimersByTime(2000) })
+
+    const saved = vi.mocked(versionsApi.create).mock.calls[0][1].content
+    expect(saved).toContain('**bold**')
+    expect(saved).not.toContain('<strong>')
+  })
+
+  it('autosave sends fenced code block with language annotation', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog({ autosaveEnabled: true }))
+    vi.mocked(versionsApi.create).mockResolvedValue(makeVersion())
+
+    renderPage()
+    await waitFor(() => screen.getByTestId('editor-textarea'))
+
+    vi.useFakeTimers()
+
+    act(() => {
+      capturedOnChange?.('```python\nprint("hello")\n```')
+    })
+
+    await act(async () => { vi.advanceTimersByTime(2000) })
+
+    const saved = vi.mocked(versionsApi.create).mock.calls[0][1].content
+    expect(saved).toContain('```')
+    expect(saved).not.toContain('<code>')
+  })
+
+  it('autosave sends GFM task list syntax', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog({ autosaveEnabled: true }))
+    vi.mocked(versionsApi.create).mockResolvedValue(makeVersion())
+
+    renderPage()
+    await waitFor(() => screen.getByTestId('editor-textarea'))
+
+    vi.useFakeTimers()
+
+    act(() => {
+      capturedOnChange?.('- [x] Done item\n- [ ] Pending item')
+    })
+
+    await act(async () => { vi.advanceTimersByTime(2000) })
+
+    const saved = vi.mocked(versionsApi.create).mock.calls[0][1].content
+    expect(saved).toContain('- [x]')
+    expect(saved).toContain('- [ ]')
+  })
+
+  it('null or empty content initializes editor to empty string without error', async () => {
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog({ content: '' }))
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId('tiptap-editor')).toBeInTheDocument())
+
+    // Empty content should not throw and editor should render
+    expect(capturedContent).toBe('')
+  })
+
+  it('round-trip: content loaded as markdown is saved back as markdown', async () => {
+    const originalMarkdown = '# My log\n\nHello **world**.'
+    vi.mocked(logsApi.get).mockResolvedValue(makeLog({ autosaveEnabled: false, content: originalMarkdown }))
+    vi.mocked(versionsApi.create).mockResolvedValue(makeVersion())
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByRole('button', { name: /^Save$/ }))
+
+    // Content prop passed to editor must be the original markdown
+    expect(capturedContent).toBe(originalMarkdown)
+
+    // Simulate the editor emitting markdown back on change
+    act(() => {
+      capturedOnChange?.(originalMarkdown)
+    })
+
+    await user.click(screen.getByRole('button', { name: /^Save$/ }))
+
+    await waitFor(() => {
+      expect(versionsApi.create).toHaveBeenCalledWith(
+        'log-1',
+        expect.objectContaining({ content: originalMarkdown }),
+      )
     })
   })
 })
