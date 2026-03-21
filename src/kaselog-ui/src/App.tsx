@@ -9,6 +9,7 @@ import CollectionsIndexPage from './pages/CollectionsIndexPage'
 import CollectionListPage from './pages/CollectionListPage'
 import CollectionDesignerPage from './pages/CollectionDesignerPage'
 import NewCollectionPage from './pages/NewCollectionPage'
+import CollectionItemPage from './pages/CollectionItemPage'
 
 const router = createBrowserRouter([
   {
@@ -23,6 +24,8 @@ const router = createBrowserRouter([
       { path: '/collections/new', element: <NewCollectionPage /> },
       { path: '/collections/:id', element: <CollectionListPage /> },
       { path: '/collections/:id/design', element: <CollectionDesignerPage /> },
+      { path: '/items/new', element: <CollectionItemPage /> },
+      { path: '/items/:id', element: <CollectionItemPage /> },
     ],
   },
 ])
