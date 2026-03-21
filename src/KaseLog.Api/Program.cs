@@ -9,6 +9,14 @@ using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.AddSimpleConsole(opts =>
+{
+    opts.SingleLine       = true;
+    opts.IncludeScopes    = false;
+    opts.TimestampFormat  = null;
+    opts.UseUtcTimestamp  = true;
+});
+
 var port         = Environment.GetEnvironmentVariable("KASELOG_PORT")              ?? "5000";
 var dbProvider   = Environment.GetEnvironmentVariable("KASELOG_DB_PROVIDER")       ?? "sqlite";
 var dataPath     = Environment.GetEnvironmentVariable("KASELOG_DATA_PATH")         ?? "/data/kaselog.db";
