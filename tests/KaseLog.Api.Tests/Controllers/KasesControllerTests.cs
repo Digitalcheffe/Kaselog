@@ -4,6 +4,7 @@ using System.Text.Json;
 using Dapper;
 using KaseLog.Api.Data;
 using KaseLog.Api.Data.Sqlite;
+using KaseLog.Api.Tests;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.TestHost;
@@ -59,6 +60,14 @@ public sealed class KasesControllerTests : IAsyncLifetime
 
                     services.AddSingleton<IDbConnectionFactory>(
                         new SqliteConnectionFactory(_testConnString));
+
+                    // Replace the seed initializer with a no-op so tests start
+                    // with a clean database — no pre-seeded kases.
+                    var seedDescriptor = services.SingleOrDefault(
+                        d => d.ServiceType == typeof(ISeedInitializer));
+                    if (seedDescriptor is not null) services.Remove(seedDescriptor);
+
+                    services.AddSingleton<ISeedInitializer, NoopSeedInitializer>();
                 });
             });
 

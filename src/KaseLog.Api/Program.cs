@@ -1,3 +1,4 @@
+using KaseLog.Api;
 using KaseLog.Api.Data;
 using KaseLog.Api.Data.Sqlite;
 using KaseLog.Api.Middleware;
@@ -8,13 +9,13 @@ using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var port      = Environment.GetEnvironmentVariable("KASELOG_PORT")         ?? "5000";
-var dbProvider = Environment.GetEnvironmentVariable("KASELOG_DB_PROVIDER") ?? "sqlite";
-var dataPath  = Environment.GetEnvironmentVariable("KASELOG_DATA_PATH")    ?? "/data/kaselog.db";
+var port         = Environment.GetEnvironmentVariable("KASELOG_PORT")              ?? "5000";
+var dbProvider   = Environment.GetEnvironmentVariable("KASELOG_DB_PROVIDER")       ?? "sqlite";
+var dataPath     = Environment.GetEnvironmentVariable("KASELOG_DATA_PATH")         ?? "/data/kaselog.db";
 var connStringEnv = Environment.GetEnvironmentVariable("KASELOG_CONNECTION_STRING");
-var connString = !string.IsNullOrEmpty(connStringEnv)
-                 ? connStringEnv
-                 : $"Data Source={dataPath};";
+var connString   = !string.IsNullOrEmpty(connStringEnv)
+                   ? connStringEnv
+                   : $"Data Source={dataPath};";
 
 builder.WebHost.UseUrls($"http://*:{port}");
 
@@ -92,63 +93,81 @@ builder.Services.AddSwaggerGen(options =>
 // ── Build app ─────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
-var startupLogger = app.Services
-    .GetRequiredService<ILoggerFactory>()
-    .CreateLogger("KaseLog.Startup");
-
-// ── [INIT] ────────────────────────────────────────────────────────────────────
 var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
-startupLogger.LogInformation(
-    "[INIT] Application starting — version: {Version}, environment: {Env}, KASELOG_PORT: {Port}, KASELOG_DB_PROVIDER: {Provider}",
-    version, app.Environment.EnvironmentName, port, dbProvider);
 
-// ── [DB] ──────────────────────────────────────────────────────────────────────
+// ── Schema ────────────────────────────────────────────────────────────────────
+SchemaInitResult schemaResult;
 try
 {
-    startupLogger.LogInformation(
-        "[DB] Opening database connection — KASELOG_DATA_PATH: {DataPath}", dataPath);
-
-    var schemaInitializer = app.Services.GetRequiredService<ISchemaInitializer>();
-
-    startupLogger.LogInformation("[DB] Initializing schema");
-    bool isFreshDb = await schemaInitializer.InitializeAsync();
-    startupLogger.LogInformation(
-        "[DB] Schema initialized — {Status}",
-        isFreshDb ? "fresh database" : "existing database");
-
-    startupLogger.LogInformation("[DB] WAL mode and foreign keys verified");
+    var schemaInit = app.Services.GetRequiredService<ISchemaInitializer>();
+    schemaResult = await schemaInit.InitializeAsync();
 }
 catch (Exception ex)
 {
-    startupLogger.LogCritical("[FATAL] [DB] {Message}", ex.Message);
-    Environment.Exit(1);
+    // Database is unreachable — treat all tables as missing.
+    var logger = app.Services.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("KaseLog.Startup");
+    logger.LogCritical(ex, "Database unreachable during schema init");
+
+    schemaResult = new SchemaInitResult(0,
+        ["Kases", "Logs", "LogVersions", "Tags", "LogTags",
+         "Collections", "CollectionFields", "CollectionLayout", "CollectionItems", "kaselog_search"]);
 }
 
-// ── [STORAGE] ─────────────────────────────────────────────────────────────────
+// ── Images directory ──────────────────────────────────────────────────────────
+string imagesStatus;
+bool   imagesFailed = false;
 try
 {
-    bool imagesDirExisted = Directory.Exists(imagesDir);
+    bool existed = Directory.Exists(imagesDir);
     Directory.CreateDirectory(imagesDir);
-    startupLogger.LogInformation(
-        "[STORAGE] {ImagesDir} — {Status}",
-        imagesDir, imagesDirExisted ? "already exists" : "created");
+    imagesStatus = existed
+        ? $"{Directory.GetFiles(imagesDir).Length} files"
+        : "created";
 }
 catch (Exception ex)
 {
-    startupLogger.LogCritical("[FATAL] [STORAGE] {Message}", ex.Message);
-    Environment.Exit(1);
+    var logger = app.Services.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("KaseLog.Startup");
+    logger.LogCritical(ex, "Cannot create images directory: {ImagesDir}", imagesDir);
+
+    imagesStatus = "ERROR — not writable";
+    imagesFailed = true;
 }
 
-// ── [SEED] ────────────────────────────────────────────────────────────────────
+// ── Seed ──────────────────────────────────────────────────────────────────────
+SeedStatus seedStatus;
 try
 {
-    startupLogger.LogInformation("[SEED] Checking first-run seed");
-    var seedInitializer = app.Services.GetRequiredService<ISeedInitializer>();
-    await seedInitializer.SeedAsync();
+    var seedInit = app.Services.GetRequiredService<ISeedInitializer>();
+    seedStatus = await seedInit.SeedAsync();
 }
 catch (Exception ex)
 {
-    startupLogger.LogCritical("[FATAL] [SEED] {Message}", ex.Message);
+    var logger = app.Services.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("KaseLog.Startup");
+    logger.LogError(ex, "Seed transaction failed");
+    seedStatus = SeedStatus.Error;
+}
+
+// ── Startup banner ────────────────────────────────────────────────────────────
+var bannerCtx = new StartupContext(
+    Version:      version,
+    Port:         port,
+    DatabasePath: dataPath,
+    DbProvider:   dbProvider,
+    Schema:       schemaResult,
+    ImagesDir:    imagesDir,
+    ImagesStatus: imagesStatus,
+    ImagesFailed: imagesFailed,
+    Seed:         seedStatus,
+    StartedAt:    DateTime.UtcNow
+);
+
+StartupBanner.Print(bannerCtx);
+
+if (!schemaResult.IsOk || imagesFailed)
+{
     Environment.Exit(1);
 }
 
@@ -169,8 +188,6 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok", version = "1.0.0" })
 // SPA fallback — return index.html for any unmatched route
 app.MapFallbackToFile("index.html");
 
-// ── [READY] ──────────────────────────────────────────────────────────────────
-startupLogger.LogInformation("[READY] Listening on http://*:{Port}", port);
 app.Run();
 
 // Expose Program for WebApplicationFactory in integration tests

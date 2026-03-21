@@ -9,7 +9,7 @@ public interface ISeedInitializer
     /// <summary>
     /// Checks whether the database is empty (zero Kases) and, if so, inserts
     /// the welcome Kase with documentation Logs in a single transaction.
-    /// Logs the outcome via the <c>[SEED]</c> prefix.
+    /// Returns a <see cref="SeedStatus"/> indicating what happened.
     /// </summary>
-    Task SeedAsync();
+    Task<SeedStatus> SeedAsync();
 }

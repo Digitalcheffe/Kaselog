@@ -1,5 +1,4 @@
 using Dapper;
-using Microsoft.Extensions.Logging;
 
 namespace KaseLog.Api.Data.Sqlite;
 
@@ -247,32 +246,23 @@ Preferences are saved locally and persist across reloads.
     // ── Infrastructure ───────────────────────────────────────────────────────
 
     private readonly IDbConnectionFactory _factory;
-    private readonly ILogger<SqliteSeedInitializer> _logger;
 
     /// <summary>Initializes a new instance of <see cref="SqliteSeedInitializer"/>.</summary>
-    public SqliteSeedInitializer(
-        IDbConnectionFactory factory,
-        ILogger<SqliteSeedInitializer> logger)
+    public SqliteSeedInitializer(IDbConnectionFactory factory)
     {
         _factory = factory;
-        _logger  = logger;
     }
 
     // ── ISeedInitializer ─────────────────────────────────────────────────────
 
     /// <inheritdoc/>
-    public async Task SeedAsync()
+    public async Task<SeedStatus> SeedAsync()
     {
         using var connection = await _factory.OpenAsync();
 
         var kaseCount = await connection.ExecuteScalarAsync<long>("SELECT COUNT(*) FROM Kases");
         if (kaseCount > 0)
-        {
-            _logger.LogInformation("[SEED] Skipping — database already contains data");
-            return;
-        }
-
-        _logger.LogInformation("[SEED] Inserting first-run documentation Kase");
+            return SeedStatus.Skipped;
 
         using var tx = connection.BeginTransaction();
         try
@@ -353,12 +343,11 @@ Preferences are saved locally and persist across reloads.
             }
 
             tx.Commit();
-            _logger.LogInformation("[SEED] First-run seed complete");
+            return SeedStatus.Inserted;
         }
-        catch (Exception ex)
+        catch
         {
             tx.Rollback();
-            _logger.LogError(ex, "[SEED] [ERROR] Seed transaction rolled back — {Message}", ex.Message);
             throw;
         }
     }
