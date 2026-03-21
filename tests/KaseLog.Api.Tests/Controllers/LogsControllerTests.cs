@@ -4,6 +4,7 @@ using System.Text.Json;
 using Dapper;
 using KaseLog.Api.Data;
 using KaseLog.Api.Data.Sqlite;
+using KaseLog.Api.Tests;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.TestHost;
@@ -56,6 +57,12 @@ public sealed class LogsControllerTests : IAsyncLifetime
 
                     services.AddSingleton<IDbConnectionFactory>(
                         new SqliteConnectionFactory(_testConnString));
+
+                    var seedDescriptor = services.SingleOrDefault(
+                        d => d.ServiceType == typeof(ISeedInitializer));
+                    if (seedDescriptor is not null) services.Remove(seedDescriptor);
+
+                    services.AddSingleton<ISeedInitializer, NoopSeedInitializer>();
                 });
             });
 

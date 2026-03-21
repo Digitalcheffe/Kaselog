@@ -4,6 +4,23 @@ namespace KaseLog.Api.Data.Sqlite;
 
 public sealed class SqliteSchemaInitializer : ISchemaInitializer
 {
+    // Tables the banner verifies after DDL runs.
+    // Users is intentionally omitted — it is an implementation detail, not a
+    // core data table listed in the spec.
+    private static readonly string[] ExpectedTables =
+    [
+        "Kases",
+        "Logs",
+        "LogVersions",
+        "Tags",
+        "LogTags",
+        "Collections",
+        "CollectionFields",
+        "CollectionLayout",
+        "CollectionItems",
+        "kaselog_search",
+    ];
+
     private readonly IDbConnectionFactory _factory;
 
     public SqliteSchemaInitializer(IDbConnectionFactory factory)
@@ -11,21 +28,25 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
         _factory = factory;
     }
 
-    public async Task<bool> InitializeAsync()
+    public async Task<SchemaInitResult> InitializeAsync()
     {
         using var connection = await _factory.OpenAsync();
-
-        // Detect fresh database before running DDL — Kases table won't exist yet.
-        var kasesTableExists = await connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Kases'");
-        bool isFreshDb = kasesTableExists == 0;
 
         foreach (var sql in SchemaDdl)
         {
             await connection.ExecuteAsync(sql);
         }
 
-        return isFreshDb;
+        // Verify every expected table exists after DDL.
+        var present = (await connection.QueryAsync<string>(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var missing = ExpectedTables
+            .Where(t => !present.Contains(t))
+            .ToList();
+
+        return new SchemaInitResult(ExpectedTables.Length - missing.Count, missing);
     }
 
     // Each entry is a single DDL statement executed independently so that

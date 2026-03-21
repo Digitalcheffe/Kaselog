@@ -7,9 +7,9 @@ namespace KaseLog.Api.Data;
 public interface ISchemaInitializer
 {
     /// <summary>
-    /// Runs all DDL statements idempotently.
-    /// Returns <c>true</c> when this is a fresh (empty) database, <c>false</c> when
-    /// the schema already existed.
+    /// Runs all DDL statements idempotently, then verifies that every expected
+    /// table is present. Returns a <see cref="SchemaInitResult"/> with the
+    /// verified table count and a list of any missing tables.
     /// </summary>
-    Task<bool> InitializeAsync();
+    Task<SchemaInitResult> InitializeAsync();
 }
