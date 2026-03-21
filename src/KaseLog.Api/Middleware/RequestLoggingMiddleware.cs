@@ -26,6 +26,18 @@ public sealed class RequestLoggingMiddleware
         _logger = logger;
     }
 
+    private static bool IsStaticAsset(string path) =>
+        path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase)
+        || path.Equals("/index.html", StringComparison.OrdinalIgnoreCase)
+        || path.Equals("/favicon.ico", StringComparison.OrdinalIgnoreCase)
+        || path.EndsWith(".js",    StringComparison.OrdinalIgnoreCase)
+        || path.EndsWith(".css",   StringComparison.OrdinalIgnoreCase)
+        || path.EndsWith(".ico",   StringComparison.OrdinalIgnoreCase)
+        || path.EndsWith(".woff",  StringComparison.OrdinalIgnoreCase)
+        || path.EndsWith(".woff2", StringComparison.OrdinalIgnoreCase)
+        || path.EndsWith(".ttf",   StringComparison.OrdinalIgnoreCase)
+        || path.EndsWith(".map",   StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Processes the request, then logs the outcome.</summary>
     public async Task InvokeAsync(HttpContext context)
     {
@@ -35,13 +47,15 @@ public sealed class RequestLoggingMiddleware
 
         sw.Stop();
 
+        var rawPath = context.Request.Path.Value ?? "/";
+        if (IsStaticAsset(rawPath)) return;
+
         var method = context.Request.Method switch
         {
             "DELETE" => "DEL",
             var m    => m,
         };
 
-        var rawPath = context.Request.Path.Value ?? "/";
         if (context.Request.QueryString.HasValue)
             rawPath += context.Request.QueryString.Value;
 

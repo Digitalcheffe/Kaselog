@@ -126,6 +126,39 @@ public sealed class RequestLoggingMiddlewareTests
         await mw.InvokeAsync(ctx);
         Assert.Contains("DEL", logger.Entries[0].Message);
     }
+
+    // ── Static asset suppression tests ────────────────────────────────────────
+
+    [Theory]
+    [InlineData("/index.html")]
+    [InlineData("/favicon.ico")]
+    [InlineData("/assets/main.js")]
+    [InlineData("/assets/style.css")]
+    [InlineData("/assets/chunk-abc123.js")]
+    [InlineData("/some/deep/path/bundle.js")]
+    [InlineData("/fonts/roboto.woff2")]
+    [InlineData("/fonts/roboto.woff")]
+    [InlineData("/fonts/roboto.ttf")]
+    [InlineData("/static/app.css")]
+    [InlineData("/sourcemaps/app.js.map")]
+    public async Task StaticAsset_ProducesNoLogEntry(string path)
+    {
+        var (logger, mw) = Build(200, path: path);
+        await mw.InvokeAsync(MakeContext(path: path));
+        Assert.Empty(logger.Entries);
+    }
+
+    [Theory]
+    [InlineData("/api/kases")]
+    [InlineData("/api/logs/abc")]
+    [InlineData("/health")]
+    [InlineData("/")]
+    public async Task NonStaticPath_ProducesLogEntry(string path)
+    {
+        var (logger, mw) = Build(200, path: path);
+        await mw.InvokeAsync(MakeContext(path: path));
+        Assert.Single(logger.Entries);
+    }
 }
 
 // ── CapturingLogger ───────────────────────────────────────────────────────────
