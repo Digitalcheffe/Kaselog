@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditorState } from '@tiptap/react'
+import { markdownToHtml, editorToMarkdown } from '../utils/markdown'
 import type { NodeViewProps } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
@@ -237,8 +238,10 @@ import React from 'react'
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 export interface TiptapEditorProps {
+  /** Markdown string (stored format). Converted to HTML before passing to the editor. */
   content: string
-  onChange: (html: string) => void
+  /** Called with a markdown string whenever the editor content changes. */
+  onChange: (markdown: string) => void
   onImageUpload: (file: File) => Promise<string>
 }
 
@@ -246,6 +249,8 @@ export interface TiptapEditorProps {
 
 export default function TiptapEditor({ content, onChange, onImageUpload }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const initialHtml = markdownToHtml(content) || undefined
 
   const editor = useEditor({
     extensions: [
@@ -274,9 +279,9 @@ export default function TiptapEditor({ content, onChange, onImageUpload }: Tipta
       Focus,
       Mathematics,
     ],
-    content,
+    content: initialHtml,
     onUpdate({ editor: ed }) {
-      onChange(ed.getHTML())
+      onChange(editorToMarkdown(ed))
     },
     editorProps: {
       handlePaste(_view, event) {
@@ -311,12 +316,14 @@ export default function TiptapEditor({ content, onChange, onImageUpload }: Tipta
     editor?.chain().focus().setImage({ src: url }).run()
   }
 
-  // Sync content when prop changes (e.g. version restore)
+  // Sync content when prop changes (e.g. version restore).
+  // Convert markdown → HTML before passing to the editor.
   useEffect(() => {
     if (!editor) return
+    const html = markdownToHtml(content) || ''
     const current = editor.getHTML()
-    if (current !== content) {
-      editor.commands.setContent(content)
+    if (current !== html) {
+      editor.commands.setContent(html || '')
     }
   }, [content, editor])
 
