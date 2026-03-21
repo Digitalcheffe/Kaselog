@@ -253,6 +253,27 @@ export const collections = {
 
   getItem: (id: string): Promise<CollectionItemResponse> =>
     request<CollectionItemResponse>(`/api/items/${id}`),
+
+  createItem: (
+    collectionId: string,
+    body: { kaseId?: string | null; fieldValues: Record<string, unknown> },
+  ): Promise<CollectionItemResponse> =>
+    request<CollectionItemResponse>(`/api/collections/${collectionId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateItem: (
+    id: string,
+    body: { kaseId?: string | null; fieldValues: Record<string, unknown> },
+  ): Promise<CollectionItemResponse> =>
+    request<CollectionItemResponse>(`/api/items/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+
+  deleteItem: (id: string): Promise<void> =>
+    request<void>(`/api/items/${id}`, { method: 'DELETE' }),
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
