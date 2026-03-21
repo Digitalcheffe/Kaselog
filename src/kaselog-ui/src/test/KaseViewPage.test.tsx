@@ -1,19 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import KaseViewPage from '../pages/KaseViewPage'
-import type { KaseResponse, LogResponse, TagResponse } from '../api/types'
+import type { KaseResponse, LogResponse, TagResponse, CollectionResponse } from '../api/types'
 
-// ── Mock the API client ───────────────────────────────────────────────────────
+// ── Mocks ─────────────────────────────────────────────────────────────────────
 
 vi.mock('../api/client', () => ({
   kases: {
     get: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
   },
   logs: {
     listByKase: vi.fn(),
     create: vi.fn(),
+  },
+  collections: {
+    list: vi.fn(),
   },
 }))
 
@@ -23,9 +28,9 @@ vi.mock('react-router-dom', async (importOriginal) => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
-import { kases as kasesApi, logs as logsApi } from '../api/client'
+import { kases as kasesApi, logs as logsApi, collections as collectionsApi } from '../api/client'
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Fixtures ──────────────────────────────────────────────────────────────────
 
 function makeKase(overrides: Partial<KaseResponse> = {}): KaseResponse {
   return {
@@ -40,12 +45,7 @@ function makeKase(overrides: Partial<KaseResponse> = {}): KaseResponse {
 }
 
 function makeTag(overrides: Partial<TagResponse> = {}): TagResponse {
-  return {
-    id: 'tag-1',
-    name: 'networking',
-    createdAt: new Date().toISOString(),
-    ...overrides,
-  }
+  return { id: 'tag-1', name: 'networking', createdAt: new Date().toISOString(), ...overrides }
 }
 
 function makeLog(overrides: Partial<LogResponse> = {}): LogResponse {
@@ -64,6 +64,14 @@ function makeLog(overrides: Partial<LogResponse> = {}): LogResponse {
   }
 }
 
+function makeCollection(overrides: Partial<CollectionResponse> = {}): CollectionResponse {
+  return {
+    id: 'col-1', title: 'Vinyl Records', color: 'teal',
+    itemCount: 12, createdAt: '', updatedAt: '',
+    ...overrides,
+  }
+}
+
 function renderPage(kaseId = 'kase-1') {
   return render(
     <MemoryRouter initialEntries={[`/kases/${kaseId}`]}>
@@ -74,11 +82,12 @@ function renderPage(kaseId = 'kase-1') {
   )
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// ── Existing timeline tests ───────────────────────────────────────────────────
 
-describe('KaseViewPage', () => {
+describe('KaseViewPage — timeline', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(collectionsApi.list).mockResolvedValue([])
   })
 
   it('renders timeline entries from mocked data', async () => {
@@ -114,13 +123,7 @@ describe('KaseViewPage', () => {
   it('renders tag pills from log tags', async () => {
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
     vi.mocked(logsApi.listByKase).mockResolvedValue([
-      makeLog({
-        id: 'log-1',
-        tags: [
-          makeTag({ id: 't1', name: 'networking' }),
-          makeTag({ id: 't2', name: 'proxmox' }),
-        ],
-      }),
+      makeLog({ id: 'log-1', tags: [makeTag({ id: 't1', name: 'networking' }), makeTag({ id: 't2', name: 'proxmox' })] }),
     ])
 
     renderPage()
@@ -134,15 +137,8 @@ describe('KaseViewPage', () => {
   it('applies consistent color class for the same tag name across entries', async () => {
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
     vi.mocked(logsApi.listByKase).mockResolvedValue([
-      makeLog({
-        id: 'log-1',
-        tags: [makeTag({ id: 't1', name: 'proxmox' })],
-      }),
-      makeLog({
-        id: 'log-2',
-        title: 'Another log',
-        tags: [makeTag({ id: 't2', name: 'proxmox' })],
-      }),
+      makeLog({ id: 'log-1', tags: [makeTag({ id: 't1', name: 'proxmox' })] }),
+      makeLog({ id: 'log-2', title: 'Another log', tags: [makeTag({ id: 't2', name: 'proxmox' })] }),
     ])
 
     renderPage()
@@ -150,7 +146,6 @@ describe('KaseViewPage', () => {
     await waitFor(() => {
       const tagPills = screen.getAllByText('proxmox')
       expect(tagPills).toHaveLength(2)
-      // Both pills must carry the same color class
       expect(tagPills[0].className).toBe(tagPills[1].className)
     })
   })
@@ -179,9 +174,7 @@ describe('KaseViewPage', () => {
 
   it('clicking a log entry navigates to /logs/{id}', async () => {
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
-    vi.mocked(logsApi.listByKase).mockResolvedValue([
-      makeLog({ id: 'log-abc', title: 'Click me' }),
-    ])
+    vi.mocked(logsApi.listByKase).mockResolvedValue([makeLog({ id: 'log-abc', title: 'Click me' })])
     const user = userEvent.setup()
 
     renderPage()
@@ -190,26 +183,6 @@ describe('KaseViewPage', () => {
     await user.click(screen.getByText('Click me'))
 
     expect(mockNavigate).toHaveBeenCalledWith('/logs/log-abc')
-  })
-
-  it('New Log button calls POST and navigates to /logs/{id}', async () => {
-    vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
-    vi.mocked(logsApi.listByKase).mockResolvedValue([])
-    vi.mocked(logsApi.create).mockResolvedValue(makeLog({ id: 'new-log-id' }))
-    const user = userEvent.setup()
-
-    renderPage()
-
-    await waitFor(() => screen.getByText('No logs yet'))
-
-    // There is a New Log button in the top bar and one inside the empty state
-    const newLogBtn = screen.getAllByRole('button', { name: /\+ New Log/i })[0]
-    await user.click(newLogBtn)
-
-    await waitFor(() => {
-      expect(logsApi.create).toHaveBeenCalledWith('kase-1', { title: 'New Log' })
-      expect(mockNavigate).toHaveBeenCalledWith('/logs/new-log-id')
-    })
   })
 
   it('shows the kase title and log count in the top bar', async () => {
@@ -238,5 +211,275 @@ describe('KaseViewPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Some meaningful description text')).toBeInTheDocument()
     })
+  })
+})
+
+// ── New content modal tests ───────────────────────────────────────────────────
+
+describe('KaseViewPage — new content modal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
+    vi.mocked(logsApi.listByKase).mockResolvedValue([])
+    vi.mocked(collectionsApi.list).mockResolvedValue([])
+  })
+
+  it('modal opens on + New click', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getAllByRole('button', { name: /\+ New/i }))
+    await user.click(screen.getAllByRole('button', { name: /\+ New/i })[0])
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByText('New Log')).toBeInTheDocument()
+    expect(screen.getByText('Add Collection Item')).toBeInTheDocument()
+  })
+
+  it('modal closes on Escape', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getAllByRole('button', { name: /\+ New/i }))
+    await user.click(screen.getAllByRole('button', { name: /\+ New/i })[0])
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('modal closes on backdrop click', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getAllByRole('button', { name: /\+ New/i }))
+    await user.click(screen.getAllByRole('button', { name: /\+ New/i })[0])
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await user.click(screen.getByTestId('modal-backdrop'))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('Step 1 shows both New Log and Add Collection Item options', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getAllByRole('button', { name: /\+ New/i }))
+    await user.click(screen.getAllByRole('button', { name: /\+ New/i })[0])
+
+    expect(screen.getByText('New Log')).toBeInTheDocument()
+    expect(screen.getByText('Add Collection Item')).toBeInTheDocument()
+  })
+
+  it('clicking New Log advances to Step 2a with title input', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getAllByRole('button', { name: /\+ New/i }))
+    await user.click(screen.getAllByRole('button', { name: /\+ New/i })[0])
+    await user.click(screen.getByText('New Log'))
+
+    await waitFor(() => expect(screen.getByLabelText('Title')).toBeInTheDocument())
+  })
+
+  it('Step 2a cancel returns to Step 1', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getAllByRole('button', { name: /\+ New/i }))
+    await user.click(screen.getAllByRole('button', { name: /\+ New/i })[0])
+    await user.click(screen.getByText('New Log'))
+
+    await waitFor(() => screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    // Back to step 1 — both choices visible
+    expect(screen.getByText('New Log')).toBeInTheDocument()
+    expect(screen.getByText('Add Collection Item')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Title')).not.toBeInTheDocument()
+  })
+
+  it('Step 2a submit with empty title shows validation error and does not call API', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getAllByRole('button', { name: /\+ New/i }))
+    await user.click(screen.getAllByRole('button', { name: /\+ New/i })[0])
+    await user.click(screen.getByText('New Log'))
+
+    await waitFor(() => screen.getByRole('button', { name: 'Create Log →' }))
+    await user.click(screen.getByRole('button', { name: 'Create Log →' }))
+
+    expect(screen.getByText('Title is required')).toBeInTheDocument()
+    expect(logsApi.create).not.toHaveBeenCalled()
+  })
+
+  it('Step 2a submit with valid title calls POST and navigates to /logs/{id}', async () => {
+    vi.mocked(logsApi.create).mockResolvedValue(makeLog({ id: 'new-log-id', title: 'My Session' }))
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getAllByRole('button', { name: /\+ New/i }))
+    await user.click(screen.getAllByRole('button', { name: /\+ New/i })[0])
+    await user.click(screen.getByText('New Log'))
+
+    await waitFor(() => screen.getByLabelText('Title'))
+    await user.type(screen.getByLabelText('Title'), 'My Session')
+    await user.click(screen.getByRole('button', { name: 'Create Log →' }))
+
+    await waitFor(() => {
+      expect(logsApi.create).toHaveBeenCalledWith('kase-1', expect.objectContaining({ title: 'My Session' }))
+      expect(mockNavigate).toHaveBeenCalledWith('/logs/new-log-id')
+    })
+  })
+
+  it('clicking Add Collection Item advances to Step 2b showing Collection list', async () => {
+    vi.mocked(collectionsApi.list).mockResolvedValue([
+      makeCollection({ id: 'col-1', title: 'Vinyl Records' }),
+    ])
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getAllByRole('button', { name: /\+ New/i }))
+    await user.click(screen.getAllByRole('button', { name: /\+ New/i })[0])
+    await user.click(screen.getByText('Add Collection Item'))
+
+    await waitFor(() => expect(screen.getByText('Vinyl Records')).toBeInTheDocument())
+    expect(screen.getByText('Choose a collection')).toBeInTheDocument()
+  })
+
+  it('Step 2b clicking a Collection navigates to /items/new with correct params', async () => {
+    vi.mocked(collectionsApi.list).mockResolvedValue([
+      makeCollection({ id: 'col-1', title: 'Vinyl Records' }),
+    ])
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getAllByRole('button', { name: /\+ New/i }))
+    await user.click(screen.getAllByRole('button', { name: /\+ New/i })[0])
+    await user.click(screen.getByText('Add Collection Item'))
+
+    await waitFor(() => screen.getByText('Vinyl Records'))
+    await user.click(screen.getByText('Vinyl Records'))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/items/new?collectionId=col-1&kaseId=kase-1')
+  })
+
+  it('Step 2b cancel returns to Step 1', async () => {
+    vi.mocked(collectionsApi.list).mockResolvedValue([])
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getAllByRole('button', { name: /\+ New/i }))
+    await user.click(screen.getAllByRole('button', { name: /\+ New/i })[0])
+    await user.click(screen.getByText('Add Collection Item'))
+
+    await waitFor(() => screen.getByText('Choose a collection'))
+    await user.click(screen.getByRole('button', { name: '← back' }))
+
+    expect(screen.getByText('New Log')).toBeInTheDocument()
+    expect(screen.getByText('Add Collection Item')).toBeInTheDocument()
+    expect(screen.queryByText('Choose a collection')).not.toBeInTheDocument()
+  })
+})
+
+// ── Kase settings panel tests ─────────────────────────────────────────────────
+
+describe('KaseViewPage — Kase settings panel', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
+    vi.mocked(logsApi.listByKase).mockResolvedValue([])
+    vi.mocked(collectionsApi.list).mockResolvedValue([])
+  })
+
+  it('Kase settings panel opens on gear button click', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByLabelText('Kase settings'))
+    await user.click(screen.getByLabelText('Kase settings'))
+
+    expect(screen.getByTestId('kase-settings-panel')).toBeInTheDocument()
+    expect(screen.getByLabelText('Kase title')).toBeInTheDocument()
+  })
+
+  it('Title change calls PUT /api/kases/{id} on blur', async () => {
+    vi.mocked(kasesApi.update).mockResolvedValue(makeKase({ title: 'Updated Title' }))
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByLabelText('Kase settings'))
+    await user.click(screen.getByLabelText('Kase settings'))
+
+    await waitFor(() => screen.getByLabelText('Kase title'))
+    const titleInput = screen.getByLabelText('Kase title')
+    await user.clear(titleInput)
+    await user.type(titleInput, 'Updated Title')
+    await user.tab() // trigger blur
+
+    await waitFor(() => {
+      expect(kasesApi.update).toHaveBeenCalledWith(
+        'kase-1',
+        expect.objectContaining({ title: 'Updated Title' }),
+      )
+    })
+  })
+
+  it('Delete shows confirmation dialog before calling API', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByLabelText('Kase settings'))
+    await user.click(screen.getByLabelText('Kase settings'))
+
+    await waitFor(() => screen.getByText('Delete this Kase'))
+    await user.click(screen.getByText('Delete this Kase'))
+
+    expect(screen.getByText(/Permanently delete this Kase/i)).toBeInTheDocument()
+    expect(kasesApi.delete).not.toHaveBeenCalled()
+  })
+
+  it('Confirmed delete calls DELETE and navigates to /', async () => {
+    vi.mocked(kasesApi.delete).mockResolvedValue()
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByLabelText('Kase settings'))
+    await user.click(screen.getByLabelText('Kase settings'))
+
+    await waitFor(() => screen.getByText('Delete this Kase'))
+    await user.click(screen.getByText('Delete this Kase'))
+
+    await waitFor(() => screen.getByLabelText('Confirm delete kase'))
+    await user.click(screen.getByLabelText('Confirm delete kase'))
+
+    await waitFor(() => {
+      expect(kasesApi.delete).toHaveBeenCalledWith('kase-1')
+      expect(mockNavigate).toHaveBeenCalledWith('/')
+    })
+  })
+
+  it('Cancelled delete dismisses dialog without API call', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByLabelText('Kase settings'))
+    await user.click(screen.getByLabelText('Kase settings'))
+
+    await waitFor(() => screen.getByText('Delete this Kase'))
+    await user.click(screen.getByText('Delete this Kase'))
+
+    await waitFor(() => screen.getByText(/Permanently delete/))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByText(/Permanently delete/)).not.toBeInTheDocument()
+    expect(kasesApi.delete).not.toHaveBeenCalled()
   })
 })

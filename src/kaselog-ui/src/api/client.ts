@@ -276,6 +276,20 @@ export const collections = {
     request<void>(`/api/items/${id}`, { method: 'DELETE' }),
 }
 
+// ── Kase timeline ─────────────────────────────────────────────────────────────
+
+export interface TimelineEntry {
+  entityType: 'log' | 'collection_item'
+  id: string
+  title: string
+  updatedAt: string
+}
+
+export const timeline = {
+  list: (kaseId: string): Promise<TimelineEntry[]> =>
+    request<TimelineEntry[]>(`/api/kases/${kaseId}/timeline`),
+}
+
 // ── Search ────────────────────────────────────────────────────────────────────
 
 export const search = {
