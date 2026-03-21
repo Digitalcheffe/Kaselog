@@ -11,14 +11,21 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
         _factory = factory;
     }
 
-    public async Task InitializeAsync()
+    public async Task<bool> InitializeAsync()
     {
         using var connection = await _factory.OpenAsync();
+
+        // Detect fresh database before running DDL — Kases table won't exist yet.
+        var kasesTableExists = await connection.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Kases'");
+        bool isFreshDb = kasesTableExists == 0;
 
         foreach (var sql in SchemaDdl)
         {
             await connection.ExecuteAsync(sql);
         }
+
+        return isFreshDb;
     }
 
     // Each entry is a single DDL statement executed independently so that

@@ -12,9 +12,14 @@ namespace KaseLog.Api.Controllers;
 public sealed class LogsController : ControllerBase
 {
     private readonly ILogRepository _logs;
+    private readonly ILogger<LogsController> _logger;
 
     /// <summary>Initialises a new instance of <see cref="LogsController"/>.</summary>
-    public LogsController(ILogRepository logs) => _logs = logs;
+    public LogsController(ILogRepository logs, ILogger<LogsController> logger)
+    {
+        _logs   = logs;
+        _logger = logger;
+    }
 
     // ── Logs ──────────────────────────────────────────────────────────────────
 
@@ -53,6 +58,7 @@ public sealed class LogsController : ControllerBase
         var log = await _logs.UpdateAsync(id, request.Title, request.Description, request.AutosaveEnabled);
         if (log is null)
             return NotFound(ApiResponse<LogResponse>.NotFound($"Log with ID '{id}' was not found."));
+        _logger.LogInformation("[LOG] Updated log {Id} — {Title}", id, log.Title);
         return Ok(ApiResponse<LogResponse>.Success(log));
     }
 
@@ -67,6 +73,7 @@ public sealed class LogsController : ControllerBase
         var deleted = await _logs.DeleteAsync(id);
         if (!deleted)
             return NotFound(ApiResponse<LogResponse>.NotFound($"Log with ID '{id}' was not found."));
+        _logger.LogInformation("[LOG] Deleted log {Id}", id);
         return NoContent();
     }
 
@@ -111,6 +118,11 @@ public sealed class LogsController : ControllerBase
         if (version is null)
             return NotFound(ApiResponse<LogVersionResponse>.NotFound($"Log with ID '{logId}' was not found."));
 
+        var saveKind = !string.IsNullOrWhiteSpace(request.Label) ? $"checkpoint \"{request.Label}\""
+                     : request.IsAutosave                        ? "autosave"
+                     :                                             "manual save";
+        _logger.LogInformation("[VERSION] Saved version {VersionId} for log {LogId} — {SaveKind}", version.Id, logId, saveKind);
+
         return CreatedAtAction(nameof(GetVersionById), new { logId, versionId = version.Id },
             ApiResponse<LogVersionResponse>.Success(version));
     }
@@ -148,6 +160,7 @@ public sealed class LogsController : ControllerBase
         if (version is null)
             return NotFound(ApiResponse<LogVersionResponse>.NotFound(
                 $"Version with ID '{versionId}' was not found for Log '{logId}'."));
+        _logger.LogInformation("[VERSION] Restored version {SourceVersionId} for log {LogId} — new version {NewVersionId}", versionId, logId, version.Id);
         return Ok(ApiResponse<LogVersionResponse>.Success(version));
     }
 }

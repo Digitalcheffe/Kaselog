@@ -13,12 +13,17 @@ public sealed class KaseLogsController : ControllerBase
 {
     private readonly ILogRepository _logs;
     private readonly IKaseRepository _kases;
+    private readonly ILogger<KaseLogsController> _logger;
 
     /// <summary>Initialises a new instance of <see cref="KaseLogsController"/>.</summary>
-    public KaseLogsController(ILogRepository logs, IKaseRepository kases)
+    public KaseLogsController(
+        ILogRepository logs,
+        IKaseRepository kases,
+        ILogger<KaseLogsController> logger)
     {
-        _logs = logs;
-        _kases = kases;
+        _logs   = logs;
+        _kases  = kases;
+        _logger = logger;
     }
 
     /// <summary>Returns all Logs belonging to a Kase.</summary>
@@ -55,6 +60,7 @@ public sealed class KaseLogsController : ControllerBase
         if (log is null)
             return NotFound(ApiResponse<LogResponse>.NotFound($"Kase with ID '{kaseId}' was not found."));
 
+        _logger.LogInformation("[LOG] Created log {Id} in kase {KaseId} — {Title}", log.Id, kaseId, log.Title);
         return CreatedAtAction("GetById", "Logs", new { id = log.Id },
             ApiResponse<LogResponse>.Success(log));
     }
