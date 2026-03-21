@@ -214,7 +214,7 @@ export default function CollectionListPage() {
           Edit schema
         </button>
         <button
-          onClick={() => navigate(`/collections/${id}/items/new`)}
+          onClick={() => navigate(`/items/new?collectionId=${id}`)}
           style={{
             fontSize: 12, fontWeight: 500, color: 'white',
             background: 'var(--accent)', padding: '5px 12px',

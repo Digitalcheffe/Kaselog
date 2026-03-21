@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { collections as collectionsApi } from '../api/client'
 import type { CollectionResponse, CollectionFieldResponse } from '../api/types'
@@ -25,7 +25,7 @@ function typeIcon(type: string): string {
 
 // ── Layout types ──────────────────────────────────────────────────────────────
 
-interface FieldCell { kind: 'field'; fieldId: string; span: 1 | 2 }
+interface FieldCell { kind: 'field'; fieldId: string; span: 1 | 2; rowSpan?: 1 | 2 | 3 }
 interface DividerCell { kind: 'divider'; label: string; span: 1 | 2 }
 interface LabelCell { kind: 'label'; label: string; span: 1 | 2 }
 type Cell = FieldCell | DividerCell | LabelCell | null
@@ -97,6 +97,7 @@ export default function CollectionDesignerPage() {
   // Drag state for layout
   const dragItemRef = useRef<DragItem | null>(null)
   const [dragOverCell, setDragOverCell] = useState<{ row: number; col: number } | null>(null)
+  const [hoveredTile, setHoveredTile] = useState<{ row: number; col: number } | null>(null)
 
   // Debounce timer for field auto-save
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -224,6 +225,19 @@ export default function CollectionDesignerPage() {
     )
   )
 
+  const blockedCells = useMemo(() => {
+    const s = new Set<string>()
+    layoutRows.forEach((row, rowIdx) => {
+      row.cells.forEach((cell, colIdx) => {
+        if (cell?.kind === 'field') {
+          const rs = (cell as FieldCell).rowSpan ?? 1
+          for (let r = 1; r < rs; r++) s.add(`${rowIdx + r},${colIdx}`)
+        }
+      })
+    })
+    return s
+  }, [layoutRows])
+
   const handleDrop = useCallback((rowIdx: number, colIdx: number) => {
     const item = dragItemRef.current
     if (!item) return
@@ -235,23 +249,32 @@ export default function CollectionDesignerPage() {
       // Remove from source if dragging from canvas
       if (item.source === 'canvas' && item.fromRow != null) {
         rows[item.fromRow].cells[item.fromCol ?? 0] = null
-        if (item.fromCol === 0 && rows[item.fromRow].cells[1] === null) {
-          // was full width — nothing else to clear
-        }
       }
 
-      const target = rows[rowIdx].cells[colIdx]
-      // Don't drop on occupied cell
-      if (target !== null) return prev
+      // Recompute blocked cells after source removal
+      const blocked = new Set<string>()
+      rows.forEach((row, ri) => {
+        row.cells.forEach((cell, ci) => {
+          if (cell?.kind === 'field') {
+            const rs = (cell as FieldCell).rowSpan ?? 1
+            for (let r = 1; r < rs; r++) blocked.add(`${ri + r},${ci}`)
+          }
+        })
+      })
 
+      // Reject drop on blocked or already-occupied cell
+      if (blocked.has(`${rowIdx},${colIdx}`)) return rows
+      const target = rows[rowIdx].cells[colIdx]
+      if (target !== null) return rows
+
+      const fld = item.kind === 'field' ? fields.find(f => f.id === item.fieldId) : undefined
       const newCell: Cell = item.kind === 'field'
-        ? { kind: 'field', fieldId: item.fieldId!, span: 1 }
+        ? { kind: 'field', fieldId: item.fieldId!, span: 1, rowSpan: fld?.type === 'image' ? 2 : 1 }
         : item.kind === 'divider'
           ? { kind: 'divider', label: item.label ?? 'Divider', span: 2 }
           : { kind: 'label', label: item.label ?? 'Section', span: 2 }
 
-      if (newCell && (newCell.kind === 'divider' || newCell.kind === 'label')) {
-        // Full width — occupy both columns
+      if (newCell.kind === 'divider' || newCell.kind === 'label') {
         rows[rowIdx].cells[0] = { ...newCell, span: 2 }
         rows[rowIdx].cells[1] = null
       } else {
@@ -261,7 +284,7 @@ export default function CollectionDesignerPage() {
       return rows
     })
     dragItemRef.current = null
-  }, [])
+  }, [fields])
 
   const handleRemoveTile = useCallback((rowIdx: number, colIdx: number) => {
     setLayoutRows(prev => {
@@ -285,6 +308,28 @@ export default function CollectionDesignerPage() {
         // Make half width — put in col 0
         rows[rowIdx].cells[0] = { ...cell, span: 1 }
       }
+      return rows
+    })
+  }, [])
+
+  const updateCellLabel = useCallback((rowIdx: number, colIdx: number, newLabel: string) => {
+    setLayoutRows(prev => {
+      const rows = prev.map(r => ({ cells: [...r.cells] as [Cell, Cell] }))
+      const cell = rows[rowIdx].cells[colIdx]
+      if (!cell || (cell.kind !== 'divider' && cell.kind !== 'label')) return prev
+      rows[rowIdx].cells[colIdx] = { ...cell, label: newLabel }
+      return rows
+    })
+  }, [])
+
+  const handleChangeRowSpan = useCallback((rowIdx: number, colIdx: number, delta: -1 | 1) => {
+    setLayoutRows(prev => {
+      const rows = prev.map(r => ({ cells: [...r.cells] as [Cell, Cell] }))
+      const cell = rows[rowIdx].cells[colIdx]
+      if (!cell || cell.kind !== 'field') return prev
+      const fieldCell = cell as FieldCell
+      const next = (Math.max(1, Math.min(3, (fieldCell.rowSpan ?? 1) + delta))) as 1 | 2 | 3
+      rows[rowIdx].cells[colIdx] = { ...fieldCell, rowSpan: next }
       return rows
     })
   }, [])
@@ -670,75 +715,118 @@ export default function CollectionDesignerPage() {
 
             {/* Canvas (right) */}
             <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-              {layoutRows.map((row, rowIdx) => (
-                <div
-                  key={rowIdx}
-                  style={{
-                    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8,
-                  }}
-                >
-                  {([0, 1] as const).map(colIdx => {
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridAutoRows: '44px', gap: 8, marginBottom: 8 }}>
+                {layoutRows.flatMap((row, rowIdx) =>
+                  ([0, 1] as const).flatMap((colIdx) => {
                     const cell = row.cells[colIdx]
-                    // Skip right column when left cell is full-width
-                    if (colIdx === 1 && row.cells[0]?.span === 2) return null
+                    const key = `${rowIdx}-${colIdx}`
 
+                    // Skip right col when left cell is full-width
+                    if (colIdx === 1 && row.cells[0]?.span === 2) return []
+
+                    // Skip blocked cells — the spanning tile above visually covers this space
+                    if (blockedCells.has(`${rowIdx},${colIdx}`)) return []
+
+                    const fieldCell = cell?.kind === 'field' ? cell as FieldCell : null
+                    const rowSpan = fieldCell?.rowSpan ?? 1
                     const isFullWidth = cell?.span === 2
                     const isOver = dragOverCell?.row === rowIdx && dragOverCell?.col === colIdx
+                    const isHov = hoveredTile?.row === rowIdx && hoveredTile?.col === colIdx
+
+                    const gridRow = `${rowIdx + 1} / span ${rowSpan}`
+                    const gridColumn = isFullWidth ? '1 / -1' : colIdx === 0 ? '1' : '2'
 
                     if (cell) {
+                      const fieldType = cell.kind === 'field'
+                        ? fields.find(f => f.id === (cell as FieldCell).fieldId)?.type ?? ''
+                        : ''
                       const label = cell.kind === 'field'
                         ? fields.find(f => f.id === (cell as FieldCell).fieldId)?.name ?? 'Unknown'
                         : (cell as DividerCell | LabelCell).label
 
-                      return (
+                      return [(
                         <div
-                          key={colIdx}
+                          key={key}
                           style={{
-                            gridColumn: isFullWidth ? '1 / -1' : undefined,
-                            padding: '8px 10px',
+                            gridRow, gridColumn,
+                            padding: '6px 8px',
                             border: '1px solid var(--accent)',
                             borderRadius: 4,
                             background: 'var(--accent-bg, rgba(29,158,117,0.06))',
-                            display: 'flex', alignItems: 'center', gap: 8, fontSize: 12,
+                            display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
+                            overflow: 'hidden', minWidth: 0,
                           }}
+                          onMouseEnter={() => setHoveredTile({ row: rowIdx, col: colIdx })}
+                          onMouseLeave={() => setHoveredTile(null)}
                         >
-                          <span style={{ flex: 1, color: 'var(--text)' }}>
-                            {cell.kind === 'field' ? typeIcon((fields.find(f => f.id === (cell as FieldCell).fieldId)?.type ?? '')) + ' ' : ''}
-                            {label}
+                          <span style={{ flex: 1, color: 'var(--text)', overflow: 'hidden', minWidth: 0 }}>
+                            {cell.kind === 'field'
+                              ? `${typeIcon(fieldType)} ${label}`
+                              : cell.kind === 'divider'
+                                ? (
+                                    <input
+                                      value={(cell as DividerCell).label}
+                                      onClick={e => e.stopPropagation()}
+                                      onChange={e => updateCellLabel(rowIdx, colIdx, e.target.value)}
+                                      placeholder="Divider label…"
+                                      style={{ width: '100%', border: 'none', background: 'transparent', color: 'var(--text)', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
+                                    />
+                                  )
+                                : (
+                                    <input
+                                      value={(cell as LabelCell).label}
+                                      onClick={e => e.stopPropagation()}
+                                      onChange={e => updateCellLabel(rowIdx, colIdx, e.target.value)}
+                                      placeholder="Section label…"
+                                      style={{ width: '100%', border: 'none', background: 'transparent', color: 'var(--text)', fontSize: 12, fontFamily: 'inherit', outline: 'none', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                                    />
+                                  )
+                            }
                           </span>
-                          <button
-                            onClick={() => handleToggleSpan(rowIdx, colIdx)}
-                            title={cell.span === 2 ? 'Half width' : 'Full width'}
-                            style={{
-                              fontSize: 10, padding: '2px 5px', borderRadius: 3,
-                              border: '1px solid var(--border)', background: 'var(--bg)',
-                              cursor: 'pointer', color: 'var(--text-muted)',
-                            }}
-                          >
-                            {cell.span === 2 ? '½' : '⟷'}
-                          </button>
-                          <button
-                            onClick={() => handleRemoveTile(rowIdx, colIdx)}
-                            aria-label={`Remove ${label}`}
-                            style={{
-                              fontSize: 13, background: 'none', border: 'none',
-                              cursor: 'pointer', color: 'var(--text-muted)',
-                            }}
-                          >
-                            ×
-                          </button>
+                          {isHov && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+                              {fieldCell && (
+                                <>
+                                  <button
+                                    onClick={() => handleChangeRowSpan(rowIdx, colIdx, -1)}
+                                    title="Fewer rows"
+                                    style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--text-muted)', opacity: (fieldCell.rowSpan ?? 1) <= 1 ? 0.35 : 1 }}
+                                  >−</button>
+                                  <span style={{ fontSize: 10, color: 'var(--text-muted)', minWidth: 18, textAlign: 'center' }}>{fieldCell.rowSpan ?? 1}R</span>
+                                  <button
+                                    onClick={() => handleChangeRowSpan(rowIdx, colIdx, 1)}
+                                    title="More rows"
+                                    style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--text-muted)', opacity: (fieldCell.rowSpan ?? 1) >= 3 ? 0.35 : 1 }}
+                                  >+</button>
+                                </>
+                              )}
+                              <button
+                                onClick={() => handleToggleSpan(rowIdx, colIdx)}
+                                title={cell.span === 2 ? 'Half width' : 'Full width'}
+                                style={{ fontSize: 10, padding: '2px 5px', borderRadius: 3, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--text-muted)' }}
+                              >
+                                {cell.span === 2 ? '½' : '⟷'}
+                              </button>
+                              <button
+                                onClick={() => handleRemoveTile(rowIdx, colIdx)}
+                                aria-label={`Remove ${label}`}
+                                style={{ fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                              >×</button>
+                            </div>
+                          )}
                         </div>
-                      )
+                      )]
                     }
 
-                    return (
+                    return [(
                       <div
-                        key={colIdx}
+                        key={key}
                         onDragOver={e => { e.preventDefault(); setDragOverCell({ row: rowIdx, col: colIdx }) }}
                         onDragLeave={() => setDragOverCell(null)}
                         onDrop={() => handleDrop(rowIdx, colIdx)}
                         style={{
-                          height: 44, borderRadius: 4,
+                          gridRow, gridColumn,
+                          borderRadius: 4,
                           border: `2px dashed ${isOver ? 'var(--accent)' : 'var(--border)'}`,
                           background: isOver ? 'var(--accent-bg, rgba(29,158,117,0.06))' : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -747,10 +835,10 @@ export default function CollectionDesignerPage() {
                       >
                         {isOver ? 'Drop here' : ''}
                       </div>
-                    )
-                  })}
-                </div>
-              ))}
+                    )]
+                  })
+                )}
+              </div>
 
               <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                 <button
