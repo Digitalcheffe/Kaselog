@@ -96,12 +96,14 @@ public sealed class SqliteKaseRepository : IKaseRepository
                 'log'             AS EntityType,
                 l.Id              AS Id,
                 l.CreatedAt       AS CreatedAt,
+                l.UpdatedAt       AS UpdatedAt,
                 l.Title           AS Title,
                 l.Description     AS Description,
                 (SELECT COUNT(*) FROM LogVersions WHERE LogId = l.Id) AS VersionCount,
                 NULL              AS CollectionId,
                 NULL              AS CollectionTitle,
                 NULL              AS CollectionColor,
+                NULL              AS KaseId,
                 NULL              AS FieldValues
             FROM Logs l
             WHERE l.KaseId = @KaseId
@@ -110,17 +112,19 @@ public sealed class SqliteKaseRepository : IKaseRepository
                 'collection_item' AS EntityType,
                 ci.Id             AS Id,
                 ci.CreatedAt      AS CreatedAt,
+                ci.UpdatedAt      AS UpdatedAt,
                 NULL              AS Title,
                 NULL              AS Description,
                 0                 AS VersionCount,
                 ci.CollectionId   AS CollectionId,
                 c.Title           AS CollectionTitle,
                 c.Color           AS CollectionColor,
+                ci.KaseId         AS KaseId,
                 ci.FieldValues    AS FieldValues
             FROM CollectionItems ci
             JOIN Collections c ON c.Id = ci.CollectionId
             WHERE ci.KaseId = @KaseId
-            ORDER BY CreatedAt DESC
+            ORDER BY UpdatedAt DESC
             LIMIT @PageSize OFFSET @Offset
             """,
             new { KaseId = kaseId.ToString(), PageSize = pageSize, Offset = (page - 1) * pageSize });
@@ -155,44 +159,149 @@ public sealed class SqliteKaseRepository : IKaseRepository
             }
         }
 
-        return rowList.Select(r => r.EntityType == "log"
-            ? new TimelineEntryResponse
+        // Batch-fetch fields for collection items to derive itemTitle and summaryFields
+        var collectionIds = rowList
+            .Where(r => r.EntityType == "collection_item" && r.CollectionId is not null)
+            .Select(r => r.CollectionId!)
+            .Distinct()
+            .ToList();
+
+        // schemaMap: collectionId -> (titleFieldId, summaryFields with Id+Name)
+        var schemaMap = new Dictionary<string, (string? TitleFieldId, List<FieldMeta> SummaryFields)>();
+
+        if (collectionIds.Count > 0)
+        {
+            var fieldRows = await conn.QueryAsync<FieldMetaRow>("""
+                SELECT Id, CollectionId, Name, Type, ShowInList, SortOrder
+                FROM CollectionFields
+                WHERE CollectionId IN @Ids
+                ORDER BY CollectionId, SortOrder
+                """, new { Ids = collectionIds });
+
+            foreach (var group in fieldRows.GroupBy(f => f.CollectionId))
             {
-                EntityType   = "log",
-                Id           = Guid.Parse(r.Id),
-                CreatedAt    = DateTime.Parse(r.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
-                Title        = r.Title,
-                Description  = r.Description,
-                VersionCount = (int)r.VersionCount,
-                Tags         = tagMap.TryGetValue(r.Id, out var t) ? t : [],
+                var ordered = group.OrderBy(f => f.SortOrder).ToList();
+
+                // First text or select field is the title field
+                var titleField = ordered.FirstOrDefault(f => f.Type is "text" or "select");
+
+                // Summary fields: showInList=true, exclude the title field, up to 4
+                var summaryFields = ordered
+                    .Where(f => f.ShowInList != 0 && f.Id != titleField?.Id)
+                    .Take(4)
+                    .Select(f => new FieldMeta(f.Id, f.Name))
+                    .ToList();
+
+                schemaMap[group.Key] = (titleField?.Id, summaryFields);
             }
-            : new TimelineEntryResponse
+        }
+
+        return rowList.Select<TimelineRow, TimelineEntryResponse>(r =>
+        {
+            var createdAt = DateTime.Parse(r.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind);
+            var updatedAt = DateTime.Parse(r.UpdatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind);
+
+            if (r.EntityType == "log")
             {
-                EntityType       = "collection_item",
-                Id               = Guid.Parse(r.Id),
-                CreatedAt        = DateTime.Parse(r.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
-                CollectionId     = r.CollectionId is null ? null : Guid.Parse(r.CollectionId),
-                CollectionTitle  = r.CollectionTitle,
-                CollectionColor  = r.CollectionColor,
-                FieldValues      = r.FieldValues is null
-                    ? null
-                    : JsonDocument.Parse(r.FieldValues).RootElement.Clone(),
-            });
+                return new TimelineEntryResponse
+                {
+                    EntityType   = "log",
+                    Id           = Guid.Parse(r.Id),
+                    CreatedAt    = createdAt,
+                    UpdatedAt    = updatedAt,
+                    Title        = r.Title,
+                    Description  = r.Description,
+                    VersionCount = (int)r.VersionCount,
+                    Tags         = tagMap.TryGetValue(r.Id, out var t) ? t : [],
+                };
+            }
+
+            // ── Collection item ────────────────────────────────────────────────
+
+            string? itemTitle = null;
+            var summaryFields = new List<TimelineSummaryField>();
+
+            if (r.FieldValues is not null)
+            {
+                try
+                {
+                    var fieldValuesDoc = JsonDocument.Parse(r.FieldValues);
+                    var fv = fieldValuesDoc.RootElement;
+
+                    if (r.CollectionId is not null &&
+                        schemaMap.TryGetValue(r.CollectionId, out var schema))
+                    {
+                        // Resolve item title from first text/select field
+                        if (schema.TitleFieldId is not null &&
+                            fv.TryGetProperty(schema.TitleFieldId, out var titleEl) &&
+                            titleEl.ValueKind == JsonValueKind.String)
+                        {
+                            itemTitle = titleEl.GetString();
+                        }
+
+                        // Resolve summary fields
+                        foreach (var sf in schema.SummaryFields)
+                        {
+                            if (fv.TryGetProperty(sf.Id, out var valEl))
+                            {
+                                var val = valEl.ValueKind == JsonValueKind.String
+                                    ? valEl.GetString()
+                                    : valEl.ToString();
+                                if (!string.IsNullOrWhiteSpace(val))
+                                    summaryFields.Add(new TimelineSummaryField { Name = sf.Name, Value = val! });
+                            }
+                        }
+                    }
+                }
+                catch { /* malformed JSON — fall through to fallback */ }
+            }
+
+            // Fallback to collection title when no title field found
+            itemTitle ??= r.CollectionTitle;
+
+            return new TimelineEntryResponse
+            {
+                EntityType      = "collection_item",
+                Id              = Guid.Parse(r.Id),
+                CreatedAt       = createdAt,
+                UpdatedAt       = updatedAt,
+                CollectionId    = r.CollectionId is null ? null : Guid.Parse(r.CollectionId),
+                CollectionTitle = r.CollectionTitle,
+                CollectionColor = r.CollectionColor,
+                KaseId          = r.KaseId is null ? null : Guid.Parse(r.KaseId),
+                ItemTitle       = itemTitle,
+                SummaryFields   = summaryFields,
+            };
+        });
     }
 
     private sealed class TimelineRow
     {
-        public string EntityType { get; set; } = string.Empty;
-        public string Id { get; set; } = string.Empty;
-        public string CreatedAt { get; set; } = string.Empty;
-        public string? Title { get; set; }
-        public string? Description { get; set; }
-        public long VersionCount { get; set; }
-        public string? CollectionId { get; set; }
+        public string  EntityType     { get; set; } = string.Empty;
+        public string  Id             { get; set; } = string.Empty;
+        public string  CreatedAt      { get; set; } = string.Empty;
+        public string  UpdatedAt      { get; set; } = string.Empty;
+        public string? Title          { get; set; }
+        public string? Description    { get; set; }
+        public long    VersionCount   { get; set; }
+        public string? CollectionId   { get; set; }
         public string? CollectionTitle { get; set; }
         public string? CollectionColor { get; set; }
-        public string? FieldValues { get; set; }
+        public string? KaseId         { get; set; }
+        public string? FieldValues    { get; set; }
     }
+
+    private sealed class FieldMetaRow
+    {
+        public string Id           { get; set; } = string.Empty;
+        public string CollectionId { get; set; } = string.Empty;
+        public string Name         { get; set; } = string.Empty;
+        public string Type         { get; set; } = string.Empty;
+        public int    ShowInList   { get; set; }
+        public int    SortOrder    { get; set; }
+    }
+
+    private sealed record FieldMeta(string Id, string Name);
 
     private static KaseResponse Map(KaseRow row) => new()
     {

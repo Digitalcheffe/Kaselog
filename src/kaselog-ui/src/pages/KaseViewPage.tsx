@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { kases as kasesApi, logs as logsApi } from '../api/client'
-import type { KaseResponse, LogResponse } from '../api/types'
+import { kases as kasesApi, timeline as timelineApi } from '../api/client'
+import type { KaseResponse, TimelineEntryResponse } from '../api/types'
 import NewContentModal from '../components/NewContentModal'
 
 // ── Tag color palette ─────────────────────────────────────────────────────────
@@ -36,29 +36,37 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
+// ── Color map for collection dots ─────────────────────────────────────────────
+
+const COLOR_MAP: Record<string, string> = {
+  teal:   '#1D9E75',
+  blue:   '#378ADD',
+  purple: '#7F77DD',
+  coral:  '#D85A30',
+  amber:  '#BA7517',
+}
+
 // ── Kase settings panel ───────────────────────────────────────────────────────
 
 interface KaseSettingsPanelProps {
   kase: KaseResponse
-  logCount: number
+  entryCount: number
   onClose: () => void
   onUpdated: (k: KaseResponse) => void
   onDeleted: () => void
 }
 
-function KaseSettingsPanel({ kase, logCount, onClose, onUpdated, onDeleted }: KaseSettingsPanelProps) {
+function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: KaseSettingsPanelProps) {
   const [localTitle, setLocalTitle] = useState(kase.title)
   const [localDesc, setLocalDesc] = useState(kase.description ?? '')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  // Sync if kase prop changes
   useEffect(() => {
     setLocalTitle(kase.title)
     setLocalDesc(kase.description ?? '')
   }, [kase])
 
-  // Close on Escape
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
@@ -95,12 +103,7 @@ function KaseSettingsPanel({ kase, logCount, onClose, onUpdated, onDeleted }: Ka
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{ position: 'fixed', inset: 0, zIndex: 200 }}
-      />
-      {/* Panel */}
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200 }} />
       <div
         data-testid="kase-settings-panel"
         style={{
@@ -114,7 +117,6 @@ function KaseSettingsPanel({ kase, logCount, onClose, onUpdated, onDeleted }: Ka
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div style={{
           height: 48, minHeight: 48, display: 'flex', alignItems: 'center',
           padding: '0 1rem', gap: 8,
@@ -133,7 +135,6 @@ function KaseSettingsPanel({ kase, logCount, onClose, onUpdated, onDeleted }: Ka
         </div>
 
         <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
-          {/* Title */}
           <div>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
               Title
@@ -154,7 +155,6 @@ function KaseSettingsPanel({ kase, logCount, onClose, onUpdated, onDeleted }: Ka
             />
           </div>
 
-          {/* Description */}
           <div>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
               Description
@@ -177,10 +177,8 @@ function KaseSettingsPanel({ kase, logCount, onClose, onUpdated, onDeleted }: Ka
             />
           </div>
 
-          {/* Divider */}
           <div style={{ height: 1, background: 'var(--border)' }} />
 
-          {/* Info */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>
               Info
@@ -190,15 +188,13 @@ function KaseSettingsPanel({ kase, logCount, onClose, onUpdated, onDeleted }: Ka
               <span style={{ color: 'var(--text-primary)' }}>{formatDate(kase.createdAt)}</span>
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Logs</span>
-              <span style={{ color: 'var(--text-primary)' }}>{logCount}</span>
+              <span>Entries</span>
+              <span style={{ color: 'var(--text-primary)' }}>{entryCount}</span>
             </div>
           </div>
 
-          {/* Divider */}
           <div style={{ height: 1, background: 'var(--border)' }} />
 
-          {/* Delete */}
           <div>
             {!confirmDelete ? (
               <button
@@ -264,7 +260,7 @@ export default function KaseViewPage() {
   const navigate = useNavigate()
 
   const [kase, setKase] = useState<KaseResponse | null>(null)
-  const [logList, setLogList] = useState<LogResponse[]>([])
+  const [entries, setEntries] = useState<TimelineEntryResponse[]>([])
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -278,13 +274,13 @@ export default function KaseViewPage() {
 
     Promise.all([
       kasesApi.get(id).catch(() => null),
-      logsApi.listByKase(id).catch(() => []),
-    ]).then(([fetchedKase, fetchedLogs]) => {
+      timelineApi.list(id).catch(() => []),
+    ]).then(([fetchedKase, fetchedEntries]) => {
       if (fetchedKase === null) {
         setNotFound(true)
       } else {
         setKase(fetchedKase)
-        setLogList(fetchedLogs)
+        setEntries(fetchedEntries)
       }
       setLoading(false)
     })
@@ -339,7 +335,7 @@ export default function KaseViewPage() {
           padding: '2px 8px', background: 'var(--bg-secondary)',
           borderRadius: 99, border: '1px solid var(--border)',
         }}>
-          {logList.length} {logList.length === 1 ? 'log' : 'logs'}
+          {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
         </div>
         <div style={{ flex: 1 }} />
 
@@ -374,21 +370,34 @@ export default function KaseViewPage() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
         {loading ? (
           <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Loading&hellip;</div>
-        ) : logList.length === 0 ? (
+        ) : entries.length === 0 ? (
           <EmptyState onNew={() => setModalOpen(true)} />
         ) : (
-          logList.map((log, i) => (
-            <TimelineEntry
-              key={log.id}
-              log={log}
-              index={i}
-              isLast={i === logList.length - 1}
-              isHovered={hoveredId === log.id}
-              onMouseEnter={() => setHoveredId(log.id)}
-              onMouseLeave={() => setHoveredId(null)}
-              onClick={() => navigate(`/logs/${log.id}`)}
-            />
-          ))
+          entries.map((entry, i) =>
+            entry.entityType === 'log' ? (
+              <LogTimelineEntry
+                key={entry.id}
+                entry={entry}
+                index={i}
+                isLast={i === entries.length - 1}
+                isHovered={hoveredId === entry.id}
+                onMouseEnter={() => setHoveredId(entry.id)}
+                onMouseLeave={() => setHoveredId(null)}
+                onClick={() => navigate(`/logs/${entry.id}`)}
+              />
+            ) : (
+              <CollectionItemTimelineEntry
+                key={entry.id}
+                entry={entry}
+                index={i}
+                isLast={i === entries.length - 1}
+                isHovered={hoveredId === entry.id}
+                onMouseEnter={() => setHoveredId(entry.id)}
+                onMouseLeave={() => setHoveredId(null)}
+                onClick={() => navigate(`/items/${entry.id}`)}
+              />
+            )
+          )
         )}
       </div>
 
@@ -405,7 +414,7 @@ export default function KaseViewPage() {
       {settingsOpen && kase && (
         <KaseSettingsPanel
           kase={kase}
-          logCount={logList.length}
+          entryCount={entries.length}
           onClose={() => setSettingsOpen(false)}
           onUpdated={updated => setKase(updated)}
           onDeleted={() => navigate('/')}
@@ -425,10 +434,10 @@ function EmptyState({ onNew }: { onNew: () => void }) {
       paddingTop: '4rem', gap: '0.75rem',
     }}>
       <div style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 500 }}>
-        No logs yet
+        No entries yet
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
-        Create your first log to start capturing work in this kase
+        Create a log or add a collection item to start capturing work in this kase
       </div>
       <button
         onClick={onNew}
@@ -445,8 +454,10 @@ function EmptyState({ onNew }: { onNew: () => void }) {
   )
 }
 
-interface TimelineEntryProps {
-  log: LogResponse
+// ── Log timeline entry ────────────────────────────────────────────────────────
+
+interface LogEntryProps {
+  entry: TimelineEntryResponse
   index: number
   isLast: boolean
   isHovered: boolean
@@ -455,9 +466,7 @@ interface TimelineEntryProps {
   onClick: () => void
 }
 
-function TimelineEntry({
-  log, index, isLast, isHovered, onMouseEnter, onMouseLeave, onClick,
-}: TimelineEntryProps) {
+function LogTimelineEntry({ entry, index, isLast, isHovered, onMouseEnter, onMouseLeave, onClick }: LogEntryProps) {
   const isNewest = index === 0
 
   return (
@@ -467,11 +476,8 @@ function TimelineEntry({
       onMouseLeave={onMouseLeave}
       onClick={onClick}
     >
-      <div style={{
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', paddingTop: 4,
-        width: 14, flexShrink: 0,
-      }}>
+      {/* Spine */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 4, width: 14, flexShrink: 0 }}>
         <div style={{
           width: 10, height: 10, borderRadius: '50%',
           background: isNewest ? 'var(--accent)' : 'var(--bg-tertiary)',
@@ -483,50 +489,153 @@ function TimelineEntry({
           <div style={{ width: 1, flex: 1, background: 'var(--border)', marginTop: 4, minHeight: '1.25rem' }} />
         )}
       </div>
-      <div style={{
-        flex: 1, paddingBottom: '1.25rem',
-        borderBottom: isLast ? 'none' : '1px solid var(--border)',
-      }}>
+
+      {/* Body */}
+      <div style={{ flex: 1, paddingBottom: '1.25rem', borderBottom: isLast ? 'none' : '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.25rem' }}>
           <div style={{
             fontSize: 14, fontWeight: 500,
             color: isHovered ? 'var(--accent)' : 'var(--text-primary)',
             flex: 1, lineHeight: 1.3, transition: 'color 0.15s',
           }}>
-            {log.title}
+            {entry.title}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
             <span style={{
-              fontSize: 11, color: 'var(--text-tertiary)',
+              fontSize: 10, color: 'var(--text-tertiary)',
               padding: '1px 6px', background: 'var(--bg-secondary)',
               border: '1px solid var(--border)', borderRadius: 4,
               fontFamily: 'var(--font-mono)',
             }}>
-              v{log.versionCount}
+              log
+            </span>
+            <span style={{
+              fontSize: 10, color: 'var(--text-tertiary)',
+              padding: '1px 6px', background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)', borderRadius: 4,
+              fontFamily: 'var(--font-mono)',
+            }}>
+              v{entry.versionCount}
             </span>
             <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-              {formatTimestamp(log.updatedAt)}
+              {formatTimestamp(entry.updatedAt)}
             </span>
           </div>
         </div>
-        {log.description && (
+        {entry.description && (
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '0.45rem' }}>
-            {log.description}
+            {entry.description}
           </div>
         )}
-        {(log.tags ?? []).length > 0 && (
+        {(entry.tags ?? []).length > 0 && (
           <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-            {(log.tags ?? []).map(tag => (
+            {(entry.tags ?? []).map(tag => (
               <span
-                key={tag.id}
-                className={`tag-${tagColorClass(tag.name)}`}
+                key={tag}
+                className={`tag-${tagColorClass(tag)}`}
                 style={{ fontSize: 11, padding: '2px 8px', borderRadius: 99, fontWeight: 500 }}
               >
-                {tag.name}
+                {tag}
               </span>
             ))}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+// ── Collection item timeline entry ────────────────────────────────────────────
+
+interface CollectionItemEntryProps {
+  entry: TimelineEntryResponse
+  index: number
+  isLast: boolean
+  isHovered: boolean
+  onMouseEnter: () => void
+  onMouseLeave: () => void
+  onClick: () => void
+}
+
+function CollectionItemTimelineEntry({
+  entry, isLast, isHovered, onMouseEnter, onMouseLeave, onClick,
+}: CollectionItemEntryProps) {
+  const dotColor = COLOR_MAP[entry.collectionColor ?? ''] ?? '#9a9890'
+
+  return (
+    <div
+      style={{ display: 'flex', gap: '1rem', cursor: 'pointer', paddingBottom: '1.25rem' }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onClick={onClick}
+    >
+      {/* Spine — square dim dot for collection items */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 4, width: 14, flexShrink: 0 }}>
+        <div style={{
+          width: 10, height: 10, borderRadius: 3,
+          background: 'var(--bg-tertiary)',
+          border: '2px solid var(--bg)',
+          boxShadow: '0 0 0 1.5px var(--border-mid)',
+          flexShrink: 0,
+        }} />
+        {!isLast && (
+          <div style={{ width: 1, flex: 1, background: 'var(--border)', marginTop: 4, minHeight: '1.25rem' }} />
+        )}
+      </div>
+
+      {/* Body */}
+      <div style={{ flex: 1, paddingBottom: '1.25rem', borderBottom: isLast ? 'none' : '1px solid var(--border)' }}>
+        {/* Header row: type badge + timestamp */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+          <span style={{
+            fontSize: 10, fontWeight: 500,
+            padding: '1px 7px', borderRadius: 99,
+            background: '#E6F1FB', color: '#042C53',
+            flexShrink: 0,
+          }}>
+            collection item
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+            {formatTimestamp(entry.updatedAt)}
+          </span>
+        </div>
+
+        {/* Collection item card */}
+        <div style={{
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-mid)',
+          borderRadius: 8,
+          padding: '0.6rem 0.8rem',
+          transition: 'border-color 0.15s',
+          borderColor: isHovered ? 'var(--border-mid)' : undefined,
+        }}>
+          {/* Collection name row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+            <div style={{ width: 7, height: 7, borderRadius: 2, background: dotColor, flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{entry.collectionTitle}</span>
+          </div>
+
+          {/* Item title */}
+          <div style={{
+            fontSize: 13, fontWeight: 500,
+            color: isHovered ? 'var(--accent)' : 'var(--text-primary)',
+            marginBottom: (entry.summaryFields ?? []).length > 0 ? '0.35rem' : 0,
+            transition: 'color 0.15s',
+          }}>
+            {entry.itemTitle}
+          </div>
+
+          {/* Summary fields */}
+          {(entry.summaryFields ?? []).length > 0 && (
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              {(entry.summaryFields ?? []).map(sf => (
+                <div key={sf.name} style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                  {sf.name} <span style={{ color: 'var(--text-secondary)' }}>{sf.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
