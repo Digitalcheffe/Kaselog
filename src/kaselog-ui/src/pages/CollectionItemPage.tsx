@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type ReactElement } from 'react'
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
+import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { collections as collectionsApi, kases as kasesApi, images as imagesApi } from '../api/client'
 import type {
   CollectionResponse,
@@ -472,6 +472,8 @@ export default function CollectionItemPage() {
   const [fields, setFields] = useState<CollectionFieldResponse[]>([])
   const [layout, setLayout] = useState<LayoutRow[]>([])
   const [kases, setKases] = useState<KaseResponse[]>([])
+  const [kasesLoading, setKasesLoading] = useState(true)
+  const [kasesError, setKasesError] = useState(false)
   const [item, setItem] = useState<CollectionItemResponse | null>(null)
 
   const [values, setValues] = useState<Record<string, unknown>>({})
@@ -482,31 +484,25 @@ export default function CollectionItemPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
 
-  // Load data
+  // Load collection/item data
   useEffect(() => {
     async function load() {
       try {
         if (isNew) {
           if (!collectionIdParam) { setLoadError('No collection specified.'); return }
-          const [col, flds, layout, kaseList] = await Promise.all([
+          const [col, flds, layoutResp] = await Promise.all([
             collectionsApi.get(collectionIdParam),
             collectionsApi.getFields(collectionIdParam),
             collectionsApi.getLayout(collectionIdParam),
-            kasesApi.list(),
           ])
           setCollection(col)
           setFields(flds.sort((a, b) => a.sortOrder - b.sortOrder))
-          setLayout(parseLayout(layout.layout))
-          setKases(kaseList)
+          setLayout(parseLayout(layoutResp.layout))
           const initialKaseId = searchParams.get('kaseId') ?? ''
           setKaseId(initialKaseId)
         } else {
-          const [itm, kaseList] = await Promise.all([
-            collectionsApi.getItem(id!),
-            kasesApi.list(),
-          ])
+          const itm = await collectionsApi.getItem(id!)
           setItem(itm)
-          setKases(kaseList)
           setKaseId(itm.kaseId ?? '')
           setValues(itm.fieldValues as Record<string, unknown>)
 
@@ -525,6 +521,22 @@ export default function CollectionItemPage() {
     }
     load()
   }, [id, isNew, collectionIdParam, searchParams])
+
+  // Load kases independently so a fetch failure does not break the form
+  useEffect(() => {
+    async function loadKases() {
+      try {
+        const kaseList = await kasesApi.list()
+        setKases(kaseList)
+      } catch {
+        console.error('Failed to load kases for link selector')
+        setKasesError(true)
+      } finally {
+        setKasesLoading(false)
+      }
+    }
+    loadKases()
+  }, [])
 
   function parseLayout(raw: string): LayoutRow[] {
     try { return JSON.parse(raw) as LayoutRow[] } catch { return [] }
@@ -677,29 +689,67 @@ export default function CollectionItemPage() {
             display: 'flex', alignItems: 'center', gap: 12,
           }}>
             <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 }}>Link to Kase</span>
-            <select
-              aria-label="Link to Kase"
-              value={kaseId}
-              onChange={e => handleKaseChange(e.target.value)}
-              disabled={mode === 'view' && !isNew}
-              style={{
-                flex: 1,
-                background: 'var(--bg)',
-                border: '1px solid var(--border-mid)',
-                borderRadius: 6,
-                padding: '5px 8px',
-                fontSize: 12,
-                color: 'var(--text-secondary)',
-                fontFamily: 'inherit',
-                outline: 'none',
-                cursor: mode === 'view' && !isNew ? 'default' : 'pointer',
-              }}
-            >
-              <option value="">— none —</option>
-              {kases.map(k => (
-                <option key={k.id} value={k.id}>{k.title}</option>
-              ))}
-            </select>
+
+            {mode === 'view' && !isNew ? (
+              // View mode: show kase title as link, or "— none —"
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {kaseId ? (
+                  <>
+                    <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>
+                      {kases.find(k => k.id === kaseId)?.title ?? kaseId}
+                    </span>
+                    <Link
+                      to={`/kases/${kaseId}`}
+                      style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}
+                    >
+                      → open
+                    </Link>
+                  </>
+                ) : (
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>— none —</span>
+                )}
+              </div>
+            ) : kasesLoading ? (
+              <select
+                disabled
+                style={{
+                  flex: 1, background: 'var(--bg)', border: '1px solid var(--border-mid)',
+                  borderRadius: 6, padding: '5px 8px', fontSize: 12,
+                  color: 'var(--text-tertiary)', fontFamily: 'inherit', outline: 'none',
+                }}
+              >
+                <option>Loading kases…</option>
+              </select>
+            ) : kasesError ? (
+              <select
+                disabled
+                style={{
+                  flex: 1, background: 'var(--bg)', border: '1px solid var(--border-mid)',
+                  borderRadius: 6, padding: '5px 8px', fontSize: 12,
+                  color: 'var(--text-tertiary)', fontFamily: 'inherit', outline: 'none',
+                }}
+              >
+                <option>Could not load kases</option>
+              </select>
+            ) : (
+              <select
+                aria-label="Link to Kase"
+                value={kaseId}
+                onChange={e => handleKaseChange(e.target.value)}
+                style={{
+                  flex: 1, background: 'var(--bg)', border: '1px solid var(--border-mid)',
+                  borderRadius: 6, padding: '5px 8px', fontSize: 12,
+                  color: 'var(--text-secondary)', fontFamily: 'inherit',
+                  outline: 'none', cursor: 'pointer',
+                }}
+              >
+                <option value="">— none —</option>
+                {kases.map(k => (
+                  <option key={k.id} value={k.id}>{k.title}</option>
+                ))}
+              </select>
+            )}
+
             <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Optional — appears on the Kase timeline</span>
           </div>
 
