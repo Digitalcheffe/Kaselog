@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type ReactElement } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { collections as collectionsApi, kases as kasesApi, images as imagesApi } from '../api/client'
 import type {
@@ -15,6 +15,7 @@ interface LayoutCell {
   fieldId?: string
   label?: string
   span: number
+  rowSpan?: number
 }
 
 interface LayoutRow {
@@ -372,97 +373,84 @@ function FormLayout({
 }) {
   const fieldMap = Object.fromEntries(fields.map(f => [f.id, f]))
 
-  function renderCell(cell: LayoutCell | null, fullWidth: boolean) {
-    if (!cell) return <div key="empty" />
+  // Compute cells blocked by rowSpan tiles above them
+  const blocked = new Set<string>()
+  layout.forEach((row, ri) => {
+    row.cells.forEach((cell, ci) => {
+      if (cell?.kind === 'field') {
+        const rs = cell.rowSpan ?? 1
+        for (let r = 1; r < rs; r++) blocked.add(`${ri + r},${ci}`)
+      }
+    })
+  })
 
-    if (cell.kind === 'divider') {
-      return (
-        <div key="divider" style={{
-          gridColumn: '1 / -1',
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '2px 0', margin: '4px 0',
-        }}>
-          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-          {cell.label && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{cell.label}</span>}
-          {cell.label && <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />}
-        </div>
-      )
-    }
+  const items: ReactElement[] = []
 
-    if (cell.kind === 'label') {
-      return (
-        <div key="label" style={{
-          gridColumn: '1 / -1',
-          fontSize: 11, fontWeight: 600,
-          color: 'var(--text-tertiary)',
-          textTransform: 'uppercase', letterSpacing: '0.08em',
-          padding: '8px 0 2px',
-        }}>
-          {cell.label}
-        </div>
-      )
-    }
+  layout.forEach((row, rowIdx) => {
+    ;([0, 1] as const).forEach(colIdx => {
+      const cell = row.cells[colIdx]
+      const key = `${rowIdx}-${colIdx}`
 
-    const fieldId = cell.fieldId!
-    const field = fieldMap[fieldId]
-    if (!field) return <div key={fieldId} />
+      // Skip right col when left is full-width
+      const c0 = row.cells[0]
+      if (colIdx === 1 && c0 && (c0.span === 2 || c0.kind === 'divider' || c0.kind === 'label')) return
 
-    return (
-      <div key={fieldId} style={{
-        display: 'flex', flexDirection: 'column', gap: 5,
-        gridColumn: fullWidth ? '1 / -1' : undefined,
-      }}>
-        <div style={{
-          fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)',
-          textTransform: 'uppercase', letterSpacing: '0.07em',
-          display: 'flex', alignItems: 'center', gap: 4,
-        }}>
-          {field.name}
-          {field.required && <span style={{ color: '#A32D2D', fontSize: 11 }}>*</span>}
-        </div>
-        <FieldInput
-          field={field}
-          value={values[fieldId] ?? ''}
-          readOnly={readOnly}
-          hasError={errors.has(fieldId)}
-          onChange={v => onChange(fieldId, v)}
-        />
-      </div>
-    )
-  }
+      // Skip blocked cells
+      if (blocked.has(`${rowIdx},${colIdx}`)) return
 
-  return (
-    <>
-      {layout.map((row, rowIdx) => {
-        const c0 = row.cells[0]
-        const c1 = row.cells[1]
-        if (!c0) return null
+      if (!cell) return
 
-        const isFullWidth = c0.span === 2 || c0.kind === 'divider' || c0.kind === 'label'
+      const isFullWidth = cell.span === 2 || cell.kind === 'divider' || cell.kind === 'label'
+      const rowSpan = cell.kind === 'field' ? (cell.rowSpan ?? 1) : 1
+      const gridColumn = isFullWidth ? '1 / -1' : `${colIdx + 1}`
+      const gridRow = `${rowIdx + 1} / span ${rowSpan}`
 
-        return (
-          <div
-            key={rowIdx}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 10,
-              marginBottom: 10,
-            }}
-          >
-            {isFullWidth
-              ? renderCell(c0, true)
-              : (
-                <>
-                  {renderCell(c0, false)}
-                  {renderCell(c1 ?? null, false)}
-                </>
-              )
-            }
+      if (cell.kind === 'divider') {
+        items.push(
+          <div key={key} style={{ gridColumn, gridRow, display: 'flex', alignItems: 'center', gap: 12, padding: '2px 0', margin: '4px 0' }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            {cell.label && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{cell.label}</span>}
+            {cell.label && <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />}
           </div>
         )
-      })}
-    </>
+        return
+      }
+
+      if (cell.kind === 'label') {
+        items.push(
+          <div key={key} style={{ gridColumn, gridRow, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '8px 0 2px' }}>
+            {cell.label}
+          </div>
+        )
+        return
+      }
+
+      const fieldId = cell.fieldId!
+      const field = fieldMap[fieldId]
+      if (!field) return
+
+      items.push(
+        <div key={key} style={{ gridColumn, gridRow, display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: 4 }}>
+            {field.name}
+            {field.required && <span style={{ color: '#A32D2D', fontSize: 11 }}>*</span>}
+          </div>
+          <FieldInput
+            field={field}
+            value={values[fieldId] ?? ''}
+            readOnly={readOnly}
+            hasError={errors.has(fieldId)}
+            onChange={v => onChange(fieldId, v)}
+          />
+        </div>
+      )
+    })
+  })
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {items}
+    </div>
   )
 }
 
