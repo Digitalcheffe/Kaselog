@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import KaseViewPage from '../pages/KaseViewPage'
-import type { KaseResponse, LogResponse, TagResponse, CollectionResponse } from '../api/types'
+import type { KaseResponse, TimelineEntryResponse, CollectionResponse } from '../api/types'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -13,8 +13,10 @@ vi.mock('../api/client', () => ({
     update: vi.fn(),
     delete: vi.fn(),
   },
+  timeline: {
+    list: vi.fn(),
+  },
   logs: {
-    listByKase: vi.fn(),
     create: vi.fn(),
   },
   collections: {
@@ -28,7 +30,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
-import { kases as kasesApi, logs as logsApi, collections as collectionsApi } from '../api/client'
+import { kases as kasesApi, timeline as timelineApi, logs as logsApi, collections as collectionsApi } from '../api/client'
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -44,18 +46,12 @@ function makeKase(overrides: Partial<KaseResponse> = {}): KaseResponse {
   }
 }
 
-function makeTag(overrides: Partial<TagResponse> = {}): TagResponse {
-  return { id: 'tag-1', name: 'networking', createdAt: new Date().toISOString(), ...overrides }
-}
-
-function makeLog(overrides: Partial<LogResponse> = {}): LogResponse {
+function makeEntry(overrides: Partial<TimelineEntryResponse> = {}): TimelineEntryResponse {
   return {
+    entityType: 'log',
     id: 'log-1',
-    kaseId: 'kase-1',
     title: 'VLAN trunk configuration',
     description: 'Trunk mode on Proxmox nodes.',
-    autosaveEnabled: true,
-    content: '',
     versionCount: 3,
     tags: [],
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -92,9 +88,9 @@ describe('KaseViewPage — timeline', () => {
 
   it('renders timeline entries from mocked data', async () => {
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
-    vi.mocked(logsApi.listByKase).mockResolvedValue([
-      makeLog({ id: 'log-1', title: 'VLAN trunk configuration', versionCount: 3 }),
-      makeLog({ id: 'log-2', title: 'Installed node 3', versionCount: 1 }),
+    vi.mocked(timelineApi.list).mockResolvedValue([
+      makeEntry({ id: 'log-1', title: 'VLAN trunk configuration', versionCount: 3 }),
+      makeEntry({ id: 'log-2', title: 'Installed node 3', versionCount: 1 }),
     ])
 
     renderPage()
@@ -107,9 +103,9 @@ describe('KaseViewPage — timeline', () => {
 
   it('shows version badge with correct count', async () => {
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
-    vi.mocked(logsApi.listByKase).mockResolvedValue([
-      makeLog({ id: 'log-1', versionCount: 5 }),
-      makeLog({ id: 'log-2', title: 'Another log', versionCount: 1 }),
+    vi.mocked(timelineApi.list).mockResolvedValue([
+      makeEntry({ id: 'log-1', versionCount: 5 }),
+      makeEntry({ id: 'log-2', title: 'Another log', versionCount: 1 }),
     ])
 
     renderPage()
@@ -122,8 +118,8 @@ describe('KaseViewPage — timeline', () => {
 
   it('renders tag pills from log tags', async () => {
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
-    vi.mocked(logsApi.listByKase).mockResolvedValue([
-      makeLog({ id: 'log-1', tags: [makeTag({ id: 't1', name: 'networking' }), makeTag({ id: 't2', name: 'proxmox' })] }),
+    vi.mocked(timelineApi.list).mockResolvedValue([
+      makeEntry({ id: 'log-1', tags: ['networking', 'proxmox'] }),
     ])
 
     renderPage()
@@ -136,9 +132,9 @@ describe('KaseViewPage — timeline', () => {
 
   it('applies consistent color class for the same tag name across entries', async () => {
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
-    vi.mocked(logsApi.listByKase).mockResolvedValue([
-      makeLog({ id: 'log-1', tags: [makeTag({ id: 't1', name: 'proxmox' })] }),
-      makeLog({ id: 'log-2', title: 'Another log', tags: [makeTag({ id: 't2', name: 'proxmox' })] }),
+    vi.mocked(timelineApi.list).mockResolvedValue([
+      makeEntry({ id: 'log-1', tags: ['proxmox'] }),
+      makeEntry({ id: 'log-2', title: 'Another log', tags: ['proxmox'] }),
     ])
 
     renderPage()
@@ -152,18 +148,18 @@ describe('KaseViewPage — timeline', () => {
 
   it('renders empty state when logs array is empty', async () => {
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
-    vi.mocked(logsApi.listByKase).mockResolvedValue([])
+    vi.mocked(timelineApi.list).mockResolvedValue([])
 
     renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText('No logs yet')).toBeInTheDocument()
+      expect(screen.getByText(/Create a log or add a collection item/i)).toBeInTheDocument()
     })
   })
 
   it('renders 404 state when kase is not found', async () => {
     vi.mocked(kasesApi.get).mockRejectedValue(new Error('Kase with ID not found'))
-    vi.mocked(logsApi.listByKase).mockResolvedValue([])
+    vi.mocked(timelineApi.list).mockResolvedValue([])
 
     renderPage('nonexistent-id')
 
@@ -174,7 +170,7 @@ describe('KaseViewPage — timeline', () => {
 
   it('clicking a log entry navigates to /logs/{id}', async () => {
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
-    vi.mocked(logsApi.listByKase).mockResolvedValue([makeLog({ id: 'log-abc', title: 'Click me' })])
+    vi.mocked(timelineApi.list).mockResolvedValue([makeEntry({ id: 'log-abc', title: 'Click me' })])
     const user = userEvent.setup()
 
     renderPage()
@@ -187,23 +183,23 @@ describe('KaseViewPage — timeline', () => {
 
   it('shows the kase title and log count in the top bar', async () => {
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase({ title: 'My Kase', logCount: 7 }))
-    vi.mocked(logsApi.listByKase).mockResolvedValue([
-      makeLog({ id: 'l1', title: 'Log A' }),
-      makeLog({ id: 'l2', title: 'Log B' }),
+    vi.mocked(timelineApi.list).mockResolvedValue([
+      makeEntry({ id: 'l1', title: 'Log A' }),
+      makeEntry({ id: 'l2', title: 'Log B' }),
     ])
 
     renderPage()
 
     await waitFor(() => {
       expect(screen.getByText('My Kase')).toBeInTheDocument()
-      expect(screen.getByText('2 logs')).toBeInTheDocument()
+      expect(screen.getByText('2 entries')).toBeInTheDocument()
     })
   })
 
   it('renders log descriptions when present', async () => {
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
-    vi.mocked(logsApi.listByKase).mockResolvedValue([
-      makeLog({ id: 'log-1', description: 'Some meaningful description text' }),
+    vi.mocked(timelineApi.list).mockResolvedValue([
+      makeEntry({ id: 'log-1', description: 'Some meaningful description text' }),
     ])
 
     renderPage()
@@ -220,7 +216,7 @@ describe('KaseViewPage — new content modal', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
-    vi.mocked(logsApi.listByKase).mockResolvedValue([])
+    vi.mocked(timelineApi.list).mockResolvedValue([])
     vi.mocked(collectionsApi.list).mockResolvedValue([])
   })
 
@@ -315,7 +311,11 @@ describe('KaseViewPage — new content modal', () => {
   })
 
   it('Step 2a submit with valid title calls POST and navigates to /logs/{id}', async () => {
-    vi.mocked(logsApi.create).mockResolvedValue(makeLog({ id: 'new-log-id', title: 'My Session' }))
+    vi.mocked(logsApi.create).mockResolvedValue({
+      id: 'new-log-id', kaseId: 'kase-1', title: 'My Session',
+      description: null, autosaveEnabled: true, content: '', versionCount: 1, tags: [],
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    })
 
     const user = userEvent.setup()
     renderPage()
@@ -393,7 +393,7 @@ describe('KaseViewPage — Kase settings panel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
-    vi.mocked(logsApi.listByKase).mockResolvedValue([])
+    vi.mocked(timelineApi.list).mockResolvedValue([])
     vi.mocked(collectionsApi.list).mockResolvedValue([])
   })
 

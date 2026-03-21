@@ -36,7 +36,7 @@ import { collections as collectionsApi, kases as kasesApi, images as imagesApi }
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
-const COL_ID = 'col-1'
+const COL_ID  = 'col-1'
 const ITEM_ID = 'item-1'
 
 function makeCollection(overrides: Partial<CollectionResponse> = {}): CollectionResponse {
@@ -237,7 +237,6 @@ describe('CollectionItemPage — field interactions', () => {
     renderNew()
     await waitFor(() => screen.getByTestId('star-3'))
     fireEvent.mouseEnter(screen.getByTestId('star-3'))
-    // Star 3 should be highlighted (color style check via data-testid presence)
     expect(screen.getByTestId('star-3')).toBeInTheDocument()
   })
 
@@ -305,9 +304,7 @@ describe('CollectionItemPage — validation and save', () => {
     await waitFor(() => screen.getByText('Save item'))
     await user.click(screen.getByText('Save item'))
 
-    // createItem should NOT have been called
     expect(collectionsApi.createItem).not.toHaveBeenCalled()
-    // Input should have error border
     const input = screen.getByLabelText('Album') as HTMLInputElement
     expect(input.style.border).toMatch(/E24B4A|rgb\(226.*75.*74\)/i)
   })
@@ -380,7 +377,6 @@ describe('CollectionItemPage — validation and save', () => {
     await user.type(screen.getByLabelText('Album'), 'Tusk')
     await user.click(screen.getByText('Save item'))
 
-    // Should transition to view mode — Edit button visible, input is read-only
     await waitFor(() => screen.getByTestId('edit-item-btn'))
     const input = screen.getByLabelText('Album') as HTMLInputElement
     expect(input.readOnly).toBe(true)
@@ -401,25 +397,88 @@ describe('CollectionItemPage — validation and save', () => {
     await waitFor(() => screen.getByText('Save item'))
     expect(screen.getByText('Save item')).toBeInTheDocument()
   })
+})
 
-  it('Kase link selector calls PUT on change for existing items', async () => {
-    const existingItem = makeItem({ fieldValues: { f1: 'Rumours' } })
-    vi.mocked(collectionsApi.getItem).mockResolvedValue(existingItem)
+describe('CollectionItemPage — Kase link selector', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
     vi.mocked(collectionsApi.get).mockResolvedValue(makeCollection())
     vi.mocked(collectionsApi.getFields).mockResolvedValue([makeField({ id: 'f1', name: 'Album', type: 'text' })])
     vi.mocked(collectionsApi.getLayout).mockResolvedValue(makeLayout('f1'))
+  })
+
+  it('select is populated with real Kases from GET /api/kases on mount', async () => {
+    vi.mocked(kasesApi.list).mockResolvedValue([
+      makeKase({ id: 'k1', title: 'Proxmox Cluster' }),
+      makeKase({ id: 'k2', title: 'Network Rebuild' }),
+    ])
+    renderNew()
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'Proxmox Cluster' })).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: 'Network Rebuild' })).toBeInTheDocument()
+    })
+  })
+
+  it('"— none —" is always the first option with empty value', async () => {
+    vi.mocked(kasesApi.list).mockResolvedValue([makeKase({ id: 'k1', title: 'My Kase' })])
+    renderNew()
+    await waitFor(() => screen.getByLabelText('Link to Kase'))
+    const select = screen.getByLabelText('Link to Kase') as HTMLSelectElement
+    expect(select.options[0].value).toBe('')
+    expect(select.options[0].text).toBe('— none —')
+  })
+
+  it('selecting a Kase sends the correct GUID in the POST body', async () => {
+    vi.mocked(kasesApi.list).mockResolvedValue([makeKase({ id: 'kase-abc', title: 'My Kase' })])
+    vi.mocked(collectionsApi.createItem).mockResolvedValue(makeItem({ id: 'new-id' }))
+
+    const user = userEvent.setup()
+    renderNew()
+    await waitFor(() => screen.getByLabelText('Link to Kase'))
+    await user.selectOptions(screen.getByLabelText('Link to Kase'), 'kase-abc')
+    await user.click(screen.getByText('Save item'))
+
+    await waitFor(() => {
+      expect(collectionsApi.createItem).toHaveBeenCalledWith(
+        COL_ID,
+        expect.objectContaining({ kaseId: 'kase-abc' }),
+      )
+    })
+  })
+
+  it('selecting "— none —" sends kaseId: null in the POST body, not empty string', async () => {
+    vi.mocked(kasesApi.list).mockResolvedValue([makeKase({ id: 'k1', title: 'My Kase' })])
+    vi.mocked(collectionsApi.createItem).mockResolvedValue(makeItem({ id: 'new-id' }))
+
+    const user = userEvent.setup()
+    renderNew()
+    // Wait for kases to load, then explicitly select "— none —"
+    await waitFor(() => screen.getByLabelText('Link to Kase'))
+    await user.selectOptions(screen.getByLabelText('Link to Kase'), '')
+    await user.click(screen.getByText('Save item'))
+
+    await waitFor(() => {
+      expect(collectionsApi.createItem).toHaveBeenCalledWith(
+        COL_ID,
+        expect.objectContaining({ kaseId: null }),
+      )
+    })
+  })
+
+  it('saving existing item with Kase selected sends updated kaseId in PUT body', async () => {
+    const existingItem = makeItem({ fieldValues: { f1: 'Rumours' } })
+    vi.mocked(collectionsApi.getItem).mockResolvedValue(existingItem)
     vi.mocked(kasesApi.list).mockResolvedValue([makeKase({ id: 'kase-1', title: 'My Kase' })])
     vi.mocked(collectionsApi.updateItem).mockResolvedValue(existingItem)
 
+    const user = userEvent.setup()
     renderExisting()
-    await waitFor(() => screen.getByLabelText('Link to Kase'))
-
-    // In view mode the select is disabled — transition to edit to enable it
     await waitFor(() => screen.getByTestId('edit-item-btn'))
-    await userEvent.click(screen.getByTestId('edit-item-btn'))
+    await user.click(screen.getByTestId('edit-item-btn'))
 
-    await waitFor(() => screen.getByRole('option', { name: 'My Kase' }))
-    await userEvent.selectOptions(screen.getByLabelText('Link to Kase'), 'kase-1')
+    await waitFor(() => screen.getByLabelText('Link to Kase'))
+    await user.selectOptions(screen.getByLabelText('Link to Kase'), 'kase-1')
+    await user.click(screen.getByText('Save item'))
 
     await waitFor(() => {
       expect(collectionsApi.updateItem).toHaveBeenCalledWith(
@@ -427,5 +486,66 @@ describe('CollectionItemPage — validation and save', () => {
         expect.objectContaining({ kaseId: 'kase-1' }),
       )
     })
+  })
+
+  it('saving with "— none —" selected sends kaseId: null in PUT body', async () => {
+    const existingItem = makeItem({ kaseId: 'k1', fieldValues: { f1: 'Rumours' } })
+    vi.mocked(collectionsApi.getItem).mockResolvedValue(existingItem)
+    vi.mocked(kasesApi.list).mockResolvedValue([makeKase({ id: 'k1', title: 'My Kase' })])
+    vi.mocked(collectionsApi.updateItem).mockResolvedValue({ ...existingItem, kaseId: null })
+
+    const user = userEvent.setup()
+    renderExisting()
+    await waitFor(() => screen.getByTestId('edit-item-btn'))
+    await user.click(screen.getByTestId('edit-item-btn'))
+
+    await waitFor(() => screen.getByLabelText('Link to Kase'))
+    await user.selectOptions(screen.getByLabelText('Link to Kase'), '')
+    await user.click(screen.getByText('Save item'))
+
+    await waitFor(() => {
+      expect(collectionsApi.updateItem).toHaveBeenCalledWith(
+        ITEM_ID,
+        expect.objectContaining({ kaseId: null }),
+      )
+    })
+  })
+
+  it('in view mode, a linked Kase title is shown as a link to /kases/{kaseId}', async () => {
+    const existingItem = makeItem({ kaseId: 'k1' })
+    vi.mocked(collectionsApi.getItem).mockResolvedValue(existingItem)
+    vi.mocked(kasesApi.list).mockResolvedValue([makeKase({ id: 'k1', title: 'Proxmox Cluster' })])
+
+    renderExisting()
+    // Start in view mode — wait for the kase title to appear
+    await waitFor(() => expect(screen.getByText('Proxmox Cluster')).toBeInTheDocument())
+    // The "→ open" link navigates to the kase
+    const link = screen.getByRole('link', { name: '→ open' })
+    expect(link).toHaveAttribute('href', '/kases/k1')
+  })
+
+  it('in view mode, no Kase linked shows "— none —" as muted text', async () => {
+    const existingItem = makeItem({ kaseId: null })
+    vi.mocked(collectionsApi.getItem).mockResolvedValue(existingItem)
+    vi.mocked(kasesApi.list).mockResolvedValue([])
+
+    renderExisting()
+    // kaseId is null → "— none —" muted text
+    await waitFor(() => {
+      // Find the muted "— none —" in the Kase link section (not in a select)
+      const noneTexts = screen.getAllByText('— none —')
+      // At least one should be a plain <span>, not inside a select option
+      const spans = noneTexts.filter(el => el.tagName === 'SPAN')
+      expect(spans.length).toBeGreaterThan(0)
+    })
+  })
+
+  it('kase fetch failure shows "Could not load kases" and does not break the form', async () => {
+    vi.mocked(kasesApi.list).mockRejectedValue(new Error('Network error'))
+
+    renderNew()
+    await waitFor(() => expect(screen.getByText('Could not load kases')).toBeInTheDocument())
+    // Form fields are still accessible
+    await waitFor(() => expect(screen.getByLabelText('Album')).toBeInTheDocument())
   })
 })
