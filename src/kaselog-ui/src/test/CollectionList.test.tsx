@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import CollectionListPage from '../pages/CollectionListPage'
@@ -268,7 +268,7 @@ describe('CollectionListPage', () => {
 
     // Find the Artist field name in the picker and click its parent toggle row
     const artistPickerLabel = screen.getAllByText('Artist')
-      .find(el => el.tagName === 'DIV' && el.style?.fontSize === '12px')
+      .find(el => el.tagName === 'DIV' && el.style?.fontSize === 'var(--text-sm)')
     expect(artistPickerLabel).toBeTruthy()
     // Click the row containing this label
     await user.click(artistPickerLabel!.parentElement!.parentElement!)

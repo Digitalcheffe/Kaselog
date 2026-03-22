@@ -64,10 +64,10 @@ function TypePicker({ onSelect }: { onSelect: (type: FieldType) => void }) {
             textAlign: 'left',
           }}
         >
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+          <span style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text)' }}>
             {ft.icon} {ft.label}
           </span>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.75 }}>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', opacity: 0.75 }}>
             {ft.hint}
           </span>
         </button>
@@ -388,18 +388,18 @@ export default function CollectionDesignerPage() {
         height: 48, display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px',
         borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--surface)',
       }}>
-        <Link to="/collections" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: 13 }}>
+        <Link to="/collections" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: 'var(--text-base)' }}>
           ← Collections
         </Link>
-        <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>/</span>
-        <span style={{ fontSize: 13, color: 'var(--text)' }}>{collection.title} — Designer</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-base)' }}>/</span>
+        <span style={{ fontSize: 'var(--text-base)', color: 'var(--text)' }}>{collection.title} — Designer</span>
         <div style={{ flex: 1 }} />
         <button
           onClick={handleSave}
           disabled={saving}
           style={{
             padding: '6px 14px', borderRadius: 4, border: 'none',
-            background: 'var(--accent)', color: '#fff', cursor: 'pointer', fontSize: 13,
+            background: 'var(--accent)', color: '#fff', cursor: 'pointer', fontSize: 'var(--text-base)',
           }}
         >
           {saving ? 'Saving…' : 'Save collection'}
@@ -417,7 +417,7 @@ export default function CollectionDesignerPage() {
             onClick={() => setActiveTab(tab)}
             style={{
               padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer',
-              fontSize: 13, fontWeight: 500,
+              fontSize: 'var(--text-base)', fontWeight: 500,
               color: activeTab === tab ? 'var(--accent)' : 'var(--text-muted)',
               borderBottom: activeTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
               textTransform: 'capitalize',
@@ -425,7 +425,7 @@ export default function CollectionDesignerPage() {
           >
             {tab}
             <span style={{
-              marginLeft: 6, fontSize: 11, padding: '1px 6px', borderRadius: 10,
+              marginLeft: 6, fontSize: 'var(--text-xs)', padding: '1px 6px', borderRadius: 10,
               background: 'var(--border)', color: 'var(--text-muted)',
             }}>
               {tab === 'schema' ? fields.length : `${placedCount} placed`}
@@ -469,18 +469,18 @@ export default function CollectionDesignerPage() {
                       borderColor: selectedFieldId === field.id ? 'var(--accent)' : 'transparent',
                     }}
                   >
-                    <span style={{ cursor: 'grab', color: 'var(--text-muted)', fontSize: 14 }}>⠿</span>
+                    <span style={{ cursor: 'grab', color: 'var(--text-muted)', fontSize: 'var(--text-base)' }}>⠿</span>
                     <span style={{
                       width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      borderRadius: 4, background: 'var(--border)', fontSize: 12, flexShrink: 0,
+                      borderRadius: 4, background: 'var(--border)', fontSize: 'var(--text-sm)', flexShrink: 0,
                     }}>
                       {typeIcon(field.type)}
                     </span>
                     <div style={{ flex: 1, overflow: 'hidden' }}>
-                      <div style={{ fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 'var(--text-base)', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {field.name}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
                         {field.type}
                       </div>
                     </div>
@@ -490,7 +490,7 @@ export default function CollectionDesignerPage() {
                       style={{
                         width: 20, height: 20, display: 'flex', alignItems: 'center',
                         justifyContent: 'center', border: 'none', background: 'none',
-                        cursor: 'pointer', color: 'var(--text-muted)', fontSize: 14,
+                        cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'var(--text-base)',
                         borderRadius: 3,
                       }}
                     >
@@ -503,13 +503,13 @@ export default function CollectionDesignerPage() {
               <div style={{ padding: 12, borderTop: '1px solid var(--border)', flexShrink: 0 }}>
                 {showTypePicker && typePickerMode === 'add' ? (
                   <>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 6 }}>
                       Choose field type
                     </div>
                     <TypePicker onSelect={handleAddField} />
                     <button
                       onClick={() => setShowTypePicker(false)}
-                      style={{ marginTop: 6, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
+                      style={{ marginTop: 6, fontSize: 'var(--text-sm)', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
                     >
                       Cancel
                     </button>
@@ -521,7 +521,7 @@ export default function CollectionDesignerPage() {
                     style={{
                       width: '100%', padding: '8px 0', border: '1px dashed var(--border)',
                       borderRadius: 4, background: 'none', cursor: 'pointer',
-                      color: 'var(--accent)', fontSize: 13, fontWeight: 500,
+                      color: 'var(--accent)', fontSize: 'var(--text-base)', fontWeight: 500,
                     }}
                   >
                     + Add field
@@ -534,12 +534,12 @@ export default function CollectionDesignerPage() {
             <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
               {selectedField ? (
                 <div style={{ maxWidth: 400 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
+                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
                     Field editor
                   </div>
 
                   {/* Name */}
-                  <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
+                  <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 4 }}>
                     Name
                   </label>
                   <input
@@ -549,24 +549,24 @@ export default function CollectionDesignerPage() {
                     style={{
                       width: '100%', padding: '7px 10px', borderRadius: 4,
                       border: '1px solid var(--border)', background: 'var(--bg)',
-                      color: 'var(--text)', fontSize: 13, boxSizing: 'border-box', marginBottom: 14,
+                      color: 'var(--text)', fontSize: 'var(--text-base)', boxSizing: 'border-box', marginBottom: 14,
                     }}
                   />
 
                   {/* Type */}
-                  <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
+                  <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 4 }}>
                     Type
                   </label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{
                       padding: '6px 10px', borderRadius: 4, border: '1px solid var(--border)',
-                      fontSize: 13, color: 'var(--text)', background: 'var(--bg)',
+                      fontSize: 'var(--text-base)', color: 'var(--text)', background: 'var(--bg)',
                     }}>
                       {typeIcon(selectedField.type)} {FIELD_TYPES.find(ft => ft.type === selectedField.type)?.label ?? selectedField.type}
                     </span>
                     <button
                       onClick={() => { setTypePickerMode('change'); setShowTypePicker(v => !v) }}
-                      style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
+                      style={{ fontSize: 'var(--text-sm)', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
                     >
                       Change type
                     </button>
@@ -581,12 +581,12 @@ export default function CollectionDesignerPage() {
                   {/* Options (select only) */}
                   {selectedField.type === 'select' && (
                     <div style={{ marginBottom: 14 }}>
-                      <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>
+                      <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 6 }}>
                         Options
                       </label>
                       {(selectedField.options ?? []).map(opt => (
                         <div key={opt} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                          <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{opt}</span>
+                          <span style={{ flex: 1, fontSize: 'var(--text-base)', color: 'var(--text)' }}>{opt}</span>
                           <button
                             onClick={() => handleRemoveOption(opt)}
                             aria-label={`Remove option ${opt}`}
@@ -606,14 +606,14 @@ export default function CollectionDesignerPage() {
                           style={{
                             flex: 1, padding: '5px 8px', borderRadius: 4,
                             border: '1px solid var(--border)', background: 'var(--bg)',
-                            color: 'var(--text)', fontSize: 12,
+                            color: 'var(--text)', fontSize: 'var(--text-sm)',
                           }}
                         />
                         <button
                           onClick={handleAddOption}
                           style={{
                             padding: '5px 10px', borderRadius: 4, border: '1px solid var(--border)',
-                            background: 'var(--bg)', cursor: 'pointer', fontSize: 12, color: 'var(--text)',
+                            background: 'var(--bg)', cursor: 'pointer', fontSize: 'var(--text-sm)', color: 'var(--text)',
                           }}
                         >
                           Add
@@ -631,7 +631,7 @@ export default function CollectionDesignerPage() {
                         checked={selectedField.required}
                         onChange={e => updateField({ ...selectedField, required: e.target.checked }, true)}
                       />
-                      <span style={{ fontSize: 13, color: 'var(--text)' }}>Required</span>
+                      <span style={{ fontSize: 'var(--text-base)', color: 'var(--text)' }}>Required</span>
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
                       <input
@@ -640,12 +640,12 @@ export default function CollectionDesignerPage() {
                         checked={selectedField.showInList}
                         onChange={e => updateField({ ...selectedField, showInList: e.target.checked }, true)}
                       />
-                      <span style={{ fontSize: 13, color: 'var(--text)' }}>Show in list</span>
+                      <span style={{ fontSize: 'var(--text-base)', color: 'var(--text)' }}>Show in list</span>
                     </label>
                   </div>
                 </div>
               ) : (
-                <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: 'var(--text-base)' }}>
                   Select a field to edit
                 </div>
               )}
@@ -661,7 +661,7 @@ export default function CollectionDesignerPage() {
               width: 220, borderRight: '1px solid var(--border)', display: 'flex',
               flexDirection: 'column', overflowY: 'auto', padding: 12, flexShrink: 0,
             }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
                 Fields
               </div>
               {fields.map(field => {
@@ -680,16 +680,16 @@ export default function CollectionDesignerPage() {
                       opacity: placed ? 0.5 : 1, background: 'var(--bg)',
                     }}
                   >
-                    <span style={{ fontSize: 12 }}>{typeIcon(field.type)}</span>
-                    <span style={{ flex: 1, fontSize: 12, color: 'var(--text)' }}>{field.name}</span>
+                    <span style={{ fontSize: 'var(--text-sm)' }}>{typeIcon(field.type)}</span>
+                    <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--text)' }}>{field.name}</span>
                     {placed && (
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>placed</span>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>placed</span>
                     )}
                   </div>
                 )
               })}
 
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 16, marginBottom: 8 }}>
+              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 16, marginBottom: 8 }}>
                 Layout elements
               </div>
               {[
@@ -705,7 +705,7 @@ export default function CollectionDesignerPage() {
                   style={{
                     padding: '6px 8px', marginBottom: 2, borderRadius: 4,
                     border: '1px dashed var(--border)', cursor: 'grab',
-                    fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg)',
+                    fontSize: 'var(--text-sm)', color: 'var(--text-muted)', background: 'var(--bg)',
                   }}
                 >
                   {el.label}
@@ -753,7 +753,7 @@ export default function CollectionDesignerPage() {
                             border: '1px solid var(--accent)',
                             borderRadius: 4,
                             background: 'var(--accent-bg, rgba(29,158,117,0.06))',
-                            display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
+                            display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)',
                             overflow: 'hidden', minWidth: 0,
                           }}
                           onMouseEnter={() => setHoveredTile({ row: rowIdx, col: colIdx })}
@@ -769,7 +769,7 @@ export default function CollectionDesignerPage() {
                                       onClick={e => e.stopPropagation()}
                                       onChange={e => updateCellLabel(rowIdx, colIdx, e.target.value)}
                                       placeholder="Divider label…"
-                                      style={{ width: '100%', border: 'none', background: 'transparent', color: 'var(--text)', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
+                                      style={{ width: '100%', border: 'none', background: 'transparent', color: 'var(--text)', fontSize: 'var(--text-sm)', fontFamily: 'inherit', outline: 'none' }}
                                     />
                                   )
                                 : (
@@ -778,7 +778,7 @@ export default function CollectionDesignerPage() {
                                       onClick={e => e.stopPropagation()}
                                       onChange={e => updateCellLabel(rowIdx, colIdx, e.target.value)}
                                       placeholder="Section label…"
-                                      style={{ width: '100%', border: 'none', background: 'transparent', color: 'var(--text)', fontSize: 12, fontFamily: 'inherit', outline: 'none', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                                      style={{ width: '100%', border: 'none', background: 'transparent', color: 'var(--text)', fontSize: 'var(--text-sm)', fontFamily: 'inherit', outline: 'none', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}
                                     />
                                   )
                             }
@@ -790,27 +790,27 @@ export default function CollectionDesignerPage() {
                                   <button
                                     onClick={() => handleChangeRowSpan(rowIdx, colIdx, -1)}
                                     title="Fewer rows"
-                                    style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--text-muted)', opacity: (fieldCell.rowSpan ?? 1) <= 1 ? 0.35 : 1 }}
+                                    style={{ fontSize: 'var(--text-xs)', padding: '1px 5px', borderRadius: 3, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--text-muted)', opacity: (fieldCell.rowSpan ?? 1) <= 1 ? 0.35 : 1 }}
                                   >−</button>
-                                  <span style={{ fontSize: 10, color: 'var(--text-muted)', minWidth: 18, textAlign: 'center' }}>{fieldCell.rowSpan ?? 1}R</span>
+                                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', minWidth: 18, textAlign: 'center' }}>{fieldCell.rowSpan ?? 1}R</span>
                                   <button
                                     onClick={() => handleChangeRowSpan(rowIdx, colIdx, 1)}
                                     title="More rows"
-                                    style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--text-muted)', opacity: (fieldCell.rowSpan ?? 1) >= 3 ? 0.35 : 1 }}
+                                    style={{ fontSize: 'var(--text-xs)', padding: '1px 5px', borderRadius: 3, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--text-muted)', opacity: (fieldCell.rowSpan ?? 1) >= 3 ? 0.35 : 1 }}
                                   >+</button>
                                 </>
                               )}
                               <button
                                 onClick={() => handleToggleSpan(rowIdx, colIdx)}
                                 title={cell.span === 2 ? 'Half width' : 'Full width'}
-                                style={{ fontSize: 10, padding: '2px 5px', borderRadius: 3, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--text-muted)' }}
+                                style={{ fontSize: 'var(--text-xs)', padding: '2px 5px', borderRadius: 3, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--text-muted)' }}
                               >
                                 {cell.span === 2 ? '½' : '⟷'}
                               </button>
                               <button
                                 onClick={() => handleRemoveTile(rowIdx, colIdx)}
                                 aria-label={`Remove ${label}`}
-                                style={{ fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                                style={{ fontSize: 'var(--text-base)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
                               >×</button>
                             </div>
                           )}
@@ -830,7 +830,7 @@ export default function CollectionDesignerPage() {
                           border: `2px dashed ${isOver ? 'var(--accent)' : 'var(--border)'}`,
                           background: isOver ? 'var(--accent-bg, rgba(29,158,117,0.06))' : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 11, color: 'var(--text-muted)',
+                          fontSize: 'var(--text-xs)', color: 'var(--text-muted)',
                         }}
                       >
                         {isOver ? 'Drop here' : ''}
@@ -846,7 +846,7 @@ export default function CollectionDesignerPage() {
                   aria-label="Add row"
                   style={{
                     padding: '6px 12px', borderRadius: 4, border: '1px dashed var(--border)',
-                    background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)',
+                    background: 'none', cursor: 'pointer', fontSize: 'var(--text-sm)', color: 'var(--text-muted)',
                   }}
                 >
                   + Add row
@@ -856,7 +856,7 @@ export default function CollectionDesignerPage() {
                   aria-label="Clear all"
                   style={{
                     padding: '6px 12px', borderRadius: 4, border: '1px solid var(--border)',
-                    background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)',
+                    background: 'none', cursor: 'pointer', fontSize: 'var(--text-sm)', color: 'var(--text-muted)',
                   }}
                 >
                   Clear all

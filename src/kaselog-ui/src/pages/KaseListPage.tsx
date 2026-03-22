@@ -87,12 +87,12 @@ export default function KaseListPage() {
         padding: '0 1.25rem',
         gap: '0.75rem',
       }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+        <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
           All Kases
         </div>
         {!loading && (
           <div style={{
-            fontSize: 11,
+            fontSize: 'var(--text-xs)',
             color: 'var(--text-tertiary)',
             padding: '2px 8px',
             background: 'var(--bg-secondary)',
@@ -106,7 +106,7 @@ export default function KaseListPage() {
         <button
           onClick={openModal}
           style={{
-            fontSize: 12,
+            fontSize: 'var(--text-sm)',
             fontWeight: 500,
             color: 'var(--bg)',
             background: 'var(--accent)',
@@ -124,7 +124,7 @@ export default function KaseListPage() {
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
         {loading ? (
-          <div style={{ fontSize: 13, color: 'var(--text-tertiary)', paddingTop: '2rem', textAlign: 'center' }}>
+          <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)', paddingTop: '2rem', textAlign: 'center' }}>
             Loading...
           </div>
         ) : kaseList.length === 0 ? (
@@ -137,17 +137,17 @@ export default function KaseListPage() {
             paddingTop: '4rem',
             gap: '0.75rem',
           }}>
-            <div style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 500 }}>
+            <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)', fontWeight: 500 }}>
               No kases yet
             </div>
-            <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
+            <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>
               Create your first kase to start logging
             </div>
             <button
               onClick={openModal}
               style={{
                 marginTop: '0.5rem',
-                fontSize: 13,
+                fontSize: 'var(--text-base)',
                 fontWeight: 500,
                 color: 'var(--bg)',
                 background: 'var(--accent)',
@@ -184,11 +184,11 @@ export default function KaseListPage() {
                 onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}
               >
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: 3 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+                  <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)' }}>
                     {kase.title}
                   </div>
                   <div style={{
-                    fontSize: 10,
+                    fontSize: 'var(--text-xs)',
                     color: 'var(--text-tertiary)',
                     padding: '1px 7px',
                     background: 'var(--bg-secondary)',
@@ -199,11 +199,11 @@ export default function KaseListPage() {
                   </div>
                 </div>
                 {kase.description && (
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 3, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 3, lineHeight: 1.5 }}>
                     {kase.description}
                   </div>
                 )}
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
                   Updated {formatRelativeTime(kase.updatedAt)}
                 </div>
               </div>
@@ -237,13 +237,13 @@ export default function KaseListPage() {
             width: 420,
             maxWidth: '90vw',
           }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: '1.25rem', letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '1.25rem', letterSpacing: '-0.02em' }}>
               New Kase
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   Title
                 </label>
                 <input
@@ -255,7 +255,7 @@ export default function KaseListPage() {
                   style={{
                     width: '100%',
                     padding: '8px 10px',
-                    fontSize: 13,
+                    fontSize: 'var(--text-base)',
                     color: 'var(--text-primary)',
                     background: 'var(--bg-secondary)',
                     border: `1px solid ${titleError ? '#d85a30' : 'var(--border-mid)'}`,
@@ -265,14 +265,14 @@ export default function KaseListPage() {
                   }}
                 />
                 {titleError && (
-                  <div role="alert" style={{ fontSize: 11, color: '#d85a30', marginTop: 4 }}>
+                  <div role="alert" style={{ fontSize: 'var(--text-xs)', color: '#d85a30', marginTop: 4 }}>
                     {titleError}
                   </div>
                 )}
               </div>
 
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   Description <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none' }}>(optional)</span>
                 </label>
                 <input
@@ -283,7 +283,7 @@ export default function KaseListPage() {
                   style={{
                     width: '100%',
                     padding: '8px 10px',
-                    fontSize: 13,
+                    fontSize: 'var(--text-base)',
                     color: 'var(--text-primary)',
                     background: 'var(--bg-secondary)',
                     border: '1px solid var(--border-mid)',
@@ -295,7 +295,7 @@ export default function KaseListPage() {
               </div>
 
               {submitError && (
-                <div role="alert" style={{ fontSize: 12, color: '#d85a30', marginBottom: '1rem', padding: '8px 10px', background: 'rgba(216,90,48,0.08)', borderRadius: 6 }}>
+                <div role="alert" style={{ fontSize: 'var(--text-sm)', color: '#d85a30', marginBottom: '1rem', padding: '8px 10px', background: 'rgba(216,90,48,0.08)', borderRadius: 6 }}>
                   {submitError}
                 </div>
               )}
@@ -307,7 +307,7 @@ export default function KaseListPage() {
                   disabled={submitting}
                   style={{
                     padding: '7px 14px',
-                    fontSize: 13,
+                    fontSize: 'var(--text-base)',
                     color: 'var(--text-secondary)',
                     background: 'transparent',
                     border: '1px solid var(--border-mid)',
@@ -323,7 +323,7 @@ export default function KaseListPage() {
                   disabled={submitting}
                   style={{
                     padding: '7px 16px',
-                    fontSize: 13,
+                    fontSize: 'var(--text-base)',
                     fontWeight: 500,
                     color: 'var(--bg)',
                     background: submitting ? 'var(--text-tertiary)' : 'var(--accent)',

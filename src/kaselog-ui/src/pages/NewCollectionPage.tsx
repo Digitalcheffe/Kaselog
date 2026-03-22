@@ -37,18 +37,18 @@ export default function NewCollectionPage() {
         height: 48, display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px',
         borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--surface)',
       }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>New Collection</span>
+        <span style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text)' }}>New Collection</span>
       </div>
 
       {/* Form */}
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 16px' }}>
         <div style={{ width: '100%', maxWidth: 400 }}>
-          <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 24 }}>
+          <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text)', marginBottom: 24 }}>
             Create a collection
           </div>
 
           {/* Title */}
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', marginBottom: 6 }}>
+          <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-muted)', marginBottom: 6 }}>
             Title
           </label>
           <input
@@ -60,16 +60,16 @@ export default function NewCollectionPage() {
             style={{
               width: '100%', padding: '8px 12px', borderRadius: 6, boxSizing: 'border-box',
               border: `1px solid ${error ? 'var(--accent-coral, #D85A30)' : 'var(--border)'}`,
-              background: 'var(--bg)', color: 'var(--text)', fontSize: 14, marginBottom: 4,
+              background: 'var(--bg)', color: 'var(--text)', fontSize: 'var(--text-base)', marginBottom: 4,
             }}
           />
           {error && (
-            <div style={{ fontSize: 12, color: 'var(--accent-coral, #D85A30)', marginBottom: 16 }}>{error}</div>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--accent-coral, #D85A30)', marginBottom: 16 }}>{error}</div>
           )}
           {!error && <div style={{ marginBottom: 20 }} />}
 
           {/* Color */}
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', marginBottom: 10 }}>
+          <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-muted)', marginBottom: 10 }}>
             Color
           </label>
           <div style={{ display: 'flex', gap: 10, marginBottom: 28 }}>
@@ -98,7 +98,7 @@ export default function NewCollectionPage() {
               style={{
                 flex: 1, padding: '9px 0', borderRadius: 6, border: 'none',
                 background: 'var(--accent)', color: '#fff', cursor: 'pointer',
-                fontSize: 14, fontWeight: 500,
+                fontSize: 'var(--text-base)', fontWeight: 500,
               }}
             >
               {saving ? 'Creating…' : 'Create & open designer'}
@@ -108,7 +108,7 @@ export default function NewCollectionPage() {
               style={{
                 padding: '9px 16px', borderRadius: 6,
                 border: '1px solid var(--border)', background: 'var(--bg)',
-                color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14,
+                color: 'var(--text-muted)', cursor: 'pointer', fontSize: 'var(--text-base)',
               }}
             >
               Cancel

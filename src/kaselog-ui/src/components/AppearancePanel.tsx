@@ -44,8 +44,8 @@ export default function AppearancePanel({ onClose }: Props) {
           justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>Appearance</div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Theme and accent color</div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-primary)' }}>Appearance</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 1 }}>Theme and accent color</div>
           </div>
           <button
             onClick={onClose}
@@ -54,7 +54,7 @@ export default function AppearancePanel({ onClose }: Props) {
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              fontSize: 14,
+              fontSize: 'var(--text-base)',
               color: 'var(--text-tertiary)',
               padding: '2px 4px',
               fontFamily: 'var(--font)',
@@ -69,7 +69,7 @@ export default function AppearancePanel({ onClose }: Props) {
 
           {/* Theme row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 52 }}>Theme</div>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', minWidth: 52 }}>Theme</div>
             <div style={{ display: 'flex', gap: '0.4rem' }}>
               <button
                 aria-label="Light theme"
@@ -84,7 +84,7 @@ export default function AppearancePanel({ onClose }: Props) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 11,
+                  fontSize: 'var(--text-xs)',
                   fontWeight: 500,
                   color: theme === 'light' ? 'var(--accent)' : 'var(--text-tertiary)',
                   background: '#f7f6f3',
@@ -107,7 +107,7 @@ export default function AppearancePanel({ onClose }: Props) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 11,
+                  fontSize: 'var(--text-xs)',
                   fontWeight: 500,
                   color: theme === 'dark' ? 'var(--accent)' : 'var(--text-tertiary)',
                   background: '#1c1c1a',
@@ -122,7 +122,7 @@ export default function AppearancePanel({ onClose }: Props) {
 
           {/* Accent row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 52 }}>Accent</div>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', minWidth: 52 }}>Accent</div>
             <div style={{ display: 'flex', gap: '0.45rem' }}>
               {ACCENT_DEFS.map(def => (
                 <button

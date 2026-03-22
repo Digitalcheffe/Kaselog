@@ -122,13 +122,13 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: 
           padding: '0 1rem', gap: 8,
           borderBottom: '1px solid var(--border)', flexShrink: 0,
         }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
+          <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
             Kase settings
           </span>
           <button
             aria-label="Close settings"
             onClick={onClose}
-            style={{ fontSize: 18, color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none', lineHeight: 1 }}
+            style={{ fontSize: 'var(--text-lg)', color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none', lineHeight: 1 }}
           >
             ×
           </button>
@@ -136,7 +136,7 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: 
 
         <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
+            <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
               Title
             </div>
             <input
@@ -149,14 +149,14 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: 
                 background: 'var(--bg-secondary)',
                 border: '1px solid var(--border-mid)',
                 borderRadius: 7, padding: '7px 10px',
-                fontSize: 13, color: 'var(--text-primary)',
+                fontSize: 'var(--text-base)', color: 'var(--text-primary)',
                 fontFamily: 'inherit', outline: 'none',
               }}
             />
           </div>
 
           <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
+            <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
               Description
             </div>
             <textarea
@@ -170,7 +170,7 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: 
                 background: 'var(--bg-secondary)',
                 border: '1px solid var(--border-mid)',
                 borderRadius: 7, padding: '7px 10px',
-                fontSize: 12, color: 'var(--text-primary)',
+                fontSize: 'var(--text-sm)', color: 'var(--text-primary)',
                 fontFamily: 'inherit', outline: 'none',
                 resize: 'vertical', lineHeight: 1.5,
               }}
@@ -180,14 +180,14 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: 
           <div style={{ height: 1, background: 'var(--border)' }} />
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>
+            <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>
               Info
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
               <span>Created</span>
               <span style={{ color: 'var(--text-primary)' }}>{formatDate(kase.createdAt)}</span>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
               <span>Entries</span>
               <span style={{ color: 'var(--text-primary)' }}>{entryCount}</span>
             </div>
@@ -200,7 +200,7 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: 
               <button
                 onClick={() => setConfirmDelete(true)}
                 style={{
-                  fontSize: 12, color: '#B91C1C', cursor: 'pointer',
+                  fontSize: 'var(--text-sm)', color: '#B91C1C', cursor: 'pointer',
                   background: 'none', border: 'none', fontFamily: 'inherit',
                   padding: 0, textAlign: 'left',
                 }}
@@ -213,7 +213,7 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: 
                 borderRadius: 8, padding: '0.75rem',
                 display: 'flex', flexDirection: 'column', gap: 8,
               }}>
-                <div style={{ fontSize: 12, color: '#7F1D1D', lineHeight: 1.5 }}>
+                <div style={{ fontSize: 'var(--text-sm)', color: '#7F1D1D', lineHeight: 1.5 }}>
                   <strong>Permanently delete this Kase?</strong><br />
                   All Logs, Log versions, and linked Collection items will be permanently deleted. This cannot be undone.
                 </div>
@@ -221,7 +221,7 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: 
                   <button
                     onClick={() => setConfirmDelete(false)}
                     style={{
-                      flex: 1, fontSize: 12, color: 'var(--text-secondary)',
+                      flex: 1, fontSize: 'var(--text-sm)', color: 'var(--text-secondary)',
                       padding: '5px 0', borderRadius: 6,
                       border: '1px solid var(--border-mid)',
                       background: 'var(--bg)', cursor: 'pointer', fontFamily: 'inherit',
@@ -234,7 +234,7 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: 
                     disabled={deleting}
                     aria-label="Confirm delete kase"
                     style={{
-                      flex: 1, fontSize: 12, fontWeight: 500,
+                      flex: 1, fontSize: 'var(--text-sm)', fontWeight: 500,
                       color: 'white', background: '#DC2626',
                       padding: '5px 0', borderRadius: 6,
                       border: 'none', cursor: 'pointer', fontFamily: 'inherit',
@@ -296,7 +296,7 @@ export default function KaseViewPage() {
           display: 'flex', alignItems: 'center',
           padding: '0 1.25rem', gap: '0.75rem', flexShrink: 0,
         }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
             Kase not found
           </div>
           <div style={{ flex: 1 }} />
@@ -306,10 +306,10 @@ export default function KaseViewPage() {
           alignItems: 'center', justifyContent: 'center',
           gap: '0.5rem', color: 'var(--text-tertiary)',
         }}>
-          <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-secondary)' }}>
+          <div style={{ fontSize: 'var(--text-md)', fontWeight: 500, color: 'var(--text-secondary)' }}>
             This kase doesn&rsquo;t exist
           </div>
-          <div style={{ fontSize: 13 }}>
+          <div style={{ fontSize: 'var(--text-base)' }}>
             It may have been deleted or the link is incorrect.
           </div>
         </div>
@@ -327,11 +327,11 @@ export default function KaseViewPage() {
         display: 'flex', alignItems: 'center',
         padding: '0 1.25rem', gap: '0.75rem', flexShrink: 0,
       }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+        <div style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
           {kase?.title ?? '\u2026'}
         </div>
         <div style={{
-          fontSize: 12, color: 'var(--text-tertiary)',
+          fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)',
           padding: '2px 8px', background: 'var(--bg-secondary)',
           borderRadius: 99, border: '1px solid var(--border)',
         }}>
@@ -344,7 +344,7 @@ export default function KaseViewPage() {
           aria-label="Kase settings"
           onClick={() => setSettingsOpen(o => !o)}
           style={{
-            fontSize: 15, color: 'var(--text-tertiary)', cursor: 'pointer',
+            fontSize: 'var(--text-md)', color: 'var(--text-tertiary)', cursor: 'pointer',
             background: 'none', border: 'none', padding: '4px 6px',
             borderRadius: 6, lineHeight: 1, fontFamily: 'inherit',
           }}
@@ -356,7 +356,7 @@ export default function KaseViewPage() {
         <button
           onClick={() => setModalOpen(true)}
           style={{
-            fontSize: 13, fontWeight: 500,
+            fontSize: 'var(--text-base)', fontWeight: 500,
             color: 'var(--bg)', background: 'var(--accent)',
             padding: '5px 12px', borderRadius: 6,
             cursor: 'pointer', border: 'none', fontFamily: 'var(--font)',
@@ -369,7 +369,7 @@ export default function KaseViewPage() {
       {/* Timeline */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
         {loading ? (
-          <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Loading&hellip;</div>
+          <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>Loading&hellip;</div>
         ) : entries.length === 0 ? (
           <EmptyState onNew={() => setModalOpen(true)} />
         ) : (
@@ -433,16 +433,16 @@ function EmptyState({ onNew }: { onNew: () => void }) {
       alignItems: 'center', justifyContent: 'center',
       paddingTop: '4rem', gap: '0.75rem',
     }}>
-      <div style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 500 }}>
+      <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)', fontWeight: 500 }}>
         No entries yet
       </div>
-      <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
+      <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>
         Create a log or add a collection item to start capturing work in this kase
       </div>
       <button
         onClick={onNew}
         style={{
-          marginTop: '0.5rem', fontSize: 13, fontWeight: 500,
+          marginTop: '0.5rem', fontSize: 'var(--text-base)', fontWeight: 500,
           color: 'var(--bg)', background: 'var(--accent)',
           padding: '8px 20px', borderRadius: 7,
           cursor: 'pointer', border: 'none', fontFamily: 'var(--font)',
@@ -494,7 +494,7 @@ function LogTimelineEntry({ entry, index, isLast, isHovered, onMouseEnter, onMou
       <div style={{ flex: 1, paddingBottom: '1.25rem', borderBottom: isLast ? 'none' : '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.25rem' }}>
           <div style={{
-            fontSize: 14, fontWeight: 500,
+            fontSize: 'var(--text-base)', fontWeight: 500,
             color: isHovered ? 'var(--accent)' : 'var(--text-primary)',
             flex: 1, lineHeight: 1.3, transition: 'color 0.15s',
           }}>
@@ -502,7 +502,7 @@ function LogTimelineEntry({ entry, index, isLast, isHovered, onMouseEnter, onMou
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
             <span style={{
-              fontSize: 10, color: 'var(--text-tertiary)',
+              fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)',
               padding: '1px 6px', background: 'var(--bg-secondary)',
               border: '1px solid var(--border)', borderRadius: 4,
               fontFamily: 'var(--font-mono)',
@@ -510,20 +510,20 @@ function LogTimelineEntry({ entry, index, isLast, isHovered, onMouseEnter, onMou
               log
             </span>
             <span style={{
-              fontSize: 10, color: 'var(--text-tertiary)',
+              fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)',
               padding: '1px 6px', background: 'var(--bg-secondary)',
               border: '1px solid var(--border)', borderRadius: 4,
               fontFamily: 'var(--font-mono)',
             }}>
               v{entry.versionCount}
             </span>
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
               {formatTimestamp(entry.updatedAt)}
             </span>
           </div>
         </div>
         {entry.description && (
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '0.45rem' }}>
+          <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '0.45rem' }}>
             {entry.description}
           </div>
         )}
@@ -533,7 +533,7 @@ function LogTimelineEntry({ entry, index, isLast, isHovered, onMouseEnter, onMou
               <span
                 key={tag}
                 className={`tag-${tagColorClass(tag)}`}
-                style={{ fontSize: 11, padding: '2px 8px', borderRadius: 99, fontWeight: 500 }}
+                style={{ fontSize: 'var(--text-xs)', padding: '2px 8px', borderRadius: 99, fontWeight: 500 }}
               >
                 {tag}
               </span>
@@ -588,14 +588,14 @@ function CollectionItemTimelineEntry({
         {/* Header row: type badge + timestamp */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
           <span style={{
-            fontSize: 10, fontWeight: 500,
+            fontSize: 'var(--text-xs)', fontWeight: 500,
             padding: '1px 7px', borderRadius: 99,
             background: '#E6F1FB', color: '#042C53',
             flexShrink: 0,
           }}>
             collection item
           </span>
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
             {formatTimestamp(entry.updatedAt)}
           </span>
         </div>
@@ -612,12 +612,12 @@ function CollectionItemTimelineEntry({
           {/* Collection name row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
             <div style={{ width: 7, height: 7, borderRadius: 2, background: dotColor, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{entry.collectionTitle}</span>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>{entry.collectionTitle}</span>
           </div>
 
           {/* Item title */}
           <div style={{
-            fontSize: 13, fontWeight: 500,
+            fontSize: 'var(--text-base)', fontWeight: 500,
             color: isHovered ? 'var(--accent)' : 'var(--text-primary)',
             marginBottom: (entry.summaryFields ?? []).length > 0 ? '0.35rem' : 0,
             transition: 'color 0.15s',
@@ -629,7 +629,7 @@ function CollectionItemTimelineEntry({
           {(entry.summaryFields ?? []).length > 0 && (
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               {(entry.summaryFields ?? []).map(sf => (
-                <div key={sf.name} style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                <div key={sf.name} style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
                   {sf.name} <span style={{ color: 'var(--text-secondary)' }}>{sf.value}</span>
                 </div>
               ))}

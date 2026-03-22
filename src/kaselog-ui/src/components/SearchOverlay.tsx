@@ -117,7 +117,7 @@ export default function SearchOverlay({ onClose }: Props) {
   const groupHeader = (label: string) => (
     <div style={{
       padding: '0.25rem 1rem 0.2rem',
-      fontSize: 9,
+      fontSize: 'var(--text-2xs)',
       fontWeight: 600,
       color: 'var(--text-tertiary)',
       textTransform: 'uppercase',
@@ -208,7 +208,7 @@ export default function SearchOverlay({ onClose }: Props) {
             onChange={e => handleQueryChange(e.target.value)}
             style={{
               flex: 1,
-              fontSize: 14,
+              fontSize: 'var(--text-base)',
               color: 'var(--text-primary)',
               border: 'none',
               outline: 'none',
@@ -220,7 +220,7 @@ export default function SearchOverlay({ onClose }: Props) {
             onClick={onClose}
             aria-label="Close search"
             style={{
-              fontSize: 10,
+              fontSize: 'var(--text-xs)',
               color: 'var(--text-tertiary)',
               padding: '2px 7px',
               background: 'var(--bg-secondary)',
@@ -246,7 +246,7 @@ export default function SearchOverlay({ onClose }: Props) {
                   resultButton(
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        fontSize: 13,
+                        fontSize: 'var(--text-base)',
                         fontWeight: 500,
                         color: 'var(--text-primary)',
                         marginBottom: '0.15rem',
@@ -256,7 +256,7 @@ export default function SearchOverlay({ onClose }: Props) {
                       }}>
                         {r.title}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: r.tags.length ? '0.3rem' : 0 }}>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: r.tags.length ? '0.3rem' : 0 }}>
                         {r.kaseTitle}
                       </div>
                       {r.tags.length > 0 && (
@@ -265,7 +265,7 @@ export default function SearchOverlay({ onClose }: Props) {
                             const c = tagColor(tag)
                             return (
                               <span key={tag} style={{
-                                fontSize: 10,
+                                fontSize: 'var(--text-xs)',
                                 padding: '1px 7px',
                                 borderRadius: 99,
                                 fontWeight: 500,
@@ -306,12 +306,12 @@ export default function SearchOverlay({ onClose }: Props) {
                             flexShrink: 0,
                           }}
                         />
-                        <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 500 }}>
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', fontWeight: 500 }}>
                           {r.collectionTitle}
                         </span>
                       </div>
                       <div style={{
-                        fontSize: 13,
+                        fontSize: 'var(--text-base)',
                         fontWeight: 500,
                         color: 'var(--text-primary)',
                         marginBottom: '0.15rem',
@@ -323,7 +323,7 @@ export default function SearchOverlay({ onClose }: Props) {
                       </div>
                       {r.highlight && (
                         <div style={{
-                          fontSize: 11,
+                          fontSize: 'var(--text-xs)',
                           color: 'var(--text-tertiary)',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -333,7 +333,7 @@ export default function SearchOverlay({ onClose }: Props) {
                         </div>
                       )}
                       {r.kaseTitle && (
-                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: '0.1rem' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: '0.1rem' }}>
                           Kase: {r.kaseTitle}
                         </div>
                       )}
@@ -349,7 +349,7 @@ export default function SearchOverlay({ onClose }: Props) {
         )}
 
         {showEmpty && (
-          <div style={{ padding: '0.75rem 1rem', fontSize: 13, color: 'var(--text-tertiary)' }}>
+          <div style={{ padding: '0.75rem 1rem', fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>
             No results for &ldquo;{query}&rdquo;
           </div>
         )}
@@ -362,14 +362,14 @@ export default function SearchOverlay({ onClose }: Props) {
           padding: '0.6rem 1rem',
           borderTop: '1px solid var(--border)',
         }}>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
             {showResults ? `${results.length} results for "${query}"` : 'Type to search all logs'}
           </div>
           <button
             onClick={handleAdvancedSearch}
             data-testid="advanced-search-link"
             style={{
-              fontSize: 11,
+              fontSize: 'var(--text-xs)',
               fontWeight: 500,
               color: 'var(--accent)',
               cursor: 'pointer',
