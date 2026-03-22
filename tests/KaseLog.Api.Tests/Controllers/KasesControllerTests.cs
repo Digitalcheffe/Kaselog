@@ -247,4 +247,116 @@ public sealed class KasesControllerTests : IAsyncLifetime
         var root = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
         Assert.Equal(2, root.GetProperty("data").GetProperty("logCount").GetInt32());
     }
+
+    // ── Pin / unpin tests ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task PostKase_NewKase_IsPinned_DefaultsFalse()
+    {
+        var data = await PostKaseAsync("Fresh Kase");
+        Assert.False(data.GetProperty("isPinned").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Pin_ExistingKase_ReturnsTrueAndPersists()
+    {
+        var kase = await PostKaseAsync("Pin Me");
+        var id = kase.GetProperty("id").GetString()!;
+
+        var pinResponse = await _client.PostAsync($"/api/kases/{id}/pin", null);
+        Assert.Equal(HttpStatusCode.OK, pinResponse.StatusCode);
+
+        var root = JsonDocument.Parse(await pinResponse.Content.ReadAsStringAsync()).RootElement;
+        Assert.True(root.GetProperty("data").GetProperty("isPinned").GetBoolean());
+
+        // Verify persistence via GET
+        var getRoot = JsonDocument.Parse(
+            await (await _client.GetAsync($"/api/kases/{id}")).Content.ReadAsStringAsync()
+        ).RootElement;
+        Assert.True(getRoot.GetProperty("data").GetProperty("isPinned").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Unpin_PinnedKase_ReturnsFalseAndPersists()
+    {
+        var kase = await PostKaseAsync("Unpin Me");
+        var id = kase.GetProperty("id").GetString()!;
+
+        await _client.PostAsync($"/api/kases/{id}/pin", null);
+
+        var unpinResponse = await _client.PostAsync($"/api/kases/{id}/unpin", null);
+        Assert.Equal(HttpStatusCode.OK, unpinResponse.StatusCode);
+
+        var root = JsonDocument.Parse(await unpinResponse.Content.ReadAsStringAsync()).RootElement;
+        Assert.False(root.GetProperty("data").GetProperty("isPinned").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Pin_UnknownId_Returns404()
+    {
+        var response = await _client.PostAsync($"/api/kases/{Guid.NewGuid()}/pin", null);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Unpin_UnknownId_Returns404()
+    {
+        var response = await _client.PostAsync($"/api/kases/{Guid.NewGuid()}/unpin", null);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetKases_PinnedKaseSortsFirst()
+    {
+        // Create two kases, pin the second one
+        var k1 = await PostKaseAsync("Kase One");
+        await Task.Delay(5);
+        var k2 = await PostKaseAsync("Kase Two");
+        var id2 = k2.GetProperty("id").GetString()!;
+
+        await _client.PostAsync($"/api/kases/{id2}/pin", null);
+
+        var response = await _client.GetAsync("/api/kases");
+        var root = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+        var arr = root.GetProperty("data").EnumerateArray().ToArray();
+
+        Assert.Equal(2, arr.Length);
+        Assert.Equal(id2, arr[0].GetProperty("id").GetString()); // pinned first
+        Assert.True(arr[0].GetProperty("isPinned").GetBoolean());
+        Assert.False(arr[1].GetProperty("isPinned").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetKases_IncludesLatestLogFields()
+    {
+        var kase = await PostKaseAsync("Kase With Log");
+        var id = kase.GetProperty("id").GetString()!;
+        await InsertLogAsync(id);
+
+        var response = await _client.GetAsync("/api/kases");
+        var root = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+        var arr = root.GetProperty("data").EnumerateArray().ToArray();
+
+        var fetched = arr[0];
+        // latestLogTitle should be "Test Log" (our InsertLogAsync default)
+        Assert.Equal("Test Log", fetched.GetProperty("latestLogTitle").GetString());
+        // latestLogUpdatedAt should be a valid ISO datetime
+        var latestAt = fetched.GetProperty("latestLogUpdatedAt");
+        Assert.NotEqual(JsonValueKind.Null, latestAt.ValueKind);
+        Assert.True(DateTime.TryParse(latestAt.GetString(), out _));
+    }
+
+    [Fact]
+    public async Task PutKase_WithIsPinned_PersistsNewPinState()
+    {
+        var kase = await PostKaseAsync("Kase For Put");
+        var id = kase.GetProperty("id").GetString()!;
+
+        var response = await _client.PutAsJsonAsync($"/api/kases/{id}",
+            new { title = "Kase For Put", isPinned = true });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var root = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+        Assert.True(root.GetProperty("data").GetProperty("isPinned").GetBoolean());
+    }
 }

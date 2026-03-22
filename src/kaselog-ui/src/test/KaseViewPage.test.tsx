@@ -3,15 +3,19 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import KaseViewPage from '../pages/KaseViewPage'
+import { KasesProvider } from '../contexts/KasesContext'
 import type { KaseResponse, TimelineEntryResponse, CollectionResponse } from '../api/types'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 vi.mock('../api/client', () => ({
   kases: {
+    list: vi.fn(),
     get: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    pin: vi.fn(),
+    unpin: vi.fn(),
   },
   timeline: {
     list: vi.fn(),
@@ -40,6 +44,10 @@ function makeKase(overrides: Partial<KaseResponse> = {}): KaseResponse {
     title: 'Proxmox Cluster',
     description: 'Home lab cluster setup',
     logCount: 3,
+    isPinned: false,
+    latestLogTitle: 'VLAN Config',
+    latestLogPreview: 'Trunk mode on nodes.',
+    latestLogUpdatedAt: new Date(Date.now() - 3600000).toISOString(),
     createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
     updatedAt: new Date(Date.now() - 3600000).toISOString(),
     ...overrides,
@@ -71,9 +79,11 @@ function makeCollection(overrides: Partial<CollectionResponse> = {}): Collection
 function renderPage(kaseId = 'kase-1') {
   return render(
     <MemoryRouter initialEntries={[`/kases/${kaseId}`]}>
-      <Routes>
-        <Route path="/kases/:id" element={<KaseViewPage />} />
-      </Routes>
+      <KasesProvider>
+        <Routes>
+          <Route path="/kases/:id" element={<KaseViewPage />} />
+        </Routes>
+      </KasesProvider>
     </MemoryRouter>,
   )
 }
@@ -83,6 +93,7 @@ function renderPage(kaseId = 'kase-1') {
 describe('KaseViewPage — timeline', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(kasesApi.list).mockResolvedValue([])
     vi.mocked(collectionsApi.list).mockResolvedValue([])
   })
 
@@ -215,6 +226,7 @@ describe('KaseViewPage — timeline', () => {
 describe('KaseViewPage — new content modal', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(kasesApi.list).mockResolvedValue([])
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
     vi.mocked(timelineApi.list).mockResolvedValue([])
     vi.mocked(collectionsApi.list).mockResolvedValue([])
@@ -392,6 +404,7 @@ describe('KaseViewPage — new content modal', () => {
 describe('KaseViewPage — Kase settings panel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(kasesApi.list).mockResolvedValue([])
     vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
     vi.mocked(timelineApi.list).mockResolvedValue([])
     vi.mocked(collectionsApi.list).mockResolvedValue([])
@@ -481,5 +494,69 @@ describe('KaseViewPage — Kase settings panel', () => {
 
     expect(screen.queryByText(/Permanently delete/)).not.toBeInTheDocument()
     expect(kasesApi.delete).not.toHaveBeenCalled()
+  })
+})
+
+// ── Settings panel — pin toggle tests ────────────────────────────────────────
+
+describe('KaseViewPage — settings panel pin toggle', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(kasesApi.list).mockResolvedValue([])
+    vi.mocked(timelineApi.list).mockResolvedValue([])
+    vi.mocked(collectionsApi.list).mockResolvedValue([])
+  })
+
+  it('pin toggle is visible in settings panel', async () => {
+    vi.mocked(kasesApi.get).mockResolvedValue(makeKase({ isPinned: false }))
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByLabelText('Kase settings'))
+    await user.click(screen.getByLabelText('Kase settings'))
+
+    await waitFor(() => screen.getByTestId('settings-pin-toggle'))
+    expect(screen.getByText('Pin this Kase')).toBeInTheDocument()
+    expect(screen.getByTestId('settings-pin-toggle')).toBeInTheDocument()
+  })
+
+  it('pin toggle reflects unpinned state — calls pin endpoint when clicked', async () => {
+    const unpinned = makeKase({ isPinned: false })
+    const pinned = { ...unpinned, isPinned: true }
+    vi.mocked(kasesApi.get).mockResolvedValue(unpinned)
+    vi.mocked(kasesApi.pin).mockResolvedValue(pinned)
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByLabelText('Kase settings'))
+    await user.click(screen.getByLabelText('Kase settings'))
+
+    await waitFor(() => screen.getByLabelText('Pin this kase'))
+    await user.click(screen.getByLabelText('Pin this kase'))
+
+    await waitFor(() => {
+      expect(kasesApi.pin).toHaveBeenCalledWith('kase-1')
+    })
+  })
+
+  it('pin toggle reflects pinned state — calls unpin endpoint when clicked', async () => {
+    const pinned = makeKase({ isPinned: true })
+    const unpinned = { ...pinned, isPinned: false }
+    vi.mocked(kasesApi.get).mockResolvedValue(pinned)
+    vi.mocked(kasesApi.unpin).mockResolvedValue(unpinned)
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByLabelText('Kase settings'))
+    await user.click(screen.getByLabelText('Kase settings'))
+
+    await waitFor(() => screen.getByLabelText('Unpin this kase'))
+    await user.click(screen.getByLabelText('Unpin this kase'))
+
+    await waitFor(() => {
+      expect(kasesApi.unpin).toHaveBeenCalledWith('kase-1')
+    })
   })
 })

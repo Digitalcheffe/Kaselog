@@ -14,12 +14,26 @@ public sealed class SqliteKaseRepository : IKaseRepository
     {
         using var conn = await _db.OpenAsync();
         var rows = await conn.QueryAsync<KaseRow>("""
-            SELECT k.Id, k.Title, k.Description, k.CreatedAt, k.UpdatedAt,
-                   COUNT(l.Id) AS LogCount
+            SELECT k.Id, k.Title, k.Description, k.IsPinned, k.CreatedAt, k.UpdatedAt,
+                   COUNT(l.Id) AS LogCount,
+                   llatest.Title        AS LatestLogTitle,
+                   llatest.Description  AS LatestLogPreview,
+                   llatest.UpdatedAt    AS LatestLogUpdatedAt
             FROM Kases k
             LEFT JOIN Logs l ON l.KaseId = k.Id
+            LEFT JOIN (
+                SELECT l2.KaseId, l2.Title, l2.Description, l2.UpdatedAt
+                FROM Logs l2
+                INNER JOIN (
+                    SELECT KaseId, MAX(UpdatedAt) AS MaxUpdatedAt
+                    FROM Logs
+                    GROUP BY KaseId
+                ) m ON l2.KaseId = m.KaseId AND l2.UpdatedAt = m.MaxUpdatedAt
+            ) llatest ON llatest.KaseId = k.Id
             GROUP BY k.Id
-            ORDER BY k.UpdatedAt DESC
+            ORDER BY k.IsPinned DESC,
+                     CASE WHEN llatest.UpdatedAt IS NULL THEN 0 ELSE 1 END DESC,
+                     llatest.UpdatedAt DESC
             """);
         return rows.Select(Map);
     }
@@ -28,10 +42,22 @@ public sealed class SqliteKaseRepository : IKaseRepository
     {
         using var conn = await _db.OpenAsync();
         var row = await conn.QuerySingleOrDefaultAsync<KaseRow>("""
-            SELECT k.Id, k.Title, k.Description, k.CreatedAt, k.UpdatedAt,
-                   COUNT(l.Id) AS LogCount
+            SELECT k.Id, k.Title, k.Description, k.IsPinned, k.CreatedAt, k.UpdatedAt,
+                   COUNT(l.Id) AS LogCount,
+                   llatest.Title        AS LatestLogTitle,
+                   llatest.Description  AS LatestLogPreview,
+                   llatest.UpdatedAt    AS LatestLogUpdatedAt
             FROM Kases k
             LEFT JOIN Logs l ON l.KaseId = k.Id
+            LEFT JOIN (
+                SELECT l2.KaseId, l2.Title, l2.Description, l2.UpdatedAt
+                FROM Logs l2
+                INNER JOIN (
+                    SELECT KaseId, MAX(UpdatedAt) AS MaxUpdatedAt
+                    FROM Logs
+                    GROUP BY KaseId
+                ) m ON l2.KaseId = m.KaseId AND l2.UpdatedAt = m.MaxUpdatedAt
+            ) llatest ON llatest.KaseId = k.Id
             WHERE k.Id = @Id
             GROUP BY k.Id
             """, new { Id = id.ToString() });
@@ -46,8 +72,8 @@ public sealed class SqliteKaseRepository : IKaseRepository
 
         using var conn = await _db.OpenAsync();
         await conn.ExecuteAsync("""
-            INSERT INTO Kases (Id, Title, Description, CreatedAt, UpdatedAt)
-            VALUES (@Id, @Title, @Description, @Now, @Now)
+            INSERT INTO Kases (Id, Title, Description, IsPinned, CreatedAt, UpdatedAt)
+            VALUES (@Id, @Title, @Description, 0, @Now, @Now)
             """,
             new { Id = id.ToString(), Title = title, Description = description, Now = nowStr });
 
@@ -57,24 +83,48 @@ public sealed class SqliteKaseRepository : IKaseRepository
             Title = title,
             Description = description,
             LogCount = 0,
+            IsPinned = false,
             CreatedAt = now,
             UpdatedAt = now,
         };
     }
 
-    public async Task<KaseResponse?> UpdateAsync(Guid id, string title, string? description)
+    public async Task<KaseResponse?> UpdateAsync(Guid id, string title, string? description, bool? isPinned = null)
     {
         var nowStr = DateTime.UtcNow.ToString("O");
 
         using var conn = await _db.OpenAsync();
-        var affected = await conn.ExecuteAsync("""
-            UPDATE Kases SET Title = @Title, Description = @Description, UpdatedAt = @Now
-            WHERE Id = @Id
-            """,
-            new { Id = id.ToString(), Title = title, Description = description, Now = nowStr });
+
+        int affected;
+        if (isPinned.HasValue)
+        {
+            affected = await conn.ExecuteAsync("""
+                UPDATE Kases SET Title = @Title, Description = @Description, IsPinned = @IsPinned, UpdatedAt = @Now
+                WHERE Id = @Id
+                """,
+                new { Id = id.ToString(), Title = title, Description = description, IsPinned = isPinned.Value ? 1 : 0, Now = nowStr });
+        }
+        else
+        {
+            affected = await conn.ExecuteAsync("""
+                UPDATE Kases SET Title = @Title, Description = @Description, UpdatedAt = @Now
+                WHERE Id = @Id
+                """,
+                new { Id = id.ToString(), Title = title, Description = description, Now = nowStr });
+        }
 
         if (affected == 0) return null;
 
+        return await GetByIdAsync(id);
+    }
+
+    public async Task<KaseResponse?> SetPinnedAsync(Guid id, bool pinned)
+    {
+        using var conn = await _db.OpenAsync();
+        var affected = await conn.ExecuteAsync(
+            "UPDATE Kases SET IsPinned = @IsPinned WHERE Id = @Id",
+            new { Id = id.ToString(), IsPinned = pinned ? 1 : 0 });
+        if (affected == 0) return null;
         return await GetByIdAsync(id);
     }
 
@@ -305,21 +355,31 @@ public sealed class SqliteKaseRepository : IKaseRepository
 
     private static KaseResponse Map(KaseRow row) => new()
     {
-        Id = Guid.Parse(row.Id),
-        Title = row.Title,
+        Id          = Guid.Parse(row.Id),
+        Title       = row.Title,
         Description = row.Description,
-        LogCount = (int)row.LogCount,
-        CreatedAt = DateTime.Parse(row.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
-        UpdatedAt = DateTime.Parse(row.UpdatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
+        LogCount    = (int)row.LogCount,
+        IsPinned    = row.IsPinned != 0,
+        LatestLogTitle   = row.LatestLogTitle,
+        LatestLogPreview = row.LatestLogPreview,
+        LatestLogUpdatedAt = row.LatestLogUpdatedAt is null
+            ? null
+            : DateTime.Parse(row.LatestLogUpdatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
+        CreatedAt   = DateTime.Parse(row.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
+        UpdatedAt   = DateTime.Parse(row.UpdatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
     };
 
     private sealed class KaseRow
     {
-        public string Id { get; set; } = string.Empty;
-        public string Title { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public long LogCount { get; set; }
-        public string CreatedAt { get; set; } = string.Empty;
-        public string UpdatedAt { get; set; } = string.Empty;
+        public string  Id                 { get; set; } = string.Empty;
+        public string  Title              { get; set; } = string.Empty;
+        public string? Description        { get; set; }
+        public long    LogCount           { get; set; }
+        public int     IsPinned           { get; set; }
+        public string? LatestLogTitle     { get; set; }
+        public string? LatestLogPreview   { get; set; }
+        public string? LatestLogUpdatedAt { get; set; }
+        public string  CreatedAt          { get; set; } = string.Empty;
+        public string  UpdatedAt          { get; set; } = string.Empty;
     }
 }

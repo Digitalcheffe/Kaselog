@@ -63,6 +63,7 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
     private static readonly string[] MigrationsDdl =
     [
         "ALTER TABLE Users ADD COLUMN FontSize TEXT NOT NULL DEFAULT 'medium'",
+        "ALTER TABLE Kases ADD COLUMN IsPinned INTEGER NOT NULL DEFAULT 0",
     ];
 
     // Each entry is a single DDL statement executed independently so that
@@ -75,6 +76,7 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
           Id          TEXT PRIMARY KEY,
           Title       TEXT NOT NULL,
           Description TEXT,
+          IsPinned    INTEGER NOT NULL DEFAULT 0,
           CreatedAt   TEXT NOT NULL,
           UpdatedAt   TEXT NOT NULL
         )
