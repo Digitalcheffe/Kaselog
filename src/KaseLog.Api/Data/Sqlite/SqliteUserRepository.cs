@@ -61,7 +61,7 @@ public sealed class SqliteUserRepository : IUserRepository
               Email     = excluded.Email,
               Theme     = excluded.Theme,
               Accent    = excluded.Accent,
-              FontSize  = COALESCE(excluded.FontSize, FontSize),
+              FontSize  = COALESCE(@FontSize, FontSize),
               UpdatedAt = excluded.UpdatedAt
             """,
             new

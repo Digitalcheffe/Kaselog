@@ -18,6 +18,7 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
         "CollectionFields",
         "CollectionLayout",
         "CollectionItems",
+        "CollectionItemHistory",
         "kaselog_search",
     ];
 
@@ -190,6 +191,16 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
           FieldValues  TEXT NOT NULL,
           CreatedAt    TEXT NOT NULL,
           UpdatedAt    TEXT NOT NULL
+        )
+        """,
+
+        """
+        CREATE TABLE IF NOT EXISTS CollectionItemHistory (
+          Id               TEXT PRIMARY KEY,
+          CollectionItemId TEXT NOT NULL REFERENCES CollectionItems(Id) ON DELETE CASCADE,
+          FieldValues      TEXT NOT NULL,
+          ChangeSummary    TEXT NOT NULL,
+          CreatedAt        TEXT NOT NULL
         )
         """,
 

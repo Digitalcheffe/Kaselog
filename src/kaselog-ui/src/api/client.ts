@@ -10,6 +10,7 @@ import type {
   CollectionFieldResponse,
   CollectionLayoutResponse,
   CollectionItemResponse,
+  CollectionItemHistoryRecord,
   TimelineEntryResponse,
   CreateKaseRequest,
   UpdateKaseRequest,
@@ -275,6 +276,11 @@ export const collections = {
 
   deleteItem: (id: string): Promise<void> =>
     request<void>(`/api/items/${id}`, { method: 'DELETE' }),
+
+  getItemHistory: (collectionId: string, itemId: string): Promise<CollectionItemHistoryRecord[]> =>
+    request<CollectionItemHistoryRecord[]>(
+      `/api/collections/${collectionId}/items/${itemId}/history`,
+    ),
 }
 
 // ── Kase timeline ─────────────────────────────────────────────────────────────
