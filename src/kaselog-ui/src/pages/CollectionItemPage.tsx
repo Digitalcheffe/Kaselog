@@ -401,9 +401,15 @@ function FormLayout({
 }) {
   const fieldMap = Object.fromEntries(fields.map(f => [f.id, f]))
 
+  // When no layout rows exist, auto-generate full-width rows from schema fields
+  // so the form is never blank on collections that haven't been through the designer.
+  const effectiveLayout: LayoutRow[] = layout.length > 0
+    ? layout
+    : fields.map(f => ({ cells: [{ kind: 'field' as const, fieldId: f.id, span: 2 }, null] }))
+
   // Compute cells blocked by rowSpan tiles above them
   const blocked = new Set<string>()
-  layout.forEach((row, ri) => {
+  effectiveLayout.forEach((row, ri) => {
     row.cells.forEach((cell, ci) => {
       if (cell?.kind === 'field') {
         const rs = cell.rowSpan ?? 1
@@ -414,7 +420,7 @@ function FormLayout({
 
   const items: ReactElement[] = []
 
-  layout.forEach((row, rowIdx) => {
+  effectiveLayout.forEach((row, rowIdx) => {
     ;([0, 1] as const).forEach(colIdx => {
       const cell = row.cells[colIdx]
       const key = `${rowIdx}-${colIdx}`
@@ -761,7 +767,12 @@ export default function CollectionItemPage() {
         <span style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)' }}>{collection?.title ?? '…'}</span>
         <span style={{ fontSize: 'var(--text-sm)', color: 'var(--border-mid)' }}>/</span>
         <span style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)' }}>
-          {isNew ? 'New item' : (item ? String(Object.values(item.fieldValues)[0] ?? 'Item') : '…')}
+          {isNew ? 'New item' : !fields.length ? '…' : (() => {
+            const firstTextField = fields.find(f => f.type === 'text')
+            if (!firstTextField) return 'New item'
+            const val = values[firstTextField.id]
+            return val && String(val).trim() ? String(val) : 'New item'
+          })()}
         </span>
         <div style={{ flex: 1 }} />
         {!isNew && (
@@ -815,7 +826,7 @@ export default function CollectionItemPage() {
 
       {/* Form scroll area */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1.75rem' }}>
-        <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <div data-testid="form-inner" style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 0 }}>
           <FormLayout
             layout={layout}
             fields={fields}
