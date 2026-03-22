@@ -297,6 +297,42 @@ describe('CollectionListPage', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith('/items/item-abc')
   })
+
+  it('clicking + Add item navigates to /items/new?collectionId={id}', async () => {
+    vi.mocked(collectionsApi.get).mockResolvedValue(makeCollection())
+    vi.mocked(collectionsApi.getFields).mockResolvedValue([makeField()])
+    vi.mocked(collectionsApi.getItems).mockResolvedValue([])
+
+    const user = userEvent.setup()
+    renderPage(COLLECTION_ID)
+
+    await waitFor(() => screen.getByRole('button', { name: /\+ Add item/i }))
+
+    await user.click(screen.getByRole('button', { name: /\+ Add item/i }))
+
+    expect(mockNavigate).toHaveBeenCalledWith(`/items/new?collectionId=${COLLECTION_ID}`)
+  })
+
+  it('+ Add item URL contains the current collection ID', async () => {
+    const CUSTOM_ID = 'my-custom-collection-id'
+    vi.mocked(collectionsApi.get).mockResolvedValue(makeCollection({ id: CUSTOM_ID }))
+    vi.mocked(collectionsApi.getFields).mockResolvedValue([makeField()])
+    vi.mocked(collectionsApi.getItems).mockResolvedValue([])
+
+    const user = userEvent.setup()
+    renderPage(CUSTOM_ID)
+
+    await waitFor(() => screen.getByRole('button', { name: /\+ Add item/i }))
+
+    await user.click(screen.getByRole('button', { name: /\+ Add item/i }))
+
+    const call = mockNavigate.mock.calls.find(
+      (c: string[]) => typeof c[0] === 'string' && c[0].startsWith('/items/new'),
+    )
+    expect(call).toBeDefined()
+    expect(call![0]).toContain(`collectionId=${CUSTOM_ID}`)
+    expect(call![0]).not.toContain('design')
+  })
 })
 
 describe('LeftNav accordion sections', () => {
