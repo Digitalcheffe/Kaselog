@@ -9,6 +9,21 @@ const COLOR_MAP: Record<string, string> = {
   amber:  '#BA7517',
 }
 
+function formatRelativeTime(isoString: string): string {
+  const date = new Date(isoString)
+  const diffMs = Date.now() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMins / 60)
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays === 1) return 'yesterday'
+  if (diffDays < 7) return `${diffDays}d ago`
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 export default function CollectionsIndexPage() {
   const { collectionList, loading } = useCollections()
   const navigate = useNavigate()
@@ -23,14 +38,18 @@ export default function CollectionsIndexPage() {
         padding: '0 1.25rem', gap: '0.75rem',
         background: 'var(--bg)', flexShrink: 0,
       }}>
-        <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text-primary)' }}>Collections</div>
-        <div style={{
-          fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)',
-          padding: '2px 8px', background: 'var(--bg-secondary)',
-          borderRadius: 99, border: '1px solid var(--border)',
-        }}>
-          {collectionList.length} {collectionList.length === 1 ? 'collection' : 'collections'}
+        <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text-primary)' }}>
+          Collections
         </div>
+        {!loading && (
+          <div style={{
+            fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)',
+            padding: '2px 8px', background: 'var(--bg-secondary)',
+            borderRadius: 99, border: '1px solid var(--border)',
+          }}>
+            {collectionList.length} {collectionList.length === 1 ? 'collection' : 'collections'}
+          </div>
+        )}
         <div style={{ flex: 1 }} />
         <button
           onClick={() => navigate('/collections/new')}
@@ -46,64 +65,95 @@ export default function CollectionsIndexPage() {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
         {loading ? (
-          <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>Loading…</div>
+          <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)', paddingTop: '2rem', textAlign: 'center' }}>
+            Loading…
+          </div>
         ) : collectionList.length === 0 ? (
+          /* Empty state */
           <div style={{
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center',
-            gap: '0.5rem', padding: '3rem',
+            paddingTop: '4rem', gap: '0.75rem',
           }}>
-            <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-secondary)' }}>No collections yet</div>
-            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>Create your first collection to start tracking structured data</div>
+            <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)', fontWeight: 500 }}>
+              No collections yet
+            </div>
+            <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>
+              Create a collection to track structured data alongside your logs
+            </div>
             <button
               onClick={() => navigate('/collections/new')}
               style={{
-                marginTop: '0.5rem', fontSize: 'var(--text-sm)', fontWeight: 500,
-                color: 'var(--accent)', background: 'transparent',
-                border: '1px solid var(--accent)', borderRadius: 6,
-                padding: '6px 14px', cursor: 'pointer', fontFamily: 'var(--font)',
+                marginTop: '0.5rem', fontSize: 'var(--text-base)', fontWeight: 500,
+                color: 'white', background: 'var(--accent)',
+                border: 'none', borderRadius: 6,
+                padding: '8px 20px', cursor: 'pointer', fontFamily: 'var(--font)',
               }}
             >
               + New Collection
             </button>
           </div>
         ) : (
+          /* Row list */
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-            gap: '0.75rem',
+            maxWidth: 680,
+            borderRadius: 'var(--radius)',
+            border: '1px solid var(--border)',
+            overflow: 'hidden',
           }}>
-            {collectionList.map(col => {
+            {collectionList.map((col, i) => {
               const dotColor = COLOR_MAP[col.color] ?? '#1D9E75'
               return (
                 <div
                   key={col.id}
+                  data-testid={`collection-row-${col.id}`}
                   onClick={() => navigate(`/collections/${col.id}`)}
                   style={{
-                    padding: '1rem 1.1rem',
-                    borderRadius: 8,
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-secondary)',
+                    height: 56, minHeight: 56,
+                    padding: '0 1.5rem',
+                    display: 'flex', alignItems: 'center', gap: '0.6rem',
                     cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.35rem',
-                    transition: 'border-color 0.15s',
+                    borderBottom: i < collectionList.length - 1 ? '1px solid var(--border)' : 'none',
+                    background: 'var(--bg)',
+                    transition: 'background 0.1s',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border-mid)')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-secondary)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: 9, height: 9, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-                    <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {col.title}
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
+                  {/* Color dot */}
+                  <div style={{
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: dotColor, flexShrink: 0,
+                  }} />
+
+                  {/* Collection name */}
+                  <span style={{
+                    fontSize: 'var(--text-sm)', fontWeight: 500,
+                    color: 'var(--text-primary)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {col.title}
+                  </span>
+
+                  {/* Item count pill */}
+                  <span style={{
+                    fontSize: 'var(--text-2xs)', color: 'var(--text-tertiary)',
+                    padding: '2px 8px', background: 'var(--bg-secondary)',
+                    borderRadius: 99, border: '1px solid var(--border)',
+                    flexShrink: 0,
+                  }}>
                     {col.itemCount} {col.itemCount === 1 ? 'item' : 'items'}
-                  </div>
+                  </span>
+
+                  {/* Spacer */}
+                  <div style={{ flex: 1 }} />
+
+                  {/* Updated timestamp */}
+                  <span style={{ fontSize: 'var(--text-2xs)', color: 'var(--text-tertiary)', flexShrink: 0 }}>
+                    {formatRelativeTime(col.updatedAt)}
+                  </span>
                 </div>
               )
             })}
