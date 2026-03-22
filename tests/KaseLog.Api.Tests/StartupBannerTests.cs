@@ -38,7 +38,7 @@ public sealed class StartupBannerTests : IAsyncDisposable
             Port:         "5000",
             DatabasePath: "/data/kaselog.db",
             DbProvider:   "sqlite",
-            Schema:       schema ?? new SchemaInitResult(10, []),
+            Schema:       schema ?? new SchemaInitResult(11, []),
             ImagesDir:    "/data/images",
             ImagesStatus: "12 files",
             ImagesFailed: false,
@@ -84,7 +84,7 @@ public sealed class StartupBannerTests : IAsyncDisposable
     public void Build_HealthyContext_ContainsTableCount()
     {
         var banner = StartupBanner.Build(HealthyContext());
-        Assert.Contains("10 tables verified", banner);
+        Assert.Contains("11 tables verified", banner);
     }
 
     [Fact]
@@ -164,9 +164,10 @@ public sealed class StartupBannerTests : IAsyncDisposable
     {
         var init   = new SqliteSchemaInitializer(_factory);
         var result = await init.InitializeAsync();
-        // 10 expected tables: Kases, Logs, LogVersions, Tags, LogTags,
-        // Collections, CollectionFields, CollectionLayout, CollectionItems, kaselog_search
-        Assert.Equal(10, result.TableCount);
+        // 11 expected tables: Kases, Logs, LogVersions, Tags, LogTags,
+        // Collections, CollectionFields, CollectionLayout, CollectionItems,
+        // CollectionItemHistory, kaselog_search
+        Assert.Equal(11, result.TableCount);
     }
 
     [Fact]

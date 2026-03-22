@@ -245,4 +245,19 @@ public sealed class CollectionsController : ControllerBase
                 ex.FieldErrors));
         }
     }
+
+    // ── Item History ──────────────────────────────────────────────────────────
+
+    /// <summary>Returns history records for a Collection item, newest-first.</summary>
+    [HttpGet("api/collections/{collectionId:guid}/items/{itemId:guid}/history")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<CollectionItemHistoryResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetItemHistory(Guid collectionId, Guid itemId)
+    {
+        var history = await _collections.GetItemHistoryAsync(itemId);
+        if (history is null)
+            return NotFound(ApiResponse<IEnumerable<CollectionItemHistoryResponse>>.NotFound(
+                $"Item '{itemId}' was not found."));
+        return Ok(ApiResponse<IEnumerable<CollectionItemHistoryResponse>>.Success(history));
+    }
 }

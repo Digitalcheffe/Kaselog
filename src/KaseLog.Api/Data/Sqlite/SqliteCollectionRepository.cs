@@ -361,19 +361,52 @@ public sealed class SqliteCollectionRepository : ICollectionRepository
     {
         using var conn = await _db.OpenAsync();
 
-        // Find the item's collection
-        var collectionIdStr = await conn.ExecuteScalarAsync<string?>(
-            "SELECT CollectionId FROM CollectionItems WHERE Id = @Id",
-            new { Id = id.ToString() });
-        if (collectionIdStr is null) return null;
+        // Fetch current item (provides CollectionId and existing FieldValues for diff)
+        var currentRow = await conn.QuerySingleOrDefaultAsync<ItemRow>("""
+            SELECT Id, CollectionId, KaseId, FieldValues, CreatedAt, UpdatedAt
+            FROM CollectionItems WHERE Id = @Id
+            """, new { Id = id.ToString() });
+        if (currentRow is null) return null;
 
-        var collectionId = Guid.Parse(collectionIdStr);
+        var collectionId = Guid.Parse(currentRow.CollectionId);
 
         // Validate required fields
         await ValidateItemFieldsAsync(conn, collectionId, request.FieldValues);
 
+        // Fetch field definitions for generating a human-readable change summary
+        var fields = (await conn.QueryAsync<(string Id, string Name)>("""
+            SELECT Id, Name FROM CollectionFields
+            WHERE CollectionId = @CollectionId
+            ORDER BY SortOrder
+            """, new { CollectionId = collectionId.ToString() })).ToList();
+
+        // Diff current FieldValues vs incoming to determine what changed
+        var currentFieldValues = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+            currentRow.FieldValues) ?? [];
+        var changedFieldNames = DiffFieldValues(currentFieldValues, request.FieldValues, fields);
+
         var nowStr          = DateTime.UtcNow.ToString("O");
         var fieldValuesJson = JsonSerializer.Serialize(request.FieldValues);
+
+        using var tx = conn.BeginTransaction();
+
+        // Write history snapshot only when at least one field value changed
+        if (changedFieldNames.Count > 0)
+        {
+            var summary = $"Updated: {string.Join(", ", changedFieldNames)}";
+            await conn.ExecuteAsync("""
+                INSERT INTO CollectionItemHistory(Id, CollectionItemId, FieldValues, ChangeSummary, CreatedAt)
+                VALUES (@Id, @CollectionItemId, @FieldValues, @ChangeSummary, @CreatedAt)
+                """,
+                new
+                {
+                    Id               = Guid.NewGuid().ToString(),
+                    CollectionItemId = id.ToString(),
+                    FieldValues      = currentRow.FieldValues, // snapshot of PREVIOUS values
+                    ChangeSummary    = summary,
+                    CreatedAt        = nowStr,
+                }, tx);
+        }
 
         var affected = await conn.ExecuteAsync("""
             UPDATE CollectionItems
@@ -386,10 +419,39 @@ public sealed class SqliteCollectionRepository : ICollectionRepository
                 KaseId      = request.KaseId?.ToString(),
                 FieldValues = fieldValuesJson,
                 Now         = nowStr,
-            });
+            }, tx);
+
+        tx.Commit();
 
         if (affected == 0) return null;
         return await GetItemAsync(id);
+    }
+
+    public async Task<IEnumerable<CollectionItemHistoryResponse>?> GetItemHistoryAsync(Guid itemId)
+    {
+        using var conn = await _db.OpenAsync();
+
+        // Return null (→ 404) if the item does not exist
+        var exists = await conn.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM CollectionItems WHERE Id = @Id",
+            new { Id = itemId.ToString() });
+        if (exists == 0) return null;
+
+        var rows = await conn.QueryAsync<HistoryRow>("""
+            SELECT Id, CollectionItemId, FieldValues, ChangeSummary, CreatedAt
+            FROM CollectionItemHistory
+            WHERE CollectionItemId = @CollectionItemId
+            ORDER BY CreatedAt DESC
+            """, new { CollectionItemId = itemId.ToString() });
+
+        return rows.Select(r => new CollectionItemHistoryResponse
+        {
+            Id               = Guid.Parse(r.Id),
+            CollectionItemId = Guid.Parse(r.CollectionItemId),
+            FieldValues      = JsonDocument.Parse(r.FieldValues).RootElement.Clone(),
+            ChangeSummary    = r.ChangeSummary,
+            CreatedAt        = DateTime.Parse(r.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind),
+        });
     }
 
     public async Task<bool> DeleteItemAsync(Guid id)
@@ -424,6 +486,32 @@ public sealed class SqliteCollectionRepository : ICollectionRepository
 
         if (errors.Count > 0)
             throw new CollectionItemValidationException(errors);
+    }
+
+    /// <summary>
+    /// Returns the names of fields whose values differ between <paramref name="current"/>
+    /// and <paramref name="incoming"/>, in field sort order.
+    /// </summary>
+    private static List<string> DiffFieldValues(
+        Dictionary<string, JsonElement> current,
+        Dictionary<string, JsonElement> incoming,
+        IReadOnlyList<(string Id, string Name)> fields)
+    {
+        var changed = new List<string>();
+        foreach (var (fieldId, fieldName) in fields)
+        {
+            var hasOld = current.TryGetValue(fieldId, out var oldVal);
+            var hasNew = incoming.TryGetValue(fieldId, out var newVal);
+
+            var oldStr = hasOld && oldVal.ValueKind != JsonValueKind.Undefined
+                ? oldVal.GetRawText() : "null";
+            var newStr = hasNew && newVal.ValueKind != JsonValueKind.Undefined
+                ? newVal.GetRawText() : "null";
+
+            if (oldStr != newStr)
+                changed.Add(fieldName);
+        }
+        return changed;
     }
 
     private static bool IsBlankElement(JsonElement element)
@@ -513,5 +601,14 @@ public sealed class SqliteCollectionRepository : ICollectionRepository
         public string  FieldValues  { get; set; } = "{}";
         public string  CreatedAt    { get; set; } = string.Empty;
         public string  UpdatedAt    { get; set; } = string.Empty;
+    }
+
+    private sealed class HistoryRow
+    {
+        public string Id               { get; set; } = string.Empty;
+        public string CollectionItemId { get; set; } = string.Empty;
+        public string FieldValues      { get; set; } = "{}";
+        public string ChangeSummary    { get; set; } = string.Empty;
+        public string CreatedAt        { get; set; } = string.Empty;
     }
 }

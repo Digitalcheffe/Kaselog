@@ -114,6 +114,14 @@ export interface CollectionItemResponse {
   updatedAt: string
 }
 
+export interface CollectionItemHistoryRecord {
+  id: string
+  collectionItemId: string
+  fieldValues: Record<string, unknown>
+  changeSummary: string
+  createdAt: string
+}
+
 export interface TimelineSummaryField {
   name: string
   value: string

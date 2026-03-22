@@ -5,6 +5,7 @@ import type {
   CollectionResponse,
   CollectionFieldResponse,
   CollectionItemResponse,
+  CollectionItemHistoryRecord,
   KaseResponse,
 } from '../api/types'
 
@@ -24,6 +25,29 @@ interface LayoutRow {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+}
+
+function formatRelativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime()
+  const secs = Math.floor(diffMs / 1000)
+  if (secs < 60) return 'just now'
+  const mins = Math.floor(secs / 60)
+  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `${months} month${months === 1 ? '' : 's'} ago`
+  const years = Math.floor(months / 12)
+  return `${years} year${years === 1 ? '' : 's'} ago`
+}
+
+function formatAbsoluteTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+  })
 }
 
 const COLOR_MAP: Record<string, string> = {
@@ -458,6 +482,127 @@ function FormLayout({
   )
 }
 
+// ── History section ───────────────────────────────────────────────────────────
+
+function HistorySection({
+  collectionId,
+  itemId,
+}: {
+  collectionId: string
+  itemId: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [records, setRecords] = useState<CollectionItemHistoryRecord[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleToggle() {
+    const next = !open
+    setOpen(next)
+    if (next && records === null) {
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await collectionsApi.getItemHistory(collectionId, itemId)
+        setRecords(data)
+      } catch {
+        setError('Failed to load history.')
+      } finally {
+        setLoading(false)
+      }
+    }
+  }
+
+  return (
+    <div
+      data-testid="history-section"
+      style={{
+        marginTop: 16,
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border)',
+        borderRadius: 8,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Toggle header */}
+      <button
+        data-testid="history-toggle"
+        onClick={handleToggle}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 14px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+        }}
+      >
+        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          History
+        </span>
+        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', lineHeight: 1 }}>
+          {open ? '▾' : '▸'}
+        </span>
+      </button>
+
+      {/* Expanded content */}
+      {open && (
+        <div style={{ borderTop: '1px solid var(--border)' }}>
+          {loading && (
+            <div style={{ padding: '12px 14px', fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>
+              Loading…
+            </div>
+          )}
+          {error && (
+            <div style={{ padding: '12px 14px', fontSize: 'var(--text-sm)', color: '#B91C1C' }}>
+              {error}
+            </div>
+          )}
+          {!loading && !error && records !== null && records.length === 0 && (
+            <div
+              data-testid="history-empty"
+              style={{ padding: '12px 14px', fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}
+            >
+              No history yet.
+            </div>
+          )}
+          {!loading && !error && records !== null && records.length > 0 && (
+            <div data-testid="history-list">
+              {records.map(r => (
+                <div
+                  key={r.id}
+                  data-testid={`history-row-${r.id}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    justifyContent: 'space-between',
+                    padding: '9px 14px',
+                    borderBottom: '1px solid var(--border)',
+                    gap: 12,
+                  }}
+                >
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)', flex: 1 }}>
+                    {r.changeSummary}
+                  </span>
+                  <span
+                    title={formatAbsoluteTime(r.createdAt)}
+                    style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', flexShrink: 0, fontFamily: 'var(--font-mono, monospace)' }}
+                  >
+                    {formatRelativeTime(r.createdAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function CollectionItemPage() {
@@ -763,6 +908,14 @@ export default function CollectionItemPage() {
               <span>Created {formatDate(item.createdAt)}</span>
               <span>Updated {formatDate(item.updatedAt)}</span>
             </div>
+          )}
+
+          {/* History section — existing items only */}
+          {!isNew && item && (
+            <HistorySection
+              collectionId={collection?.id ?? collectionIdParam}
+              itemId={item.id}
+            />
           )}
         </div>
       </div>

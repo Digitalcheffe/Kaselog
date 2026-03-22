@@ -55,4 +55,13 @@ public interface ICollectionRepository
     Task<CollectionItemResponse?> UpdateItemAsync(Guid id, UpdateCollectionItemRequest request);
 
     Task<bool> DeleteItemAsync(Guid id);
+
+    // ── Item History ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns history records for an item in newest-first order.
+    /// Returns <c>null</c> if no item with <paramref name="itemId"/> exists.
+    /// Returns an empty list if the item exists but has no history.
+    /// </summary>
+    Task<IEnumerable<CollectionItemHistoryResponse>?> GetItemHistoryAsync(Guid itemId);
 }
