@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import SearchPage from '../pages/SearchPage'
-import type { KaseResponse, SearchResult, TagResponse } from '../api/types'
+import type { KaseResponse, SearchResult, TagResponse, CollectionResponse } from '../api/types'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -11,6 +11,7 @@ vi.mock('../api/client', () => ({
   search: { query: vi.fn() },
   kases: { list: vi.fn() },
   tags: { list: vi.fn() },
+  collections: { list: vi.fn() },
 }))
 
 const mockNavigate = vi.fn()
@@ -19,20 +20,42 @@ vi.mock('react-router-dom', async (importOriginal) => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
-import { search as searchApi, kases as kasesApi, tags as tagsApi } from '../api/client'
+import { search as searchApi, kases as kasesApi, tags as tagsApi, collections as collectionsApi } from '../api/client'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function makeResult(overrides: Partial<SearchResult> = {}): SearchResult {
+function makeLogResult(overrides: Partial<SearchResult> = {}): SearchResult {
   return {
     logId: 'log-1',
     kaseId: 'kase-1',
     kaseTitle: 'Proxmox Cluster',
+    entityType: 'log',
     title: 'VLAN trunk configuration',
     content: 'Setting up VLAN trunk on the switch.',
     highlight: 'Setting up VLAN trunk on the switch.',
     tags: ['networking'],
     updatedAt: new Date().toISOString(),
+    collectionId: null,
+    collectionTitle: null,
+    collectionColor: null,
+    ...overrides,
+  }
+}
+
+function makeItemResult(overrides: Partial<SearchResult> = {}): SearchResult {
+  return {
+    logId: 'item-1',
+    kaseId: '',
+    kaseTitle: '',
+    entityType: 'collection_item',
+    title: 'RTX 4090',
+    content: 'NVIDIA RTX 4090',
+    highlight: 'NVIDIA RTX 4090',
+    tags: [],
+    updatedAt: new Date().toISOString(),
+    collectionId: 'col-1',
+    collectionTitle: 'Hardware Inventory',
+    collectionColor: 'teal',
     ...overrides,
   }
 }
@@ -58,6 +81,18 @@ function makeTag(overrides: Partial<TagResponse> = {}): TagResponse {
   }
 }
 
+function makeCollection(overrides: Partial<CollectionResponse> = {}): CollectionResponse {
+  return {
+    id: 'col-1',
+    title: 'Hardware Inventory',
+    color: 'teal',
+    itemCount: 5,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  }
+}
+
 function renderPage(initialEntry = '/search') {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
@@ -76,6 +111,7 @@ describe('SearchPage', () => {
     vi.clearAllMocks()
     vi.mocked(kasesApi.list).mockResolvedValue([])
     vi.mocked(tagsApi.list).mockResolvedValue([])
+    vi.mocked(collectionsApi.list).mockResolvedValue([])
   })
 
   it('renders search input and filter bar', () => {
@@ -98,7 +134,7 @@ describe('SearchPage', () => {
   })
 
   it('results update on input with correct q param', async () => {
-    vi.mocked(searchApi.query).mockResolvedValue([makeResult()])
+    vi.mocked(searchApi.query).mockResolvedValue([makeLogResult()])
     const user = userEvent.setup({ delay: null })
     renderPage()
 
@@ -112,9 +148,9 @@ describe('SearchPage', () => {
     })
   })
 
-  it('renders result cards with title and kase', async () => {
+  it('renders log result cards with title and kase', async () => {
     vi.mocked(searchApi.query).mockResolvedValue([
-      makeResult({ logId: 'log-1', title: 'VLAN trunk configuration', kaseTitle: 'Proxmox Cluster' }),
+      makeLogResult({ logId: 'log-1', title: 'VLAN trunk configuration', kaseTitle: 'Proxmox Cluster' }),
     ])
     const user = userEvent.setup({ delay: null })
     renderPage()
@@ -128,9 +164,9 @@ describe('SearchPage', () => {
     })
   })
 
-  it('clicking result navigates to /logs/{id}', async () => {
+  it('clicking log result navigates to /logs/{id}', async () => {
     vi.mocked(searchApi.query).mockResolvedValue([
-      makeResult({ logId: 'log-xyz', title: 'My Log' }),
+      makeLogResult({ logId: 'log-xyz', title: 'My Log' }),
     ])
     const user = userEvent.setup({ delay: null })
     renderPage()
@@ -143,6 +179,44 @@ describe('SearchPage', () => {
     await user.click(screen.getByTestId('result-card'))
 
     expect(mockNavigate).toHaveBeenCalledWith('/logs/log-xyz')
+  })
+
+  it('clicking collection item result navigates to /items/{id}', async () => {
+    vi.mocked(searchApi.query).mockResolvedValue([
+      makeItemResult({ logId: 'item-xyz', title: 'RTX 4090' }),
+    ])
+    const user = userEvent.setup({ delay: null })
+    renderPage()
+
+    await user.type(screen.getByPlaceholderText('Search all logs...'), 'RTX')
+    await waitForDebounce()
+
+    await waitFor(() => screen.getByText('RTX 4090'))
+
+    await user.click(screen.getByTestId('result-card'))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/items/item-xyz')
+  })
+
+  it('collection item card renders collection dot and name', async () => {
+    vi.mocked(searchApi.query).mockResolvedValue([
+      makeItemResult({
+        logId: 'item-1',
+        title: 'RTX 4090',
+        collectionTitle: 'Hardware Inventory',
+        collectionColor: 'teal',
+      }),
+    ])
+    const user = userEvent.setup({ delay: null })
+    renderPage()
+
+    await user.type(screen.getByPlaceholderText('Search all logs...'), 'RTX')
+    await waitForDebounce()
+
+    await waitFor(() => {
+      expect(screen.getByText('Hardware Inventory')).toBeInTheDocument()
+      expect(screen.getByTestId('collection-dot-item-1')).toBeInTheDocument()
+    })
   })
 
   it('Kase filter adds kaseId param to search query', async () => {
@@ -162,6 +236,77 @@ describe('SearchPage', () => {
     await waitFor(() => {
       expect(searchApi.query).toHaveBeenCalledWith(
         expect.objectContaining({ kaseId: 'kase-abc' }),
+      )
+    })
+  })
+
+  it('Collection filter adds collectionId param to search query', async () => {
+    vi.mocked(collectionsApi.list).mockResolvedValue([
+      makeCollection({ id: 'col-abc', title: 'Hardware Inventory', color: 'teal' }),
+    ])
+    vi.mocked(searchApi.query).mockResolvedValue([])
+    const user = userEvent.setup({ delay: null })
+    renderPage()
+
+    // Open collection dropdown and select a collection
+    await user.click(screen.getByLabelText('Filter by collection'))
+    await waitFor(() => screen.getByText('Hardware Inventory'))
+    await user.click(screen.getByText('Hardware Inventory'))
+    await waitForDebounce()
+
+    await waitFor(() => {
+      expect(searchApi.query).toHaveBeenCalledWith(
+        expect.objectContaining({ collectionId: 'col-abc' }),
+      )
+    })
+  })
+
+  it('Type filter (logs only) adds type=log param to search query', async () => {
+    vi.mocked(searchApi.query).mockResolvedValue([])
+    const user = userEvent.setup({ delay: null })
+    renderPage()
+
+    // Type a query first
+    await user.type(screen.getByPlaceholderText('Search all logs...'), 'vlan')
+    await waitForDebounce()
+    await waitFor(() => expect(searchApi.query).toHaveBeenCalled())
+    vi.clearAllMocks()
+    vi.mocked(searchApi.query).mockResolvedValue([])
+
+    // Open type dropdown and select Logs
+    await user.click(screen.getByTestId('type-filter-button'))
+    await waitFor(() => screen.getByTestId('type-option-log'))
+    await user.click(screen.getByTestId('type-option-log'))
+    await waitForDebounce()
+
+    await waitFor(() => {
+      expect(searchApi.query).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'log' }),
+      )
+    })
+  })
+
+  it('Type filter (collection items only) adds type=collection_item param', async () => {
+    vi.mocked(searchApi.query).mockResolvedValue([])
+    const user = userEvent.setup({ delay: null })
+    renderPage()
+
+    // Type a query first
+    await user.type(screen.getByPlaceholderText('Search all logs...'), 'vlan')
+    await waitForDebounce()
+    await waitFor(() => expect(searchApi.query).toHaveBeenCalled())
+    vi.clearAllMocks()
+    vi.mocked(searchApi.query).mockResolvedValue([])
+
+    // Open type dropdown and select Collection Items
+    await user.click(screen.getByTestId('type-filter-button'))
+    await waitFor(() => screen.getByTestId('type-option-collection_item'))
+    await user.click(screen.getByTestId('type-option-collection_item'))
+    await waitForDebounce()
+
+    await waitFor(() => {
+      expect(searchApi.query).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'collection_item' }),
       )
     })
   })

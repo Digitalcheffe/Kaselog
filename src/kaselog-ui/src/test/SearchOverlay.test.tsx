@@ -21,16 +21,38 @@ import { search as searchApi } from '../api/client'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function makeResult(overrides: Partial<SearchResult> = {}): SearchResult {
+function makeLogResult(overrides: Partial<SearchResult> = {}): SearchResult {
   return {
     logId: 'log-1',
     kaseId: 'kase-1',
     kaseTitle: 'Proxmox Cluster',
+    entityType: 'log',
     title: 'VLAN trunk configuration',
     content: 'Setting up VLAN trunk on the switch.',
     highlight: 'Setting up VLAN trunk on the switch.',
     tags: ['networking', 'vlan'],
     updatedAt: new Date().toISOString(),
+    collectionId: null,
+    collectionTitle: null,
+    collectionColor: null,
+    ...overrides,
+  }
+}
+
+function makeItemResult(overrides: Partial<SearchResult> = {}): SearchResult {
+  return {
+    logId: 'item-1',
+    kaseId: '',
+    kaseTitle: '',
+    entityType: 'collection_item',
+    title: 'RTX 4090',
+    content: 'NVIDIA RTX 4090 GPU',
+    highlight: 'NVIDIA RTX 4090 GPU',
+    tags: [],
+    updatedAt: new Date().toISOString(),
+    collectionId: 'col-1',
+    collectionTitle: 'Hardware Inventory',
+    collectionColor: 'teal',
     ...overrides,
   }
 }
@@ -72,7 +94,7 @@ describe('SearchOverlay', () => {
   })
 
   it('updates results on input with correct q param (debounced)', async () => {
-    vi.mocked(searchApi.query).mockResolvedValue([makeResult()])
+    vi.mocked(searchApi.query).mockResolvedValue([makeLogResult()])
     const user = userEvent.setup({ delay: null })
     renderOverlay()
 
@@ -86,8 +108,8 @@ describe('SearchOverlay', () => {
 
   it('shows results after search', async () => {
     vi.mocked(searchApi.query).mockResolvedValue([
-      makeResult({ logId: 'log-1', title: 'VLAN trunk configuration' }),
-      makeResult({ logId: 'log-2', title: 'OPNsense VLAN routing' }),
+      makeLogResult({ logId: 'log-1', title: 'VLAN trunk configuration' }),
+      makeLogResult({ logId: 'log-2', title: 'OPNsense VLAN routing' }),
     ])
     const user = userEvent.setup({ delay: null })
     renderOverlay()
@@ -101,9 +123,9 @@ describe('SearchOverlay', () => {
     })
   })
 
-  it('clicking result navigates to /logs/{id} and closes overlay', async () => {
+  it('clicking log result navigates to /logs/{id} and closes overlay', async () => {
     vi.mocked(searchApi.query).mockResolvedValue([
-      makeResult({ logId: 'log-abc', title: 'VLAN trunk configuration' }),
+      makeLogResult({ logId: 'log-abc', title: 'VLAN trunk configuration' }),
     ])
     const user = userEvent.setup({ delay: null })
     renderOverlay()
@@ -116,6 +138,90 @@ describe('SearchOverlay', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith('/logs/log-abc')
     expect(mockOnClose).toHaveBeenCalledOnce()
+  })
+
+  it('clicking collection item result navigates to /items/{id} and closes overlay', async () => {
+    vi.mocked(searchApi.query).mockResolvedValue([
+      makeItemResult({ logId: 'item-xyz', title: 'RTX 4090' }),
+    ])
+    const user = userEvent.setup({ delay: null })
+    renderOverlay()
+
+    await user.type(screen.getByPlaceholderText('Search logs...'), 'RTX')
+    await waitForDebounce()
+    await waitFor(() => screen.getByText('RTX 4090'))
+
+    await user.click(screen.getByText('RTX 4090'))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/items/item-xyz')
+    expect(mockOnClose).toHaveBeenCalledOnce()
+  })
+
+  it('shows Log group and Collection item group when both entity types present', async () => {
+    vi.mocked(searchApi.query).mockResolvedValue([
+      makeLogResult({ logId: 'log-1', title: 'VLAN Config' }),
+      makeItemResult({ logId: 'item-1', title: 'RTX 4090' }),
+    ])
+    const user = userEvent.setup({ delay: null })
+    renderOverlay()
+
+    await user.type(screen.getByPlaceholderText('Search logs...'), 'vlan')
+    await waitForDebounce()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Logs/i)).toBeInTheDocument()
+      expect(screen.getByText(/Collection Items/i)).toBeInTheDocument()
+      expect(screen.getByText('VLAN Config')).toBeInTheDocument()
+      expect(screen.getByText('RTX 4090')).toBeInTheDocument()
+    })
+  })
+
+  it('shows only Log group when no collection items in results', async () => {
+    vi.mocked(searchApi.query).mockResolvedValue([
+      makeLogResult({ logId: 'log-1', title: 'VLAN Config' }),
+    ])
+    const user = userEvent.setup({ delay: null })
+    renderOverlay()
+
+    await user.type(screen.getByPlaceholderText('Search logs...'), 'vlan')
+    await waitForDebounce()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Logs/i)).toBeInTheDocument()
+      expect(screen.queryByText(/Collection Items/i)).not.toBeInTheDocument()
+    })
+  })
+
+  it('shows only Collection Items group when no logs in results', async () => {
+    vi.mocked(searchApi.query).mockResolvedValue([
+      makeItemResult({ logId: 'item-1', title: 'RTX 4090' }),
+    ])
+    const user = userEvent.setup({ delay: null })
+    renderOverlay()
+
+    await user.type(screen.getByPlaceholderText('Search logs...'), 'RTX')
+    await waitForDebounce()
+
+    await waitFor(() => {
+      expect(screen.queryByText(/^Logs/i)).not.toBeInTheDocument()
+      expect(screen.getByText(/Collection Items/i)).toBeInTheDocument()
+      expect(screen.getByText('RTX 4090')).toBeInTheDocument()
+    })
+  })
+
+  it('collection item result shows collection name', async () => {
+    vi.mocked(searchApi.query).mockResolvedValue([
+      makeItemResult({ logId: 'item-1', title: 'RTX 4090', collectionTitle: 'Hardware Inventory' }),
+    ])
+    const user = userEvent.setup({ delay: null })
+    renderOverlay()
+
+    await user.type(screen.getByPlaceholderText('Search logs...'), 'RTX')
+    await waitForDebounce()
+
+    await waitFor(() => {
+      expect(screen.getByText('Hardware Inventory')).toBeInTheDocument()
+    })
   })
 
   it('clicking Advanced search navigates to /search with query and closes overlay', async () => {

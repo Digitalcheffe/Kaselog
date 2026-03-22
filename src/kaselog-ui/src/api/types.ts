@@ -56,11 +56,16 @@ export interface SearchResult {
   logId: string
   kaseId: string
   kaseTitle: string
+  entityType: string
   title: string
   content: string
   highlight: string
   tags: string[]
   updatedAt: string
+  // Collection item fields
+  collectionId: string | null
+  collectionTitle: string | null
+  collectionColor: string | null
 }
 
 export interface UserResponse {
