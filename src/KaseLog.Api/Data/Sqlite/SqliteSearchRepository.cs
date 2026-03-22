@@ -66,7 +66,14 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
     }
 
     // ── FTS5 path ─────────────────────────────────────────────────────────────
+    // Uses UNION ALL so each entity type gets its own INNER JOIN and proper
+    // MATCH expression — LEFT JOIN with UNINDEXED column conditions is
+    // unreliable in SQLite FTS5.
 
+    // SQLite FTS5 does not allow table-alias qualified column references when the
+    // virtual table is joined with regular tables. The safe pattern is to use a
+    // CTE that runs the MATCH query using the real table name, then join the CTE
+    // results with the appropriate tables in the outer query.
     private static async Task<List<SearchResultRow>> RunFtsQuery(
         System.Data.IDbConnection connection,
         string q,
@@ -78,62 +85,137 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
         DateTime? to)
     {
         var ftsQuery = BuildFtsQuery(q);
-        var sql = new StringBuilder("""
-            SELECT
-                ks.entity_id                   AS LogId,
-                COALESCE(ks.kase_id, '')        AS KaseId,
-                COALESCE(ks.kase_title, '')     AS KaseTitle,
-                ks.entity_type                  AS EntityType,
-                COALESCE(ks.collection_id, '')  AS CollectionId,
-                COALESCE(ks.collection_title, '') AS CollectionTitle,
-                COALESCE(col.Color, '')         AS CollectionColor,
-                ks.title                        AS Title,
-                ks.content                      AS Content,
-                CASE
-                    WHEN ks.entity_type = 'log' THEN l.UpdatedAt
-                    ELSE ci.UpdatedAt
-                END AS UpdatedAt
-            FROM kaselog_search ks
-            LEFT JOIN Logs l ON l.Id = ks.entity_id AND ks.entity_type = 'log'
-            LEFT JOIN CollectionItems ci ON ci.Id = ks.entity_id AND ks.entity_type = 'collection_item'
-            LEFT JOIN Collections col ON col.Id = ks.collection_id AND ks.entity_type = 'collection_item'
-            WHERE ks MATCH @ftsQuery
-            """);
+        var includeLog = string.IsNullOrEmpty(type) || type == "log";
+        var includeItem = string.IsNullOrEmpty(type) || type == "collection_item";
+
+        if (!includeLog && !includeItem) return [];
 
         var p = new DynamicParameters();
         p.Add("ftsQuery", ftsQuery);
+        var addedParams = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        void TryAdd(string name, object value) { if (addedParams.Add(name)) p.Add(name, value); }
 
-        if (!string.IsNullOrWhiteSpace(type))
+        var parts = new List<string>();
+
+        if (includeLog)
         {
-            sql.AppendLine(" AND ks.entity_type = @type");
-            p.Add("type", type);
+            var logSql = new StringBuilder("""
+                SELECT
+                    f.entity_id             AS LogId,
+                    f.kase_id               AS KaseId,
+                    f.kase_title            AS KaseTitle,
+                    'log'                   AS EntityType,
+                    ''                      AS CollectionId,
+                    ''                      AS CollectionTitle,
+                    ''                      AS CollectionColor,
+                    f.title                 AS Title,
+                    f.content               AS Content,
+                    l.UpdatedAt             AS UpdatedAt
+                FROM fts f
+                JOIN Logs l ON l.Id = f.entity_id
+                WHERE f.entity_type = 'log'
+                """);
+
+            if (!string.IsNullOrWhiteSpace(kaseId))
+            {
+                logSql.AppendLine(" AND f.kase_id = @kaseId");
+                TryAdd("kaseId", kaseId);
+            }
+
+            if (from.HasValue)
+            {
+                logSql.AppendLine(" AND l.UpdatedAt >= @from");
+                TryAdd("from", from.Value.ToString("O"));
+            }
+
+            if (to.HasValue)
+            {
+                logSql.AppendLine(" AND l.UpdatedAt <= @to");
+                TryAdd("to", to.Value.ToString("O"));
+            }
+
+            for (var i = 0; i < tags.Count; i++)
+            {
+                var paramName = $"tag{i}";
+                logSql.AppendLine($"""
+                     AND EXISTS (
+                        SELECT 1 FROM LogTags lt
+                        JOIN Tags t ON t.Id = lt.TagId
+                        WHERE lt.LogId = f.entity_id AND LOWER(t.Name) = LOWER(@{paramName})
+                    )
+                    """);
+                TryAdd(paramName, tags[i]);
+            }
+
+            parts.Add(logSql.ToString());
         }
 
-        if (!string.IsNullOrWhiteSpace(kaseId))
+        if (includeItem)
         {
-            sql.AppendLine(" AND ks.kase_id = @kaseId");
-            p.Add("kaseId", kaseId);
+            var itemSql = new StringBuilder("""
+                SELECT
+                    f.entity_id                     AS LogId,
+                    COALESCE(f.kase_id, '')         AS KaseId,
+                    COALESCE(f.kase_title, '')      AS KaseTitle,
+                    'collection_item'               AS EntityType,
+                    f.collection_id                 AS CollectionId,
+                    f.collection_title              AS CollectionTitle,
+                    COALESCE(col.Color, '')         AS CollectionColor,
+                    f.title                         AS Title,
+                    f.content                       AS Content,
+                    ci.UpdatedAt                    AS UpdatedAt
+                FROM fts f
+                JOIN CollectionItems ci ON ci.Id = f.entity_id
+                JOIN Collections col ON col.Id = f.collection_id
+                WHERE f.entity_type = 'collection_item'
+                """);
+
+            if (!string.IsNullOrWhiteSpace(kaseId))
+            {
+                itemSql.AppendLine(" AND f.kase_id = @kaseId");
+                TryAdd("kaseId", kaseId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(collectionId))
+            {
+                itemSql.AppendLine(" AND f.collection_id = @collectionId");
+                TryAdd("collectionId", collectionId);
+            }
+
+            if (from.HasValue)
+            {
+                itemSql.AppendLine(" AND ci.UpdatedAt >= @from");
+                TryAdd("from", from.Value.ToString("O"));
+            }
+
+            if (to.HasValue)
+            {
+                itemSql.AppendLine(" AND ci.UpdatedAt <= @to");
+                TryAdd("to", to.Value.ToString("O"));
+            }
+
+            parts.Add(itemSql.ToString());
         }
 
-        if (!string.IsNullOrWhiteSpace(collectionId))
-        {
-            sql.AppendLine(" AND ks.collection_id = @collectionId");
-            p.Add("collectionId", collectionId);
-        }
+        var unionSql = parts.Count == 1
+            ? parts[0]
+            : string.Join("\nUNION ALL\n", parts);
 
-        AppendFtsDateAndTagFilters(sql, p, tags, from, to);
+        // CTE materialises the FTS5 MATCH results using the real table name,
+        // avoiding the SQLite FTS5 alias-qualification restriction.
+        var finalSql = $"""
+            WITH fts AS (
+                SELECT entity_id, entity_type, kase_id, kase_title,
+                       collection_id, collection_title, title, content
+                FROM kaselog_search
+                WHERE kaselog_search MATCH @ftsQuery
+            )
+            {unionSql}
+            ORDER BY UpdatedAt DESC LIMIT 100
+            """;
 
-        sql.AppendLine(" ORDER BY rank LIMIT 100");
-
-        try
-        {
-            var result = await connection.QueryAsync<SearchResultRow>(sql.ToString(), p);
-            return result.ToList();
-        }
-        catch
-        {
-            return [];
-        }
+        var result = await connection.QueryAsync<SearchResultRow>(finalSql, p);
+        return result.ToList();
     }
 
     // ── Filter-only path (no full-text query) ─────────────────────────────────
@@ -182,7 +264,7 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
                     ''         AS CollectionColor,
                     l.Title    AS Title,
                     COALESCE(lv.Content, '') AS Content,
-                    l.UpdatedAt
+                    l.UpdatedAt             AS UpdatedAt
                 FROM Logs l
                 JOIN Kases k ON k.Id = l.KaseId
                 LEFT JOIN (
@@ -252,7 +334,7 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
                         ''
                     )                       AS Title,
                     ''                      AS Content,
-                    ci.UpdatedAt
+                    ci.UpdatedAt            AS UpdatedAt
                 FROM CollectionItems ci
                 JOIN Collections c ON c.Id = ci.CollectionId
                 LEFT JOIN Kases k ON k.Id = ci.KaseId
