@@ -58,13 +58,21 @@
   .mode-required-note span { color: #A32D2D; }
 
   /* Scroll area */
-  .form-scroll { flex: 1; overflow-y: auto; padding: 1.75rem; }
+  .form-scroll { flex: 1; overflow-y: auto; padding: 1.75rem 2.5rem; }
   .form-scroll::-webkit-scrollbar { width: 4px; }
   .form-scroll::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
-  .form-inner { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 0; }
+  .form-inner { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 0; }
+
+  /* Loading / error states */
+  .form-loading { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 0.75rem; color: var(--text-tertiary); font-size: 13px; }
+  .form-loading-spinner { width: 20px; height: 20px; border: 2px solid var(--border-mid); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .form-error { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 0.5rem; }
+  .form-error-title { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+  .form-error-sub { font-size: 12px; color: var(--text-tertiary); }
 
   /* The 2-column form grid — mirrors the designer */
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
 
   /* Field cell */
   .form-cell { display: flex; flex-direction: column; }
@@ -184,7 +192,11 @@
 </div>
 
 <div class="form-scroll" id="form-scroll">
-  <div class="form-inner" id="form-inner"></div>
+  <div class="form-loading" id="form-loading">
+    <div class="form-loading-spinner"></div>
+    <span>Loading schema…</span>
+  </div>
+  <div class="form-inner" id="form-inner" style="display:none;"></div>
 </div>
 
 <div class="action-bar" id="action-bar">
@@ -255,16 +267,32 @@ function setMode(mode) {
   const scroll = document.getElementById('form-scroll');
   scroll.classList.toggle('read-mode', !isEditMode);
   document.getElementById('action-bar').style.display = isEditMode ? '' : 'none';
-  renderForm();
+  // Only re-render if schema has loaded (form-inner is visible)
+  if (document.getElementById('form-inner').style.display !== 'none') renderForm();
 }
 
 function toggleMode() { setMode(isEditMode ? 'view' : 'edit'); }
 
 /* ============================================================
    RENDER FORM
+   Guards against empty schema/layout — the real-app equivalent
+   is: call this only after schema + layout are fetched from the
+   API and confirmed non-empty. An empty LAYOUT array means the
+   designer hasn't placed any fields yet; show a helpful prompt.
 ============================================================ */
 function renderForm() {
+  const loading = document.getElementById('form-loading');
   const inner = document.getElementById('form-inner');
+
+  // Guard: if schema or layout is missing/empty, don't render a blank form
+  if (!SCHEMA || !LAYOUT || LAYOUT.length === 0) {
+    if (loading) loading.innerHTML = '<div class="form-error-title">No layout configured</div><div class="form-error-sub">Open the designer and place fields on the layout canvas.</div>';
+    return;
+  }
+
+  // Schema loaded — hide spinner, show form
+  if (loading) loading.style.display = 'none';
+  inner.style.display = '';
   inner.innerHTML = '';
 
   LAYOUT.forEach(row => {
@@ -483,8 +511,16 @@ function saveItem() {
 
 /* ============================================================
    INIT
+   In the real app, replace this with:
+     const { schema, layout } = await fetchCollectionSchema(collectionId);
+     SCHEMA = schema;
+     LAYOUT = layout;
+     renderForm();
+   The loading state will show until renderForm() is called.
+   Empty layout → "No layout configured" message instead of blank form.
 ============================================================ */
-renderForm();
+// Simulate async schema load (remove the setTimeout in the real app)
+setTimeout(() => renderForm(), 0);
 </script>
 </body>
 </html>

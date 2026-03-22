@@ -31,7 +31,7 @@
   body { font-family: var(--font); background: var(--bg); color: var(--text-primary); height: 100vh; display: flex; overflow: hidden; }
 
   /* Nav */
-  nav { width: 240px; min-width: 240px; background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  nav { width: 200px; min-width: 200px; background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
   .nav-logo { padding: 1rem 1rem 0.75rem; border-bottom: 1px solid var(--border); }
   .nav-logo-name { font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.03em; }
   .nav-logo-sub { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
@@ -72,32 +72,36 @@
   .topbar-add { font-size: 12px; font-weight: 500; color: white; background: var(--accent); padding: 5px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
   .topbar-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent-light); border: 1px solid var(--border-mid); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--accent-text); cursor: pointer; flex-shrink: 0; }
 
-  /* Items grid */
-  .items-area { flex: 1; overflow-y: auto; padding: 1.5rem; }
-  .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem; }
-
-  /* Item card */
-  .item-card { background: var(--bg); border: 1px solid var(--border-mid); border-radius: 10px; padding: 0.9rem 1rem; cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s; }
-  .item-card:hover { border-color: rgba(29,158,117,0.4); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-  .item-card-header { margin-bottom: 0.65rem; }
-  .item-card-title { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 0.2rem; line-height: 1.3; }
-  .item-card-sub { font-size: 11px; color: var(--text-tertiary); }
-  .item-fields { display: flex; flex-direction: column; gap: 0.3rem; }
-  .item-field { display: flex; align-items: baseline; gap: 0.5rem; }
-  .item-field-key { font-size: 10px; color: var(--text-tertiary); min-width: 60px; flex-shrink: 0; }
-  .item-field-val { font-size: 12px; color: var(--text-secondary); }
-  .item-card-footer { margin-top: 0.65rem; padding-top: 0.55rem; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .item-kase-link { font-size: 10px; color: var(--accent); cursor: pointer; }
-  .item-date { font-size: 10px; color: var(--text-tertiary); }
-
-  /* Rating stars */
-  .item-stars { color: #BA7517; font-size: 11px; letter-spacing: -1px; }
-
-  /* Status badge */
-  .item-status { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 99px; }
+  /* Items table */
+  .table-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  .table-header { display: flex; align-items: center; padding: 0 1.25rem; height: 34px; min-height: 34px; border-bottom: 1px solid var(--border); background: var(--bg-secondary); flex-shrink: 0; }
+  .col-h { font-size: 10px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; transition: color 0.12s; user-select: none; white-space: nowrap; padding-right: 1rem; flex-shrink: 0; overflow: hidden; }
+  .col-h:hover { color: var(--text-secondary); }
+  .col-h.sorted { color: var(--accent); }
+  .sort-arrow { font-size: 9px; opacity: 0.7; }
+  .list-area { flex: 1; overflow-y: auto; overflow-x: hidden; }
+  .list-row { display: flex; align-items: center; padding: 0 1.25rem; height: 46px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+  .list-row:hover { background: var(--bg-secondary); }
+  .list-row:last-child { border-bottom: none; }
+  .cell { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1rem; flex-shrink: 0; }
+  .cell.primary { font-size: 13px; font-weight: 500; color: var(--text-primary); flex: 1; min-width: 0; }
+  .cell.sub { color: var(--text-tertiary); font-size: 12px; width: 160px; }
+  .cell.year { font-family: var(--font-mono); font-size: 11px; width: 60px; }
+  .cell.format { width: 100px; }
+  .cell.condition { width: 80px; }
+  .cell.rating { width: 90px; }
+  .cell.status { width: 80px; }
+  .cell.date { width: 90px; color: var(--text-tertiary); font-size: 11px; }
+  .stars { color: #BA7517; font-size: 11px; letter-spacing: -1px; }
+  .status-badge { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 99px; display: inline-block; }
   .status-own { background: var(--accent-light); color: var(--accent-text); }
   .status-want { background: #E6F1FB; color: #042C53; }
-  .status-sold { background: var(--bg-tertiary); color: var(--text-tertiary); }
+  .status-sold { background: var(--bg-tertiary); color: var(--text-tertiary); border: 1px solid var(--border-mid); }
+  [data-theme="dark"] .status-want { background: #0a1e30; color: #85B7EB; }
+  mark { background: rgba(29,158,117,0.15); color: var(--text-primary); border-radius: 2px; padding: 0 1px; font-weight: 500; }
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 3rem; }
+  .empty-title { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+  .empty-sub { font-size: 12px; color: var(--text-tertiary); text-align: center; }
 
   .theme-toggle { position: fixed; bottom: 1rem; right: 1rem; background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: 99px; padding: 6px 14px; font-size: 11px; color: var(--text-secondary); cursor: pointer; font-family: var(--font); z-index: 100; }
 </style>
@@ -171,115 +175,105 @@
     <div class="topbar-avatar">RJ</div>
   </div>
 
-  <div class="items-area">
-    <div class="items-grid">
+  <div class="table-wrap">
+    <div class="table-header">
+      <div class="col-h" style="flex:1;min-width:0;">Album <span class="sort-arrow">↑</span></div>
+      <div class="col-h cell sub">Artist</div>
+      <div class="col-h cell year">Year</div>
+      <div class="col-h cell format">Format</div>
+      <div class="col-h cell condition">Cond.</div>
+      <div class="col-h cell rating">Rating</div>
+      <div class="col-h cell status">Status</div>
+      <div class="col-h cell date">Added</div>
+    </div>
+    <div class="list-area">
 
-      <div class="item-card">
-        <div class="item-card-header">
-          <div class="item-card-title">Rumours</div>
-          <div class="item-card-sub">Fleetwood Mac</div>
-        </div>
-        <div class="item-fields">
-          <div class="item-field"><div class="item-field-key">Year</div><div class="item-field-val">1977</div></div>
-          <div class="item-field"><div class="item-field-key">Label</div><div class="item-field-val">Warner Bros.</div></div>
-          <div class="item-field"><div class="item-field-key">Format</div><div class="item-field-val">LP · Original pressing</div></div>
-          <div class="item-field"><div class="item-field-key">Condition</div><div class="item-field-val">VG+</div></div>
-          <div class="item-field"><div class="item-field-key">Rating</div><div class="item-field-val"><div class="item-stars">★★★★★</div></div></div>
-        </div>
-        <div class="item-card-footer">
-          <span class="item-status status-own">own</span>
-          <div class="item-date">added Mar 12</div>
-        </div>
+      <div class="list-row">
+        <div class="cell primary">Rumours</div>
+        <div class="cell sub">Fleetwood Mac</div>
+        <div class="cell year">1977</div>
+        <div class="cell format">LP</div>
+        <div class="cell condition">VG+</div>
+        <div class="cell rating"><span class="stars">★★★★★</span></div>
+        <div class="cell status"><span class="status-badge status-own">own</span></div>
+        <div class="cell date">Mar 12</div>
       </div>
 
-      <div class="item-card">
-        <div class="item-card-header">
-          <div class="item-card-title">Kind of Blue</div>
-          <div class="item-card-sub">Miles Davis</div>
-        </div>
-        <div class="item-fields">
-          <div class="item-field"><div class="item-field-key">Year</div><div class="item-field-val">1959</div></div>
-          <div class="item-field"><div class="item-field-key">Label</div><div class="item-field-val">Columbia</div></div>
-          <div class="item-field"><div class="item-field-key">Format</div><div class="item-field-val">LP · 180g reissue</div></div>
-          <div class="item-field"><div class="item-field-key">Condition</div><div class="item-field-val">M</div></div>
-          <div class="item-field"><div class="item-field-key">Rating</div><div class="item-field-val"><div class="item-stars">★★★★★</div></div></div>
-        </div>
-        <div class="item-card-footer">
-          <span class="item-status status-own">own</span>
-          <div class="item-date">added Feb 28</div>
-        </div>
+      <div class="list-row">
+        <div class="cell primary">Kind of Blue</div>
+        <div class="cell sub">Miles Davis</div>
+        <div class="cell year">1959</div>
+        <div class="cell format">LP · 180g</div>
+        <div class="cell condition">M</div>
+        <div class="cell rating"><span class="stars">★★★★★</span></div>
+        <div class="cell status"><span class="status-badge status-own">own</span></div>
+        <div class="cell date">Feb 28</div>
       </div>
 
-      <div class="item-card">
-        <div class="item-card-header">
-          <div class="item-card-title">OK Computer</div>
-          <div class="item-card-sub">Radiohead</div>
-        </div>
-        <div class="item-fields">
-          <div class="item-field"><div class="item-field-key">Year</div><div class="item-field-val">1997</div></div>
-          <div class="item-field"><div class="item-field-key">Label</div><div class="item-field-val">Parlophone</div></div>
-          <div class="item-field"><div class="item-field-key">Format</div><div class="item-field-val">2×LP · OKNOTOK</div></div>
-          <div class="item-field"><div class="item-field-key">Condition</div><div class="item-field-val">VG+</div></div>
-          <div class="item-field"><div class="item-field-key">Rating</div><div class="item-field-val"><div class="item-stars">★★★★☆</div></div></div>
-        </div>
-        <div class="item-card-footer">
-          <span class="item-status status-want">want</span>
-          <div class="item-date">added Mar 1</div>
-        </div>
+      <div class="list-row">
+        <div class="cell primary">OK Computer</div>
+        <div class="cell sub">Radiohead</div>
+        <div class="cell year">1997</div>
+        <div class="cell format">2×LP</div>
+        <div class="cell condition">VG+</div>
+        <div class="cell rating"><span class="stars">★★★★☆</span></div>
+        <div class="cell status"><span class="status-badge status-want">want</span></div>
+        <div class="cell date">Mar 1</div>
       </div>
 
-      <div class="item-card">
-        <div class="item-card-header">
-          <div class="item-card-title">Thriller</div>
-          <div class="item-card-sub">Michael Jackson</div>
-        </div>
-        <div class="item-fields">
-          <div class="item-field"><div class="item-field-key">Year</div><div class="item-field-val">1982</div></div>
-          <div class="item-field"><div class="item-field-key">Label</div><div class="item-field-val">Epic</div></div>
-          <div class="item-field"><div class="item-field-key">Format</div><div class="item-field-val">LP · Original</div></div>
-          <div class="item-field"><div class="item-field-key">Condition</div><div class="item-field-val">G+</div></div>
-          <div class="item-field"><div class="item-field-key">Rating</div><div class="item-field-val"><div class="item-stars">★★★☆☆</div></div></div>
-        </div>
-        <div class="item-card-footer">
-          <span class="item-status status-own">own</span>
-          <div class="item-date">added Jan 15</div>
-        </div>
+      <div class="list-row">
+        <div class="cell primary">Thriller</div>
+        <div class="cell sub">Michael Jackson</div>
+        <div class="cell year">1982</div>
+        <div class="cell format">LP</div>
+        <div class="cell condition">G+</div>
+        <div class="cell rating"><span class="stars">★★★☆☆</span></div>
+        <div class="cell status"><span class="status-badge status-own">own</span></div>
+        <div class="cell date">Jan 15</div>
       </div>
 
-      <div class="item-card">
-        <div class="item-card-header">
-          <div class="item-card-title">Blue</div>
-          <div class="item-card-sub">Joni Mitchell</div>
-        </div>
-        <div class="item-fields">
-          <div class="item-field"><div class="item-field-key">Year</div><div class="item-field-val">1971</div></div>
-          <div class="item-field"><div class="item-field-key">Label</div><div class="item-field-val">Reprise</div></div>
-          <div class="item-field"><div class="item-field-key">Format</div><div class="item-field-val">LP · Remaster</div></div>
-          <div class="item-field"><div class="item-field-key">Condition</div><div class="item-field-val">VG</div></div>
-          <div class="item-field"><div class="item-field-key">Rating</div><div class="item-field-val"><div class="item-stars">★★★★★</div></div></div>
-        </div>
-        <div class="item-card-footer">
-          <span class="item-status status-own">own</span>
-          <div class="item-date">added Mar 18</div>
-        </div>
+      <div class="list-row">
+        <div class="cell primary">Blue</div>
+        <div class="cell sub">Joni Mitchell</div>
+        <div class="cell year">1971</div>
+        <div class="cell format">LP · Remaster</div>
+        <div class="cell condition">VG</div>
+        <div class="cell rating"><span class="stars">★★★★★</span></div>
+        <div class="cell status"><span class="status-badge status-own">own</span></div>
+        <div class="cell date">Mar 18</div>
       </div>
 
-      <div class="item-card">
-        <div class="item-card-header">
-          <div class="item-card-title">In Rainbows</div>
-          <div class="item-card-sub">Radiohead</div>
-        </div>
-        <div class="item-fields">
-          <div class="item-field"><div class="item-field-key">Year</div><div class="item-field-val">2007</div></div>
-          <div class="item-field"><div class="item-field-key">Label</div><div class="item-field-val">XL Recordings</div></div>
-          <div class="item-field"><div class="item-field-key">Format</div><div class="item-field-val">2×LP · Discbox</div></div>
-          <div class="item-field"><div class="item-field-key">Condition</div><div class="item-field-val">M</div></div>
-          <div class="item-field"><div class="item-field-key">Rating</div><div class="item-field-val"><div class="item-stars">★★★★★</div></div></div>
-        </div>
-        <div class="item-card-footer">
-          <span class="item-status status-want">want</span>
-          <div class="item-date">added Feb 10</div>
-        </div>
+      <div class="list-row">
+        <div class="cell primary">In Rainbows</div>
+        <div class="cell sub">Radiohead</div>
+        <div class="cell year">2007</div>
+        <div class="cell format">2×LP · Discbox</div>
+        <div class="cell condition">M</div>
+        <div class="cell rating"><span class="stars">★★★★★</span></div>
+        <div class="cell status"><span class="status-badge status-want">want</span></div>
+        <div class="cell date">Feb 10</div>
+      </div>
+
+      <div class="list-row">
+        <div class="cell primary">Darkness on the Edge of Town</div>
+        <div class="cell sub">Bruce Springsteen</div>
+        <div class="cell year">1978</div>
+        <div class="cell format">LP</div>
+        <div class="cell condition">VG</div>
+        <div class="cell rating"><span class="stars">★★★★☆</span></div>
+        <div class="cell status"><span class="status-badge status-own">own</span></div>
+        <div class="cell date">Jan 30</div>
+      </div>
+
+      <div class="list-row">
+        <div class="cell primary">Nevermind</div>
+        <div class="cell sub">Nirvana</div>
+        <div class="cell year">1991</div>
+        <div class="cell format">LP</div>
+        <div class="cell condition">VG+</div>
+        <div class="cell rating"><span class="stars">★★★★☆</span></div>
+        <div class="cell status"><span class="status-badge status-sold">sold</span></div>
+        <div class="cell date">Dec 5</div>
       </div>
 
     </div>
