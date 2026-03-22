@@ -28,6 +28,7 @@ function makeUser(overrides: Partial<UserResponse> = {}): UserResponse {
     email: null,
     theme: 'light',
     accent: 'teal',
+    fontSize: 'medium',
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -50,10 +51,10 @@ function renderPage() {
 
 describe('ProfilePage', () => {
   beforeEach(() => {
-    localStorage.clear()
     document.body.removeAttribute('data-theme')
     document.body.removeAttribute('data-accent')
     document.documentElement.style.removeProperty('--accent')
+    document.documentElement.style.removeProperty('--font-scale')
     vi.mocked(userApi.get).mockResolvedValue(makeUser())
     vi.mocked(userApi.update).mockImplementation(async body =>
       makeUser({
@@ -62,15 +63,16 @@ describe('ProfilePage', () => {
         email: body.email ?? null,
         theme: body.theme,
         accent: body.accent,
+        fontSize: body.fontSize ?? 'medium',
       }),
     )
   })
 
   afterEach(() => {
-    localStorage.clear()
     document.body.removeAttribute('data-theme')
     document.body.removeAttribute('data-accent')
     document.documentElement.style.removeProperty('--accent')
+    document.documentElement.style.removeProperty('--font-scale')
     vi.clearAllMocks()
   })
 
@@ -164,39 +166,77 @@ describe('ProfilePage', () => {
     expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#378ADD')
   })
 
-  it('theme preference written to localStorage when changed', async () => {
-    const ue = userEvent.setup()
-    renderPage()
-
-    await waitFor(() => screen.getByTestId('theme-dark-btn'))
-    await ue.click(screen.getByTestId('theme-dark-btn'))
-
-    const stored = JSON.parse(localStorage.getItem('kaselog-prefs') ?? '{}')
-    expect(stored.theme).toBe('dark')
-  })
-
-  it('accent preference written to localStorage when changed', async () => {
-    const ue = userEvent.setup()
-    renderPage()
-
-    await waitFor(() => screen.getByTestId('accent-purple'))
-    await ue.click(screen.getByTestId('accent-purple'))
-
-    const stored = JSON.parse(localStorage.getItem('kaselog-prefs') ?? '{}')
-    expect(stored.accent).toBe('purple')
-  })
-
-  it('default theme is light when no localStorage value exists', async () => {
+  it('default theme is light on initial render', async () => {
     renderPage()
     await waitFor(() => screen.getByTestId('theme-light-btn'))
     const t = document.body.getAttribute('data-theme')
     expect(t === null || t === 'light').toBe(true)
   })
 
-  it('stored preferences restored on simulated reload', () => {
-    localStorage.setItem('kaselog-prefs', JSON.stringify({ theme: 'dark', accent: 'amber' }))
+  it('on load GET /api/user is called and data-theme applied from response', async () => {
+    vi.mocked(userApi.get).mockResolvedValue(makeUser({ theme: 'dark' }))
     renderPage()
-    expect(document.body.getAttribute('data-theme')).toBe('dark')
-    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#BA7517')
+    await waitFor(() => {
+      expect(userApi.get).toHaveBeenCalled()
+      expect(document.body.getAttribute('data-theme')).toBe('dark')
+    })
+  })
+
+  it('on load --accent CSS variable is set from the settings response', async () => {
+    vi.mocked(userApi.get).mockResolvedValue(makeUser({ accent: 'blue' }))
+    renderPage()
+    await waitFor(() => {
+      expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#378ADD')
+    })
+  })
+
+  it('on load --font-scale matches the fontSize value from settings', async () => {
+    vi.mocked(userApi.get).mockResolvedValue(makeUser({ fontSize: 'large' }))
+    renderPage()
+    await waitFor(() => {
+      expect(document.documentElement.style.getPropertyValue('--font-scale')).toBe('1.15')
+    })
+  })
+
+  it('clicking Large font size sets --font-scale to 1.15 and calls PUT /api/user', async () => {
+    const ue = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('font-size-large'))
+    await ue.click(screen.getByTestId('font-size-large'))
+
+    expect(document.documentElement.style.getPropertyValue('--font-scale')).toBe('1.15')
+    await waitFor(() => {
+      expect(userApi.update).toHaveBeenCalledWith(
+        expect.objectContaining({ fontSize: 'large' }),
+      )
+    })
+  })
+
+  it('clicking Small font size sets --font-scale to 0.88 and calls PUT /api/user', async () => {
+    const ue = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('font-size-small'))
+    await ue.click(screen.getByTestId('font-size-small'))
+
+    expect(document.documentElement.style.getPropertyValue('--font-scale')).toBe('0.88')
+    await waitFor(() => {
+      expect(userApi.update).toHaveBeenCalledWith(
+        expect.objectContaining({ fontSize: 'small' }),
+      )
+    })
+  })
+
+  it('clicking Medium font size sets --font-scale to 1.0', async () => {
+    const ue = userEvent.setup()
+    // Start with large
+    vi.mocked(userApi.get).mockResolvedValue(makeUser({ fontSize: 'large' }))
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('font-size-medium'))
+    await ue.click(screen.getByTestId('font-size-medium'))
+
+    expect(document.documentElement.style.getPropertyValue('--font-scale')).toBe('1.0')
   })
 })

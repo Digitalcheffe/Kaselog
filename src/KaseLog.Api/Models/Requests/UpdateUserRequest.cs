@@ -13,4 +13,6 @@ public sealed class UpdateUserRequest
 
     [Required]
     public required string Accent { get; init; }
+
+    public string? FontSize { get; init; }
 }

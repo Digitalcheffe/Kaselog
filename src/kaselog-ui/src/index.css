@@ -18,18 +18,28 @@
   --text-tertiary: #9a9890;
   --border: rgba(0, 0, 0, 0.08);
   --border-mid: rgba(0, 0, 0, 0.14);
-  --nav-width: 200px;
+  --nav-width: 220px;
+  --font-scale: 1.0;
+  --editor-max-width: 700px;
   --radius: 8px;
   --font: 'DM Sans', system-ui, sans-serif;
   --font-mono: 'DM Mono', 'Fira Code', monospace;
-  --text-2xs: 10px;
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-base: 15px;
-  --text-md: 16px;
-  --text-lg: 18px;
-  --text-xl: 22px;
-  --text-2xl: 28px;
+  --text-2xs: calc(11px * var(--font-scale));
+  --text-xs: calc(12px * var(--font-scale));
+  --text-sm: calc(13px * var(--font-scale));
+  --text-base: calc(17px * var(--font-scale));
+  --text-md: calc(18px * var(--font-scale));
+  --text-lg: calc(20px * var(--font-scale));
+  --text-xl: calc(24px * var(--font-scale));
+  --text-2xl: calc(30px * var(--font-scale));
+}
+
+@media (min-width: 1400px) {
+  :root { --editor-max-width: 900px; }
+}
+
+@media (min-width: 1600px) {
+  :root { --editor-max-width: 1050px; }
 }
 
 [data-theme='dark'] {

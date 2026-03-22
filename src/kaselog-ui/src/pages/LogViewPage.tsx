@@ -552,7 +552,7 @@ export default function LogViewPage() {
             flexDirection: 'column',
             alignItems: 'flex-start',
           }}>
-            <div style={{ width: '100%', maxWidth: 700 }}>
+            <div style={{ width: '100%', maxWidth: 'var(--editor-max-width)' }}>
               {/* Log title */}
               <TitleInput
                 value={log.title}

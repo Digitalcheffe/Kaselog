@@ -2,11 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme, ACCENT_DEFS } from '../contexts/ThemeContext'
 import { useUser } from '../contexts/UserContext'
+import type { FontSize } from '../contexts/UserContext'
 
 export default function ProfilePage() {
   const navigate = useNavigate()
   const { theme, accent, setTheme, setAccent } = useTheme()
-  const { user, saveProfile, saveAppearance } = useUser()
+  const { user, saveProfile, saveAppearance, fontSize, saveFontSize } = useUser()
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -214,6 +215,50 @@ export default function ProfilePage() {
 
               </div>
             </form>
+          </div>
+
+          {/* Text Size card */}
+          <div style={{
+            background: 'var(--bg)',
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '0.9rem 1.1rem',
+              borderBottom: '1px solid var(--border)',
+            }}>
+              <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)' }}>Text Size</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 2 }}>Adjust the size of text across the entire app</div>
+            </div>
+            <div style={{ padding: '1.1rem' }}>
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                {(['small', 'medium', 'large'] as const).map(size => (
+                  <button
+                    key={size}
+                    aria-label={`${size} text size`}
+                    data-testid={`font-size-${size}`}
+                    onClick={() => saveFontSize(size as FontSize).catch(() => {})}
+                    style={{
+                      flex: 1,
+                      padding: '7px 0',
+                      borderRadius: 7,
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 500,
+                      background: fontSize === size ? 'var(--accent)' : 'var(--bg-secondary)',
+                      color: fontSize === size ? 'white' : 'var(--text-secondary)',
+                      border: fontSize === size ? '1px solid var(--accent)' : '1px solid var(--border-mid)',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font)',
+                      textTransform: 'capitalize',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {size.charAt(0).toUpperCase() + size.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Appearance card */}

@@ -8,6 +8,7 @@ public sealed class UserResponse
     public string? Email { get; init; }
     public required string Theme { get; init; }
     public required string Accent { get; init; }
+    public required string FontSize { get; init; }
     public required string CreatedAt { get; init; }
     public required string UpdatedAt { get; init; }
 }

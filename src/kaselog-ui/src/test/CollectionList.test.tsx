@@ -89,7 +89,7 @@ function renderPage(collectionId = COLLECTION_ID) {
 function renderNav() {
   vi.mocked(userApi.get).mockResolvedValue({
     id: 'user-1', firstName: 'Ray', lastName: 'J', email: null,
-    theme: 'light', accent: 'teal',
+    theme: 'light', accent: 'teal', fontSize: 'medium',
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   })
 

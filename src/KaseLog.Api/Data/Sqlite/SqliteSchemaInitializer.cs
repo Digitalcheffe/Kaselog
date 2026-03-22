@@ -37,6 +37,13 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
             await connection.ExecuteAsync(sql);
         }
 
+        // Run migrations safely — each is try-catched individually since the column may already exist
+        foreach (var sql in MigrationsDdl)
+        {
+            try { await connection.ExecuteAsync(sql); }
+            catch { /* expected if column was already created by fresh-install DDL */ }
+        }
+
         // Verify every expected table exists after DDL.
         var present = (await connection.QueryAsync<string>(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"))
@@ -48,6 +55,14 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
 
         return new SchemaInitResult(ExpectedTables.Length - missing.Count, missing);
     }
+
+    // Migration DDL applied after the main schema. Each statement is wrapped in
+    // an individual try-catch so that columns added by a fresh-install CREATE TABLE
+    // do not cause failures on existing databases where ALTER TABLE would duplicate them.
+    private static readonly string[] MigrationsDdl =
+    [
+        "ALTER TABLE Users ADD COLUMN FontSize TEXT NOT NULL DEFAULT 'medium'",
+    ];
 
     // Each entry is a single DDL statement executed independently so that
     // triggers (which contain internal semicolons) are unambiguous.
@@ -129,6 +144,7 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
           Email     TEXT,
           Theme     TEXT NOT NULL DEFAULT 'light',
           Accent    TEXT NOT NULL DEFAULT 'teal',
+          FontSize  TEXT NOT NULL DEFAULT 'medium',
           CreatedAt TEXT NOT NULL,
           UpdatedAt TEXT NOT NULL
         )

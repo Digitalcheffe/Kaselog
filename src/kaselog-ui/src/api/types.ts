@@ -75,6 +75,7 @@ export interface UserResponse {
   email: string | null
   theme: string
   accent: string
+  fontSize: string
   createdAt: string
   updatedAt: string
 }
@@ -167,6 +168,7 @@ export interface UpdateUserRequest {
   email?: string | null
   theme: string
   accent: string
+  fontSize?: string | null
 }
 
 export interface CreateVersionRequest {

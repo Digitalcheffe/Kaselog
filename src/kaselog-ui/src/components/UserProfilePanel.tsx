@@ -8,7 +8,7 @@ interface Props {
 
 export default function UserProfilePanel({ onClose }: Props) {
   const { theme, accent, setTheme, setAccent } = useTheme()
-  const { user, saveProfile, saveAppearance } = useUser()
+  const { user, saveProfile, saveAppearance, fontSize, saveFontSize } = useUser()
 
   const [firstName, setFirstName] = useState(user?.firstName ?? '')
   const [lastName, setLastName] = useState(user?.lastName ?? '')
@@ -185,6 +185,42 @@ export default function UserProfilePanel({ onClose }: Props) {
             {saved ? 'Saved!' : saving ? 'Saving...' : 'Save changes'}
           </button>
 
+        </div>
+
+        {/* Divider */}
+        <div style={{ borderTop: '1px solid var(--border)' }} />
+
+        {/* Text Size section */}
+        <div style={{ padding: '0.85rem 0.9rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            Text Size
+          </div>
+          <div style={{ display: 'flex', gap: '0.25rem' }}>
+            {(['small', 'medium', 'large'] as const).map(size => (
+              <button
+                key={size}
+                aria-label={`${size} text size`}
+                data-testid={`font-size-${size}`}
+                onClick={() => saveFontSize(size).catch(() => {})}
+                style={{
+                  flex: 1,
+                  padding: '5px 0',
+                  borderRadius: 6,
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 500,
+                  background: fontSize === size ? 'var(--accent)' : 'var(--bg-secondary)',
+                  color: fontSize === size ? 'white' : 'var(--text-secondary)',
+                  border: fontSize === size ? '1px solid var(--accent)' : '1px solid var(--border-mid)',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font)',
+                  textTransform: 'capitalize',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {size.charAt(0).toUpperCase() + size.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Divider */}
