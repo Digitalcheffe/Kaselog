@@ -19,45 +19,15 @@ export const ACCENT_DEFS: AccentDef[] = [
   { name: 'amber',  label: 'Amber',  value: '#BA7517' },
 ]
 
-const ACCENT_NAMES = ACCENT_DEFS.map(a => a.name) as Accent[]
-
-// ── Storage ────────────────────────────────────────────────────────────────
-
-const STORAGE_KEY = 'kaselog-prefs'
-
-interface StoredPrefs {
-  theme: Theme
-  accent: Accent
-}
-
-function loadPrefs(): StoredPrefs {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const p = JSON.parse(raw) as Record<string, unknown>
-      return {
-        theme:  p['theme'] === 'dark' ? 'dark' : 'light',
-        accent: ACCENT_NAMES.includes(p['accent'] as Accent) ? (p['accent'] as Accent) : 'teal',
-      }
-    }
-  } catch {
-    // ignore parse errors
-  }
-  return { theme: 'light', accent: 'teal' }
-}
-
-function savePrefs(prefs: StoredPrefs) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs))
-  } catch {
-    // ignore storage errors
-  }
-}
-
 // ── DOM application ────────────────────────────────────────────────────────
 
 export function applyThemeToDOM(theme: Theme) {
   document.body.setAttribute('data-theme', theme)
+}
+
+export function applyFontScaleToDOM(fontSize: string) {
+  const scale = fontSize === 'small' ? '0.88' : fontSize === 'large' ? '1.15' : '1.0'
+  document.documentElement.style.setProperty('--font-scale', scale)
 }
 
 export function applyAccentToDOM(accent: Accent) {
@@ -84,24 +54,21 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [prefs, setPrefs] = useState<StoredPrefs>(() => {
-    const p = loadPrefs()
-    applyThemeToDOM(p.theme)
-    applyAccentToDOM(p.accent)
-    return p
+  const [prefs, setPrefs] = useState<{ theme: Theme; accent: Accent }>(() => {
+    applyThemeToDOM('light')
+    applyAccentToDOM('teal')
+    return { theme: 'light', accent: 'teal' }
   })
 
   function setTheme(theme: Theme) {
     const next = { ...prefs, theme }
     applyThemeToDOM(theme)
-    savePrefs(next)
     setPrefs(next)
   }
 
   function setAccent(accent: Accent) {
     const next = { ...prefs, accent }
     applyAccentToDOM(accent)
-    savePrefs(next)
     setPrefs(next)
   }
 

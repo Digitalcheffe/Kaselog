@@ -55,7 +55,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
   }
 
   const sectionLabelStyle: React.CSSProperties = {
-    fontSize: 'var(--text-2xs)',
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     color: 'var(--text-tertiary)',
     textTransform: 'uppercase',
@@ -63,7 +63,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
   }
 
   const arrowStyle = (open: boolean): React.CSSProperties => ({
-    fontSize: 'var(--text-2xs)',
+    fontSize: 'var(--text-xs)',
     color: 'var(--text-tertiary)',
     transition: 'transform 0.2s',
     transform: open ? 'none' : 'rotate(-90deg)',
@@ -71,7 +71,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
   })
 
   const newBtnStyle: React.CSSProperties = {
-    fontSize: 'var(--text-xs)',
+    fontSize: 'var(--text-sm)',
     color: 'var(--text-tertiary)',
     padding: '2px 6px',
     borderRadius: 4,
@@ -304,7 +304,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
             <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.4" />
             <line x1="8.5" y1="8.5" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.4" />
           </svg>
-          <span style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)', flex: 1, textAlign: 'left' }}>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', flex: 1, textAlign: 'left' }}>
             Search logs...
           </span>
         </button>

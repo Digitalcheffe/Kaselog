@@ -21,7 +21,7 @@ public sealed class SqliteUserRepository : IUserRepository
         using var connection = await _factory.OpenAsync();
 
         var row = await connection.QuerySingleOrDefaultAsync<UserRow>(
-            "SELECT Id, FirstName, LastName, Email, Theme, Accent, CreatedAt, UpdatedAt FROM Users WHERE Id = @Id",
+            "SELECT Id, FirstName, LastName, Email, Theme, Accent, FontSize, CreatedAt, UpdatedAt FROM Users WHERE Id = @Id",
             new { Id = LocalUserId });
 
         if (row is null)
@@ -36,6 +36,7 @@ public sealed class SqliteUserRepository : IUserRepository
                 Email     = null,
                 Theme     = "light",
                 Accent    = "teal",
+                FontSize  = "medium",
                 CreatedAt = now,
                 UpdatedAt = now,
             };
@@ -52,14 +53,15 @@ public sealed class SqliteUserRepository : IUserRepository
 
         await connection.ExecuteAsync(
             """
-            INSERT INTO Users (Id, FirstName, LastName, Email, Theme, Accent, CreatedAt, UpdatedAt)
-            VALUES (@Id, @FirstName, @LastName, @Email, @Theme, @Accent, @Now, @Now)
+            INSERT INTO Users (Id, FirstName, LastName, Email, Theme, Accent, FontSize, CreatedAt, UpdatedAt)
+            VALUES (@Id, @FirstName, @LastName, @Email, @Theme, @Accent, COALESCE(@FontSize, 'medium'), @Now, @Now)
             ON CONFLICT(Id) DO UPDATE SET
               FirstName = excluded.FirstName,
               LastName  = excluded.LastName,
               Email     = excluded.Email,
               Theme     = excluded.Theme,
               Accent    = excluded.Accent,
+              FontSize  = COALESCE(excluded.FontSize, FontSize),
               UpdatedAt = excluded.UpdatedAt
             """,
             new
@@ -70,11 +72,12 @@ public sealed class SqliteUserRepository : IUserRepository
                 request.Email,
                 request.Theme,
                 request.Accent,
+                FontSize  = request.FontSize,
                 Now       = now,
             });
 
         var row = await connection.QuerySingleAsync<UserRow>(
-            "SELECT Id, FirstName, LastName, Email, Theme, Accent, CreatedAt, UpdatedAt FROM Users WHERE Id = @Id",
+            "SELECT Id, FirstName, LastName, Email, Theme, Accent, FontSize, CreatedAt, UpdatedAt FROM Users WHERE Id = @Id",
             new { Id = LocalUserId });
 
         return Map(row);
@@ -88,6 +91,7 @@ public sealed class SqliteUserRepository : IUserRepository
         Email     = row.Email,
         Theme     = row.Theme,
         Accent    = row.Accent,
+        FontSize  = row.FontSize,
         CreatedAt = row.CreatedAt,
         UpdatedAt = row.UpdatedAt,
     };
@@ -100,6 +104,7 @@ public sealed class SqliteUserRepository : IUserRepository
         public string? Email { get; init; }
         public required string Theme { get; init; }
         public required string Accent { get; init; }
+        public required string FontSize { get; init; }
         public required string CreatedAt { get; init; }
         public required string UpdatedAt { get; init; }
     }

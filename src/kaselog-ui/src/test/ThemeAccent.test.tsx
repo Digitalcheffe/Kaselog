@@ -18,22 +18,19 @@ function renderPanel() {
 
 describe('Theme and accent system', () => {
   beforeEach(() => {
-    localStorage.clear()
     document.body.removeAttribute('data-theme')
     document.body.removeAttribute('data-accent')
     document.documentElement.style.removeProperty('--accent')
   })
 
   afterEach(() => {
-    localStorage.clear()
     document.body.removeAttribute('data-theme')
     document.body.removeAttribute('data-accent')
     document.documentElement.style.removeProperty('--accent')
   })
 
-  it('default theme is light when no localStorage value exists', () => {
+  it('default theme is light on initial render', () => {
     renderPanel()
-    // body should have data-theme='light' (or not 'dark')
     const t = document.body.getAttribute('data-theme')
     expect(t === null || t === 'light').toBe(true)
   })
@@ -69,25 +66,21 @@ describe('Theme and accent system', () => {
     expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#378ADD')
   })
 
-  it('preferences written to localStorage on change', async () => {
+  it('selecting coral accent updates --accent to coral value', async () => {
     const user = userEvent.setup()
     renderPanel()
 
-    await user.click(screen.getByTestId('theme-dark-btn'))
-    await user.click(screen.getByTestId('accent-purple'))
+    await user.click(screen.getByTestId('accent-coral'))
 
-    const stored = JSON.parse(localStorage.getItem('kaselog-prefs') ?? '{}')
-    expect(stored.theme).toBe('dark')
-    expect(stored.accent).toBe('purple')
+    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#D85A30')
   })
 
-  it('stored preferences correctly restored on simulated reload', () => {
-    // Pre-seed localStorage as if a previous session saved dark + amber
-    localStorage.setItem('kaselog-prefs', JSON.stringify({ theme: 'dark', accent: 'amber' }))
-
+  it('selecting purple accent sets data-accent attribute on body', async () => {
+    const user = userEvent.setup()
     renderPanel()
 
-    expect(document.body.getAttribute('data-theme')).toBe('dark')
-    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#BA7517')
+    await user.click(screen.getByTestId('accent-purple'))
+
+    expect(document.body.getAttribute('data-accent')).toBe('purple')
   })
 })
