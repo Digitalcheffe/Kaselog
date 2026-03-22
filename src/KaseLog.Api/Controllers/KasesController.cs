@@ -22,7 +22,7 @@ public sealed class KasesController : ControllerBase
     }
 
     /// <summary>Returns all Kases.</summary>
-    /// <returns>A list of every Kase in the system.</returns>
+    /// <returns>A list of every Kase in the system, pinned first then by latest log activity.</returns>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<KaseResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
@@ -59,9 +59,9 @@ public sealed class KasesController : ControllerBase
         return Ok(ApiResponse<KaseResponse>.Success(kase));
     }
 
-    /// <summary>Updates the title and description of an existing Kase.</summary>
+    /// <summary>Updates an existing Kase, including optional IsPinned flag.</summary>
     /// <param name="id">The GUID of the Kase to update.</param>
-    /// <param name="request">Updated title and optional description.</param>
+    /// <param name="request">Updated title, optional description, and optional IsPinned.</param>
     /// <returns>The updated Kase, or 404 if not found.</returns>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<KaseResponse>), StatusCodes.Status200OK)]
@@ -69,7 +69,7 @@ public sealed class KasesController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<KaseResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateKaseRequest request)
     {
-        var kase = await _kases.UpdateAsync(id, request.Title, request.Description);
+        var kase = await _kases.UpdateAsync(id, request.Title, request.Description, request.IsPinned);
         if (kase is null)
             return NotFound(ApiResponse<KaseResponse>.NotFound($"Kase with ID '{id}' was not found."));
         _logger.LogInformation("[KASE] Updated kase {Id} — {Title}", id, kase.Title);
@@ -89,6 +89,32 @@ public sealed class KasesController : ControllerBase
             return NotFound(ApiResponse<KaseResponse>.NotFound($"Kase with ID '{id}' was not found."));
         _logger.LogInformation("[KASE] Deleted kase {Id}", id);
         return NoContent();
+    }
+
+    /// <summary>Pins a Kase so it appears at the top of all Kase lists.</summary>
+    [HttpPost("{id:guid}/pin")]
+    [ProducesResponseType(typeof(ApiResponse<KaseResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<KaseResponse>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Pin(Guid id)
+    {
+        var kase = await _kases.SetPinnedAsync(id, pinned: true);
+        if (kase is null)
+            return NotFound(ApiResponse<KaseResponse>.NotFound($"Kase with ID '{id}' was not found."));
+        _logger.LogInformation("[KASE] Pinned kase {Id}", id);
+        return Ok(ApiResponse<KaseResponse>.Success(kase));
+    }
+
+    /// <summary>Unpins a Kase.</summary>
+    [HttpPost("{id:guid}/unpin")]
+    [ProducesResponseType(typeof(ApiResponse<KaseResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<KaseResponse>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Unpin(Guid id)
+    {
+        var kase = await _kases.SetPinnedAsync(id, pinned: false);
+        if (kase is null)
+            return NotFound(ApiResponse<KaseResponse>.NotFound($"Kase with ID '{id}' was not found."));
+        _logger.LogInformation("[KASE] Unpinned kase {Id}", id);
+        return Ok(ApiResponse<KaseResponse>.Success(kase));
     }
 
     /// <summary>Returns Logs and linked Collection items for a Kase in reverse-chronological order.</summary>

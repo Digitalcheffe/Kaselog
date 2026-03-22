@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { kases as kasesApi } from '../api/client'
 import { useKases } from '../contexts/KasesContext'
+import type { KaseResponse } from '../api/types'
 
 function formatRelativeTime(isoString: string): string {
   const date = new Date(isoString)
@@ -18,6 +19,149 @@ function formatRelativeTime(isoString: string): string {
   if (diffDays < 7) return `${diffDays}d ago`
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
+
+// ── Pin icon ──────────────────────────────────────────────────────────────────
+
+function PinIcon({ filled, size = 14 }: { filled: boolean; size?: number }) {
+  if (filled) {
+    // Filled pin — accent color
+    return (
+      <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path
+          d="M9.828 1.172a.5.5 0 0 0-.707 0L6.95 3.344a1 1 0 0 1-.707.293H3.5a1 1 0 0 0-.707 1.707l2 2A1 1 0 0 1 5 8.05v2.536a.5.5 0 0 0 .854.353L7.5 9.293l3.207 3.207a.5.5 0 0 0 .707-.707L8.207 8.586l1.621-1.621A3 3 0 0 0 10.657 5H12a1 1 0 0 0 .707-1.707l-2-2a1 1 0 0 0-.707-.293H9.828z"
+          fill="var(--accent)"
+        />
+      </svg>
+    )
+  }
+  // Outline pin — muted
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M9.828 1.172a.5.5 0 0 0-.707 0L6.95 3.344a1 1 0 0 1-.707.293H3.5a1 1 0 0 0-.707 1.707l2 2A1 1 0 0 1 5 8.05v2.536a.5.5 0 0 0 .854.353L7.5 9.293l3.207 3.207a.5.5 0 0 0 .707-.707L8.207 8.586l1.621-1.621A3 3 0 0 0 10.657 5H12a1 1 0 0 0 .707-1.707l-2-2a1 1 0 0 0-.707-.293H9.828z"
+        stroke="var(--text-tertiary)"
+        strokeWidth="1"
+        fill="none"
+      />
+    </svg>
+  )
+}
+
+// ── Kase row ──────────────────────────────────────────────────────────────────
+
+interface KaseRowProps {
+  kase: KaseResponse
+  isLast: boolean
+  onPinToggle: (kase: KaseResponse) => void
+}
+
+function KaseRow({ kase, isLast, onPinToggle }: KaseRowProps) {
+  const navigate = useNavigate()
+  const [hovered, setHovered] = useState(false)
+
+  const activityTime = kase.latestLogUpdatedAt
+    ? formatRelativeTime(kase.latestLogUpdatedAt)
+    : formatRelativeTime(kase.createdAt)
+
+  return (
+    <div
+      data-testid={`kase-row-${kase.id}`}
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '0.75rem',
+        padding: '0.85rem 1rem',
+        borderBottom: isLast ? 'none' : '1px solid var(--border)',
+        background: hovered ? 'var(--bg-secondary)' : 'var(--bg)',
+        transition: 'background 0.1s',
+        cursor: 'pointer',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={() => navigate(`/kases/${kase.id}`)}
+    >
+      {/* Pin icon — always visible, left edge */}
+      <button
+        data-testid={`pin-btn-${kase.id}`}
+        aria-label={kase.isPinned ? 'Unpin kase' : 'Pin kase'}
+        onClick={e => { e.stopPropagation(); onPinToggle(kase) }}
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '2px',
+          marginTop: 2,
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          borderRadius: 4,
+          opacity: kase.isPinned ? 1 : (hovered ? 0.7 : 0.35),
+          transition: 'opacity 0.15s',
+        }}
+      >
+        <PinIcon filled={kase.isPinned} size={14} />
+      </button>
+
+      {/* Main content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Title row */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: 3 }}>
+          <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)' }}>
+            {kase.title}
+          </div>
+          <div style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--text-tertiary)',
+            padding: '1px 7px',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border)',
+            borderRadius: 99,
+            flexShrink: 0,
+          }}>
+            {kase.logCount} {kase.logCount === 1 ? 'log' : 'logs'}
+          </div>
+        </div>
+
+        {/* Description */}
+        {kase.description && (
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 4, lineHeight: 1.5 }}>
+            {kase.description}
+          </div>
+        )}
+
+        {/* Latest log preview */}
+        {kase.latestLogTitle ? (
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', marginBottom: 3, lineHeight: 1.4 }}>
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{kase.latestLogTitle}</span>
+            {kase.latestLogPreview && (
+              <span> — {kase.latestLogPreview}</span>
+            )}
+          </div>
+        ) : (
+          <div
+            data-testid={`no-logs-${kase.id}`}
+            style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', fontStyle: 'italic', marginBottom: 3 }}
+          >
+            No logs yet
+          </div>
+        )}
+      </div>
+
+      {/* Timestamp */}
+      <div style={{
+        fontSize: 'var(--text-xs)',
+        color: 'var(--text-tertiary)',
+        flexShrink: 0,
+        marginTop: 3,
+        whiteSpace: 'nowrap',
+      }}>
+        {activityTime}
+      </div>
+    </div>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function KaseListPage() {
   const navigate = useNavigate()
@@ -74,6 +218,17 @@ export default function KaseListPage() {
       setSubmitting(false)
     }
   }
+
+  async function handlePinToggle(kase: KaseResponse) {
+    try {
+      await (kase.isPinned ? kasesApi.unpin(kase.id) : kasesApi.pin(kase.id))
+      refresh()
+    } catch { /* ignore */ }
+  }
+
+  const pinnedKases = kaseList.filter(k => k.isPinned)
+  const unpinnedKases = kaseList.filter(k => !k.isPinned)
+  const hasPinned = pinnedKases.length > 0
 
   return (
     <>
@@ -169,44 +324,36 @@ export default function KaseListPage() {
             border: '1px solid var(--border)',
             overflow: 'hidden',
           }}>
-            {kaseList.map((kase, i) => (
-              <div
+            {/* Pinned kases */}
+            {pinnedKases.map((kase, i) => (
+              <KaseRow
                 key={kase.id}
-                onClick={() => navigate(`/kases/${kase.id}`)}
+                kase={kase}
+                isLast={i === pinnedKases.length - 1 && unpinnedKases.length === 0}
+                onPinToggle={handlePinToggle}
+              />
+            ))}
+
+            {/* Divider between pinned and unpinned */}
+            {hasPinned && unpinnedKases.length > 0 && (
+              <div
+                data-testid="pin-divider"
                 style={{
-                  padding: '0.9rem 1.1rem',
-                  cursor: 'pointer',
-                  borderBottom: i < kaseList.length - 1 ? '1px solid var(--border)' : 'none',
-                  background: 'var(--bg)',
-                  transition: 'background 0.1s',
+                  height: 1,
+                  background: 'var(--border)',
+                  margin: 0,
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-secondary)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}
-              >
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: 3 }}>
-                  <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {kase.title}
-                  </div>
-                  <div style={{
-                    fontSize: 'var(--text-xs)',
-                    color: 'var(--text-tertiary)',
-                    padding: '1px 7px',
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 99,
-                  }}>
-                    {kase.logCount} {kase.logCount === 1 ? 'log' : 'logs'}
-                  </div>
-                </div>
-                {kase.description && (
-                  <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 3, lineHeight: 1.5 }}>
-                    {kase.description}
-                  </div>
-                )}
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
-                  Updated {formatRelativeTime(kase.updatedAt)}
-                </div>
-              </div>
+              />
+            )}
+
+            {/* Unpinned kases */}
+            {unpinnedKases.map((kase, i) => (
+              <KaseRow
+                key={kase.id}
+                kase={kase}
+                isLast={i === unpinnedKases.length - 1}
+                onPinToggle={handlePinToggle}
+              />
             ))}
           </div>
         )}

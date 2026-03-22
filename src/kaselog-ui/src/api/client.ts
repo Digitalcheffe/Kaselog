@@ -69,6 +69,12 @@ export const kases = {
 
   delete: (id: string): Promise<void> =>
     request<void>(`/api/kases/${id}`, { method: 'DELETE' }),
+
+  pin: (id: string): Promise<KaseResponse> =>
+    request<KaseResponse>(`/api/kases/${id}/pin`, { method: 'POST' }),
+
+  unpin: (id: string): Promise<KaseResponse> =>
+    request<KaseResponse>(`/api/kases/${id}/unpin`, { method: 'POST' }),
 }
 
 // ── Logs ──────────────────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { kases as kasesApi, timeline as timelineApi } from '../api/client'
 import type { KaseResponse, TimelineEntryResponse } from '../api/types'
+import { useKases } from '../contexts/KasesContext'
 import NewContentModal from '../components/NewContentModal'
 
 // ── Tag color palette ─────────────────────────────────────────────────────────
@@ -54,11 +55,13 @@ interface KaseSettingsPanelProps {
   onClose: () => void
   onUpdated: (k: KaseResponse) => void
   onDeleted: () => void
+  onPinToggled: (k: KaseResponse) => void
 }
 
-function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: KaseSettingsPanelProps) {
+function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted, onPinToggled }: KaseSettingsPanelProps) {
   const [localTitle, setLocalTitle] = useState(kase.title)
   const [localDesc, setLocalDesc] = useState(kase.description ?? '')
+  const [pinning, setPinning] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -89,6 +92,19 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: 
       const updated = await kasesApi.update(kase.id, { title: localTitle.trim(), description: d || null })
       onUpdated(updated)
     } catch { /* ignore */ }
+  }
+
+  async function handlePinToggle() {
+    if (pinning) return
+    setPinning(true)
+    try {
+      const updated = kase.isPinned
+        ? await kasesApi.unpin(kase.id)
+        : await kasesApi.pin(kase.id)
+      onPinToggled(updated)
+    } catch { /* ignore */ } finally {
+      setPinning(false)
+    }
   }
 
   async function handleConfirmDelete() {
@@ -179,6 +195,47 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: 
 
           <div style={{ height: 1, background: 'var(--border)' }} />
 
+          {/* Pin toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Pin this Kase</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 1 }}>
+                Pinned kases appear at the top of all lists
+              </div>
+            </div>
+            <button
+              aria-label={kase.isPinned ? 'Unpin this kase' : 'Pin this kase'}
+              data-testid="settings-pin-toggle"
+              onClick={handlePinToggle}
+              disabled={pinning}
+              style={{
+                width: 34, height: 20,
+                borderRadius: 10,
+                background: kase.isPinned ? 'var(--accent)' : 'var(--border-mid)',
+                border: 'none',
+                cursor: pinning ? 'not-allowed' : 'pointer',
+                position: 'relative',
+                flexShrink: 0,
+                marginLeft: '0.75rem',
+                transition: 'background 0.2s',
+                opacity: pinning ? 0.6 : 1,
+              }}
+            >
+              <span style={{
+                position: 'absolute',
+                top: 2,
+                left: kase.isPinned ? 16 : 2,
+                width: 16, height: 16,
+                borderRadius: '50%',
+                background: 'white',
+                transition: 'left 0.2s',
+                display: 'block',
+              }} />
+            </button>
+          </div>
+
+          <div style={{ height: 1, background: 'var(--border)' }} />
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>
               Info
@@ -258,6 +315,7 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted }: 
 export default function KaseViewPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { refresh: refreshKases } = useKases()
 
   const [kase, setKase] = useState<KaseResponse | null>(null)
   const [entries, setEntries] = useState<TimelineEntryResponse[]>([])
@@ -418,6 +476,7 @@ export default function KaseViewPage() {
           onClose={() => setSettingsOpen(false)}
           onUpdated={updated => setKase(updated)}
           onDeleted={() => navigate('/')}
+          onPinToggled={updated => { setKase(updated); refreshKases() }}
         />
       )}
     </>

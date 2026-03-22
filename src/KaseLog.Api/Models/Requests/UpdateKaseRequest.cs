@@ -10,4 +10,6 @@ public sealed class UpdateKaseRequest
 
     [StringLength(1000)]
     public string? Description { get; init; }
+
+    public bool? IsPinned { get; init; }
 }

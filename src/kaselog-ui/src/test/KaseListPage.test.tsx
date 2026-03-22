@@ -12,6 +12,8 @@ vi.mock('../api/client', () => ({
   kases: {
     list: vi.fn(),
     create: vi.fn(),
+    pin: vi.fn(),
+    unpin: vi.fn(),
   },
 }))
 
@@ -32,6 +34,10 @@ function makeKase(overrides: Partial<KaseResponse> = {}): KaseResponse {
     title: 'Proxmox Cluster',
     description: 'Home lab cluster setup',
     logCount: 5,
+    isPinned: false,
+    latestLogTitle: 'VLAN trunk config',
+    latestLogPreview: 'Trunk mode on Proxmox nodes.',
+    latestLogUpdatedAt: new Date(Date.now() - 3600000).toISOString(),
     createdAt: new Date(Date.now() - 86400000).toISOString(),
     updatedAt: new Date(Date.now() - 3600000).toISOString(),
     ...overrides,
@@ -157,6 +163,141 @@ describe('KaseListPage', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Server error')
+    })
+  })
+})
+
+// ── Pinned Kases tests ─────────────────────────────────────────────────────
+
+describe('KaseListPage — full row layout and pinning', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockNavigate.mockReset()
+  })
+
+  it('renders rows with title, description, latest log preview, and timestamp', async () => {
+    vi.mocked(kasesApi.list).mockResolvedValue([
+      makeKase({
+        id: 'k1',
+        title: 'Proxmox Cluster',
+        description: 'Home lab setup',
+        latestLogTitle: 'VLAN Config',
+        latestLogPreview: 'Trunk mode on nodes.',
+        latestLogUpdatedAt: new Date(Date.now() - 3600000).toISOString(),
+      }),
+    ])
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('kase-row-k1'))
+
+    expect(screen.getByText('Proxmox Cluster')).toBeInTheDocument()
+    expect(screen.getByText('Home lab setup')).toBeInTheDocument()
+    expect(screen.getByText('VLAN Config')).toBeInTheDocument()
+    expect(screen.getByText(/Trunk mode on nodes/i)).toBeInTheDocument()
+    // Timestamp rendered (relative time, e.g. "1h ago")
+    expect(screen.getByTestId('kase-row-k1')).toBeInTheDocument()
+  })
+
+  it('kases with no logs show "No logs yet" placeholder', async () => {
+    vi.mocked(kasesApi.list).mockResolvedValue([
+      makeKase({
+        id: 'k1',
+        title: 'Empty Kase',
+        logCount: 0,
+        latestLogTitle: null,
+        latestLogPreview: null,
+        latestLogUpdatedAt: null,
+      }),
+    ])
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('no-logs-k1'))
+
+    expect(screen.getByTestId('no-logs-k1')).toHaveTextContent('No logs yet')
+  })
+
+  it('pinned kases render above the divider; unpinned below', async () => {
+    vi.mocked(kasesApi.list).mockResolvedValue([
+      makeKase({ id: 'pinned-1', title: 'Pinned Kase', isPinned: true }),
+      makeKase({ id: 'unpinned-1', title: 'Unpinned Kase', isPinned: false }),
+    ])
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('kase-row-pinned-1'))
+
+    const divider = screen.getByTestId('pin-divider')
+    const pinnedRow = screen.getByTestId('kase-row-pinned-1')
+    const unpinnedRow = screen.getByTestId('kase-row-unpinned-1')
+
+    // Divider should exist
+    expect(divider).toBeInTheDocument()
+
+    // Pinned row must appear before divider in DOM
+    expect(
+      pinnedRow.compareDocumentPosition(divider) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+
+    // Unpinned row must appear after divider in DOM
+    expect(
+      divider.compareDocumentPosition(unpinnedRow) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('no divider rendered when zero kases are pinned', async () => {
+    vi.mocked(kasesApi.list).mockResolvedValue([
+      makeKase({ id: 'k1', title: 'Kase A', isPinned: false }),
+      makeKase({ id: 'k2', title: 'Kase B', isPinned: false }),
+    ])
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('kase-row-k1'))
+
+    expect(screen.queryByTestId('pin-divider')).not.toBeInTheDocument()
+  })
+
+  it('clicking pin icon calls pin endpoint and triggers refresh', async () => {
+    const user = userEvent.setup()
+    const unpinnedKase = makeKase({ id: 'k1', title: 'My Kase', isPinned: false })
+    const pinnedKase = { ...unpinnedKase, isPinned: true }
+
+    vi.mocked(kasesApi.list)
+      .mockResolvedValueOnce([unpinnedKase])
+      .mockResolvedValueOnce([pinnedKase])
+    vi.mocked(kasesApi.pin).mockResolvedValue(pinnedKase)
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('pin-btn-k1'))
+
+    await user.click(screen.getByTestId('pin-btn-k1'))
+
+    await waitFor(() => {
+      expect(kasesApi.pin).toHaveBeenCalledWith('k1')
+    })
+  })
+
+  it('clicking pin icon on a pinned kase calls unpin endpoint', async () => {
+    const user = userEvent.setup()
+    const pinnedKase = makeKase({ id: 'k1', title: 'My Kase', isPinned: true })
+    const unpinnedKase = { ...pinnedKase, isPinned: false }
+
+    vi.mocked(kasesApi.list)
+      .mockResolvedValueOnce([pinnedKase])
+      .mockResolvedValueOnce([unpinnedKase])
+    vi.mocked(kasesApi.unpin).mockResolvedValue(unpinnedKase)
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('pin-btn-k1'))
+
+    await user.click(screen.getByTestId('pin-btn-k1'))
+
+    await waitFor(() => {
+      expect(kasesApi.unpin).toHaveBeenCalledWith('k1')
     })
   })
 })

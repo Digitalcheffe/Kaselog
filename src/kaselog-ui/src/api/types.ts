@@ -20,6 +20,10 @@ export interface KaseResponse {
   title: string
   description: string | null
   logCount: number
+  isPinned: boolean
+  latestLogTitle: string | null
+  latestLogPreview: string | null
+  latestLogUpdatedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -156,6 +160,7 @@ export interface CreateKaseRequest {
 export interface UpdateKaseRequest {
   title: string
   description?: string | null
+  isPinned?: boolean | null
 }
 
 export interface CreateLogRequest {
