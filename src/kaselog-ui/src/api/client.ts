@@ -290,6 +290,8 @@ export const search = {
   query: (params: {
     q?: string
     kaseId?: string
+    collectionId?: string
+    type?: string
     tag?: string[]
     from?: string
     to?: string
@@ -297,6 +299,8 @@ export const search = {
     const qs = new URLSearchParams()
     if (params.q) qs.set('q', params.q)
     if (params.kaseId) qs.set('kaseId', params.kaseId)
+    if (params.collectionId) qs.set('collectionId', params.collectionId)
+    if (params.type) qs.set('type', params.type)
     if (params.tag) params.tag.forEach(t => qs.append('tag', t))
     if (params.from) qs.set('from', params.from)
     if (params.to) qs.set('to', params.to)

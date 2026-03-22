@@ -33,7 +33,10 @@
       "Bash(cmd /c \"netstat -ano | findstr :5001\")",
       "Bash(cmd /c \"tasklist /FI \"\"PID eq 13148\"\"\")",
       "Bash(cmd /c \"tasklist /FI \"\"PID eq 13148\"\" /FO LIST\")",
-      "Bash(cmd /c \"wmic process where processid=13148 get name,processid,commandline 2>&1\")"
+      "Bash(cmd /c \"wmic process where processid=13148 get name,processid,commandline 2>&1\")",
+      "Bash(find /c/Users/digitalcheffe/OneDrive/Documents/GitRepos/Kaselog/src/KaseLog.Api -name *chema* -o -name *init*)",
+      "Bash(powershell.exe -Command \"dotnet build ''src/KaseLog.Api/KaseLog.Api.csproj'' -c Release 2>&1 | Select-Object -Last 20\")",
+      "Bash(powershell.exe -Command \"Get-Item ''C:\\\\Program Files\\\\dotnet\\\\dotnet.exe'' -ErrorAction SilentlyContinue; Get-Item ''C:\\\\Users\\\\digitalcheffe\\\\AppData\\\\Local\\\\Microsoft\\\\dotnet\\\\dotnet.exe'' -ErrorAction SilentlyContinue\")"
     ]
   }
 }

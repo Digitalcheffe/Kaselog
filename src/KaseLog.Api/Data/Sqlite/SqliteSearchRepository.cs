@@ -17,12 +17,19 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
     public async Task<IEnumerable<SearchResultDto>> SearchAsync(
         string? q,
         string? kaseId,
+        string? collectionId,
+        string? type,
         IReadOnlyList<string> tags,
         DateTime? from,
         DateTime? to)
     {
         var hasQ = !string.IsNullOrWhiteSpace(q);
-        var hasFilters = !string.IsNullOrWhiteSpace(kaseId) || tags.Count > 0 || from.HasValue || to.HasValue;
+        var hasFilters = !string.IsNullOrWhiteSpace(kaseId)
+            || !string.IsNullOrWhiteSpace(collectionId)
+            || !string.IsNullOrWhiteSpace(type)
+            || tags.Count > 0
+            || from.HasValue
+            || to.HasValue;
 
         if (!hasQ && !hasFilters)
             return [];
@@ -30,14 +37,17 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
         using var connection = await _factory.OpenAsync();
 
         List<SearchResultRow> rows = hasQ
-            ? await RunFtsQuery(connection, q!, kaseId, tags, from, to)
-            : await RunFilterQuery(connection, kaseId, tags, from, to);
+            ? await RunFtsQuery(connection, q!, kaseId, collectionId, type, tags, from, to)
+            : await RunFilterQuery(connection, kaseId, collectionId, type, tags, from, to);
 
         if (rows.Count == 0)
             return [];
 
-        var logIds = rows.Select(r => r.LogId).Distinct().ToList();
-        var tagMap = await FetchTagsForLogs(connection, logIds);
+        // Fetch tags only for log entities
+        var logIds = rows.Where(r => r.EntityType == "log").Select(r => r.LogId).Distinct().ToList();
+        var tagMap = logIds.Count > 0
+            ? await FetchTagsForLogs(connection, logIds)
+            : new Dictionary<string, List<string>>();
 
         return rows.Select(r => new SearchResultDto
         {
@@ -45,9 +55,12 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
             KaseId = r.KaseId,
             KaseTitle = r.KaseTitle,
             EntityType = r.EntityType,
+            CollectionId = string.IsNullOrEmpty(r.CollectionId) ? null : r.CollectionId,
+            CollectionTitle = string.IsNullOrEmpty(r.CollectionTitle) ? null : r.CollectionTitle,
+            CollectionColor = string.IsNullOrEmpty(r.CollectionColor) ? null : r.CollectionColor,
             Title = r.Title,
             Highlight = BuildHighlight(r.Content, hasQ ? q : null),
-            Tags = tagMap.TryGetValue(r.LogId, out var t) ? t : [],
+            Tags = r.EntityType == "log" && tagMap.TryGetValue(r.LogId, out var t) ? t : [],
             UpdatedAt = r.UpdatedAt,
         });
     }
@@ -58,6 +71,8 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
         System.Data.IDbConnection connection,
         string q,
         string? kaseId,
+        string? collectionId,
+        string? type,
         IReadOnlyList<string> tags,
         DateTime? from,
         DateTime? to)
@@ -65,29 +80,48 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
         var ftsQuery = BuildFtsQuery(q);
         var sql = new StringBuilder("""
             SELECT
-                kaselog_search.entity_id   AS LogId,
-                kaselog_search.kase_id     AS KaseId,
-                kaselog_search.kase_title  AS KaseTitle,
-                kaselog_search.entity_type AS EntityType,
-                kaselog_search.title       AS Title,
-                kaselog_search.content     AS Content,
-                l.UpdatedAt
-            FROM kaselog_search
-            JOIN Logs l ON l.Id = kaselog_search.entity_id
-            WHERE kaselog_search MATCH @ftsQuery
-              AND kaselog_search.entity_type = 'log'
+                ks.entity_id                   AS LogId,
+                COALESCE(ks.kase_id, '')        AS KaseId,
+                COALESCE(ks.kase_title, '')     AS KaseTitle,
+                ks.entity_type                  AS EntityType,
+                COALESCE(ks.collection_id, '')  AS CollectionId,
+                COALESCE(ks.collection_title, '') AS CollectionTitle,
+                COALESCE(col.Color, '')         AS CollectionColor,
+                ks.title                        AS Title,
+                ks.content                      AS Content,
+                CASE
+                    WHEN ks.entity_type = 'log' THEN l.UpdatedAt
+                    ELSE ci.UpdatedAt
+                END AS UpdatedAt
+            FROM kaselog_search ks
+            LEFT JOIN Logs l ON l.Id = ks.entity_id AND ks.entity_type = 'log'
+            LEFT JOIN CollectionItems ci ON ci.Id = ks.entity_id AND ks.entity_type = 'collection_item'
+            LEFT JOIN Collections col ON col.Id = ks.collection_id AND ks.entity_type = 'collection_item'
+            WHERE ks MATCH @ftsQuery
             """);
 
         var p = new DynamicParameters();
         p.Add("ftsQuery", ftsQuery);
 
+        if (!string.IsNullOrWhiteSpace(type))
+        {
+            sql.AppendLine(" AND ks.entity_type = @type");
+            p.Add("type", type);
+        }
+
         if (!string.IsNullOrWhiteSpace(kaseId))
         {
-            sql.AppendLine(" AND kaselog_search.kase_id = @kaseId");
+            sql.AppendLine(" AND ks.kase_id = @kaseId");
             p.Add("kaseId", kaseId);
         }
 
-        AppendDateAndTagFilters(sql, p, tags, from, to, "kaselog_search.entity_id");
+        if (!string.IsNullOrWhiteSpace(collectionId))
+        {
+            sql.AppendLine(" AND ks.collection_id = @collectionId");
+            p.Add("collectionId", collectionId);
+        }
+
+        AppendFtsDateAndTagFilters(sql, p, tags, from, to);
 
         sql.AppendLine(" ORDER BY rank LIMIT 100");
 
@@ -107,77 +141,205 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
     private static async Task<List<SearchResultRow>> RunFilterQuery(
         System.Data.IDbConnection connection,
         string? kaseId,
+        string? collectionId,
+        string? type,
         IReadOnlyList<string> tags,
         DateTime? from,
         DateTime? to)
     {
-        var sql = new StringBuilder("""
-            SELECT
-                l.Id       AS LogId,
-                l.KaseId   AS KaseId,
-                k.Title    AS KaseTitle,
-                l.Title    AS Title,
-                COALESCE(lv.Content, '') AS Content,
-                l.UpdatedAt
-            FROM Logs l
-            JOIN Kases k ON k.Id = l.KaseId
-            LEFT JOIN (
-                SELECT LogId, Content
-                FROM LogVersions
-                WHERE (LogId, CreatedAt) IN (
-                    SELECT LogId, MAX(CreatedAt) FROM LogVersions GROUP BY LogId
-                )
-            ) lv ON lv.LogId = l.Id
-            WHERE 1=1
-            """);
+        var includeLog = string.IsNullOrEmpty(type) || type == "log";
+        var includeItem = string.IsNullOrEmpty(type) || type == "collection_item"
+            || !string.IsNullOrEmpty(collectionId);
+
+        // Tag filters are log-only; suppress items when tags are set and no explicit type
+        if (tags.Count > 0 && string.IsNullOrEmpty(type))
+            includeItem = false;
+
+        if (!includeLog && !includeItem)
+            return [];
 
         var p = new DynamicParameters();
+        var addedParams = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        if (!string.IsNullOrWhiteSpace(kaseId))
+        void TryAdd(string name, object value)
         {
-            sql.AppendLine(" AND l.KaseId = @kaseId");
-            p.Add("kaseId", kaseId);
+            if (addedParams.Add(name))
+                p.Add(name, value);
         }
 
-        AppendDateAndTagFilters(sql, p, tags, from, to, "l.Id");
+        var parts = new List<string>();
 
-        sql.AppendLine(" ORDER BY l.UpdatedAt DESC LIMIT 100");
+        if (includeLog)
+        {
+            var logSql = new StringBuilder("""
+                SELECT
+                    l.Id       AS LogId,
+                    l.KaseId   AS KaseId,
+                    k.Title    AS KaseTitle,
+                    'log'      AS EntityType,
+                    ''         AS CollectionId,
+                    ''         AS CollectionTitle,
+                    ''         AS CollectionColor,
+                    l.Title    AS Title,
+                    COALESCE(lv.Content, '') AS Content,
+                    l.UpdatedAt
+                FROM Logs l
+                JOIN Kases k ON k.Id = l.KaseId
+                LEFT JOIN (
+                    SELECT LogId, Content
+                    FROM LogVersions
+                    WHERE (LogId, CreatedAt) IN (
+                        SELECT LogId, MAX(CreatedAt) FROM LogVersions GROUP BY LogId
+                    )
+                ) lv ON lv.LogId = l.Id
+                WHERE 1=1
+                """);
 
-        var result = await connection.QueryAsync<SearchResultRow>(sql.ToString(), p);
+            if (!string.IsNullOrWhiteSpace(kaseId))
+            {
+                logSql.AppendLine(" AND l.KaseId = @kaseId");
+                TryAdd("kaseId", kaseId);
+            }
+
+            if (from.HasValue)
+            {
+                logSql.AppendLine(" AND l.UpdatedAt >= @from");
+                TryAdd("from", from.Value.ToString("O"));
+            }
+
+            if (to.HasValue)
+            {
+                logSql.AppendLine(" AND l.UpdatedAt <= @to");
+                TryAdd("to", to.Value.ToString("O"));
+            }
+
+            for (var i = 0; i < tags.Count; i++)
+            {
+                var paramName = $"tag{i}";
+                logSql.AppendLine($"""
+                     AND EXISTS (
+                        SELECT 1 FROM LogTags lt
+                        JOIN Tags t ON t.Id = lt.TagId
+                        WHERE lt.LogId = l.Id AND LOWER(t.Name) = LOWER(@{paramName})
+                    )
+                    """);
+                TryAdd(paramName, tags[i]);
+            }
+
+            parts.Add(logSql.ToString());
+        }
+
+        if (includeItem)
+        {
+            var itemSql = new StringBuilder("""
+                SELECT
+                    ci.Id                   AS LogId,
+                    COALESCE(ci.KaseId, '') AS KaseId,
+                    COALESCE(k.Title, '')   AS KaseTitle,
+                    'collection_item'       AS EntityType,
+                    ci.CollectionId         AS CollectionId,
+                    c.Title                 AS CollectionTitle,
+                    c.Color                 AS CollectionColor,
+                    COALESCE(
+                        (
+                            SELECT json_extract(ci.FieldValues, '$.' || cf.Id)
+                            FROM CollectionFields cf
+                            WHERE cf.CollectionId = ci.CollectionId
+                              AND cf.Type IN ('text', 'select')
+                            ORDER BY cf.SortOrder
+                            LIMIT 1
+                        ),
+                        ''
+                    )                       AS Title,
+                    ''                      AS Content,
+                    ci.UpdatedAt
+                FROM CollectionItems ci
+                JOIN Collections c ON c.Id = ci.CollectionId
+                LEFT JOIN Kases k ON k.Id = ci.KaseId
+                WHERE 1=1
+                """);
+
+            if (!string.IsNullOrWhiteSpace(kaseId))
+            {
+                itemSql.AppendLine(" AND ci.KaseId = @kaseId");
+                TryAdd("kaseId", kaseId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(collectionId))
+            {
+                itemSql.AppendLine(" AND ci.CollectionId = @collectionId");
+                TryAdd("collectionId", collectionId);
+            }
+
+            if (from.HasValue)
+            {
+                itemSql.AppendLine(" AND ci.UpdatedAt >= @from");
+                TryAdd("from", from.Value.ToString("O"));
+            }
+
+            if (to.HasValue)
+            {
+                itemSql.AppendLine(" AND ci.UpdatedAt <= @to");
+                TryAdd("to", to.Value.ToString("O"));
+            }
+
+            parts.Add(itemSql.ToString());
+        }
+
+        string finalSql;
+        if (parts.Count == 1)
+            finalSql = parts[0] + " ORDER BY UpdatedAt DESC LIMIT 100";
+        else
+            finalSql = $"SELECT * FROM (\n{string.Join("\nUNION ALL\n", parts)}\n) ORDER BY UpdatedAt DESC LIMIT 100";
+
+        var result = await connection.QueryAsync<SearchResultRow>(finalSql, p);
         return result.ToList();
     }
 
-    // ── Shared filter helpers ─────────────────────────────────────────────────
+    // ── FTS date/tag filters (handles both entity types) ─────────────────────
 
-    private static void AppendDateAndTagFilters(
+    private static void AppendFtsDateAndTagFilters(
         StringBuilder sql,
         DynamicParameters p,
         IReadOnlyList<string> tags,
         DateTime? from,
-        DateTime? to,
-        string logIdColumn)
+        DateTime? to)
     {
         if (from.HasValue)
         {
-            sql.AppendLine(" AND l.UpdatedAt >= @from");
+            sql.AppendLine("""
+                 AND (
+                    (ks.entity_type = 'log' AND l.UpdatedAt >= @from) OR
+                    (ks.entity_type = 'collection_item' AND ci.UpdatedAt >= @from)
+                 )
+                """);
             p.Add("from", from.Value.ToString("O"));
         }
 
         if (to.HasValue)
         {
-            sql.AppendLine(" AND l.UpdatedAt <= @to");
+            sql.AppendLine("""
+                 AND (
+                    (ks.entity_type = 'log' AND l.UpdatedAt <= @to) OR
+                    (ks.entity_type = 'collection_item' AND ci.UpdatedAt <= @to)
+                 )
+                """);
             p.Add("to", to.Value.ToString("O"));
         }
 
         for (var i = 0; i < tags.Count; i++)
         {
             var paramName = $"tag{i}";
+            // Tag filters apply to logs; collection items pass through automatically
             sql.AppendLine($"""
-                 AND EXISTS (
-                    SELECT 1 FROM LogTags lt
-                    JOIN Tags t ON t.Id = lt.TagId
-                    WHERE lt.LogId = {logIdColumn} AND LOWER(t.Name) = LOWER(@{paramName})
-                )
+                 AND (
+                    ks.entity_type = 'collection_item' OR
+                    EXISTS (
+                        SELECT 1 FROM LogTags lt
+                        JOIN Tags t ON t.Id = lt.TagId
+                        WHERE lt.LogId = ks.entity_id AND LOWER(t.Name) = LOWER(@{paramName})
+                    )
+                 )
                 """);
             p.Add(paramName, tags[i]);
         }
@@ -281,6 +443,9 @@ public sealed partial class SqliteSearchRepository : ISearchRepository
         public string KaseId { get; init; } = string.Empty;
         public string KaseTitle { get; init; } = string.Empty;
         public string EntityType { get; init; } = "log";
+        public string CollectionId { get; init; } = string.Empty;
+        public string CollectionTitle { get; init; } = string.Empty;
+        public string CollectionColor { get; init; } = string.Empty;
         public string Title { get; init; } = string.Empty;
         public string Content { get; init; } = string.Empty;
         public string UpdatedAt { get; init; } = string.Empty;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { search as searchApi, kases as kasesApi, tags as tagsApi } from '../api/client'
-import type { KaseResponse, SearchResult, TagResponse } from '../api/types'
+import { search as searchApi, kases as kasesApi, tags as tagsApi, collections as collectionsApi } from '../api/client'
+import type { KaseResponse, SearchResult, TagResponse, CollectionResponse } from '../api/types'
 
 // ── Tag color palette (deterministic hash, matches rest of app) ────────────────
 
@@ -49,6 +49,20 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// Map collection color name to hex
+const COLLECTION_COLORS: Record<string, string> = {
+  teal: '#1D9E75',
+  blue: '#378ADD',
+  purple: '#7F77DD',
+  coral: '#D85A30',
+  amber: '#BA7517',
+}
+
+function collectionDotColor(color: string | null | undefined): string {
+  if (!color) return '#9a9890'
+  return COLLECTION_COLORS[color.toLowerCase()] ?? '#9a9890'
+}
+
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export default function SearchPage() {
@@ -61,6 +75,8 @@ export default function SearchPage() {
   const [tagFilters, setTagFilters] = useState<string[]>([])
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
+  const [collectionFilter, setCollectionFilter] = useState<{ id: string; title: string; color: string } | null>(null)
+  const [typeFilter, setTypeFilter] = useState<string | null>(null)
 
   // ── Results ────────────────────────────────────────────────────────────────
   const [results, setResults] = useState<SearchResult[]>([])
@@ -69,30 +85,39 @@ export default function SearchPage() {
   // ── Typeahead state ────────────────────────────────────────────────────────
   const [allKases, setAllKases] = useState<KaseResponse[]>([])
   const [allTags, setAllTags] = useState<TagResponse[]>([])
+  const [allCollections, setAllCollections] = useState<CollectionResponse[]>([])
   const [kaseDropdownOpen, setKaseDropdownOpen] = useState(false)
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false)
+  const [collectionDropdownOpen, setCollectionDropdownOpen] = useState(false)
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false)
   const [kaseTypeahead, setKaseTypeahead] = useState('')
   const [tagTypeahead, setTagTypeahead] = useState('')
+  const [collectionTypeahead, setCollectionTypeahead] = useState('')
   const kaseDropdownRef = useRef<HTMLDivElement>(null)
   const tagDropdownRef = useRef<HTMLDivElement>(null)
   const dateDropdownRef = useRef<HTMLDivElement>(null)
+  const collectionDropdownRef = useRef<HTMLDivElement>(null)
+  const typeDropdownRef = useRef<HTMLDivElement>(null)
 
-  // Load kases and tags for typeahead
+  // Load data for typeaheads
   useEffect(() => {
     kasesApi.list().then(setAllKases).catch(() => {})
     tagsApi.list().then(setAllTags).catch(() => {})
+    collectionsApi.list().then(setAllCollections).catch(() => {})
   }, [])
 
   // Run search whenever query or filters change
   const runSearch = useCallback(async (
     q: string,
     kaseId: string | undefined,
+    collectionId: string | undefined,
+    type: string | null,
     tags: string[],
     from: string,
     to: string,
   ) => {
-    if (!q.trim() && !kaseId && tags.length === 0 && !from && !to) {
+    if (!q.trim() && !kaseId && !collectionId && !type && tags.length === 0 && !from && !to) {
       setResults([])
       setSearched(false)
       return
@@ -101,6 +126,8 @@ export default function SearchPage() {
       const r = await searchApi.query({
         q: q.trim() || undefined,
         kaseId: kaseId || undefined,
+        collectionId: collectionId || undefined,
+        type: type || undefined,
         tag: tags.length ? tags : undefined,
         from: from || undefined,
         to: to || undefined,
@@ -118,18 +145,20 @@ export default function SearchPage() {
   function scheduleSearch(
     q: string,
     kaseId: string | undefined,
+    collectionId: string | undefined,
+    type: string | null,
     tags: string[],
     from: string,
     to: string,
   ) {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => runSearch(q, kaseId, tags, from, to), 200)
+    debounceRef.current = setTimeout(() => runSearch(q, kaseId, collectionId, type, tags, from, to), 200)
   }
 
   // Run search on mount if URL has params
   useEffect(() => {
     const q = searchParams.get('q') ?? ''
-    if (q) runSearch(q, kaseFilter?.id, tagFilters, fromDate, toDate)
+    if (q) runSearch(q, kaseFilter?.id, collectionFilter?.id, typeFilter, tagFilters, fromDate, toDate)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -142,6 +171,10 @@ export default function SearchPage() {
         setTagDropdownOpen(false)
       if (dateDropdownRef.current && !dateDropdownRef.current.contains(e.target as Node))
         setDateDropdownOpen(false)
+      if (collectionDropdownRef.current && !collectionDropdownRef.current.contains(e.target as Node))
+        setCollectionDropdownOpen(false)
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(e.target as Node))
+        setTypeDropdownOpen(false)
     }
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
@@ -154,14 +187,14 @@ export default function SearchPage() {
     const params: Record<string, string> = {}
     if (q.trim()) params.q = q.trim()
     setSearchParams(params, { replace: true })
-    scheduleSearch(q, kaseFilter?.id, tagFilters, fromDate, toDate)
+    scheduleSearch(q, kaseFilter?.id, collectionFilter?.id, typeFilter, tagFilters, fromDate, toDate)
   }
 
   function selectKase(kase: KaseResponse | null) {
     setKaseFilter(kase)
     setKaseDropdownOpen(false)
     setKaseTypeahead('')
-    scheduleSearch(query, kase?.id, tagFilters, fromDate, toDate)
+    scheduleSearch(query, kase?.id, collectionFilter?.id, typeFilter, tagFilters, fromDate, toDate)
   }
 
   function addTag(name: string) {
@@ -174,25 +207,38 @@ export default function SearchPage() {
     setTagFilters(next)
     setTagDropdownOpen(false)
     setTagTypeahead('')
-    scheduleSearch(query, kaseFilter?.id, next, fromDate, toDate)
+    scheduleSearch(query, kaseFilter?.id, collectionFilter?.id, typeFilter, next, fromDate, toDate)
   }
 
   function removeTag(name: string) {
     const next = tagFilters.filter(t => t !== name)
     setTagFilters(next)
-    scheduleSearch(query, kaseFilter?.id, next, fromDate, toDate)
+    scheduleSearch(query, kaseFilter?.id, collectionFilter?.id, typeFilter, next, fromDate, toDate)
   }
 
   function applyDateRange() {
     setDateDropdownOpen(false)
-    scheduleSearch(query, kaseFilter?.id, tagFilters, fromDate, toDate)
+    scheduleSearch(query, kaseFilter?.id, collectionFilter?.id, typeFilter, tagFilters, fromDate, toDate)
   }
 
   function clearDateRange() {
     setFromDate('')
     setToDate('')
     setDateDropdownOpen(false)
-    scheduleSearch(query, kaseFilter?.id, tagFilters, '', '')
+    scheduleSearch(query, kaseFilter?.id, collectionFilter?.id, typeFilter, tagFilters, '', '')
+  }
+
+  function selectCollection(collection: CollectionResponse | null) {
+    setCollectionFilter(collection ? { id: collection.id, title: collection.title, color: collection.color } : null)
+    setCollectionDropdownOpen(false)
+    setCollectionTypeahead('')
+    scheduleSearch(query, kaseFilter?.id, collection?.id, typeFilter, tagFilters, fromDate, toDate)
+  }
+
+  function selectType(t: string | null) {
+    setTypeFilter(t)
+    setTypeDropdownOpen(false)
+    scheduleSearch(query, kaseFilter?.id, collectionFilter?.id, t, tagFilters, fromDate, toDate)
   }
 
   // ── Derived values ─────────────────────────────────────────────────────────
@@ -204,10 +250,15 @@ export default function SearchPage() {
     t.name.toLowerCase().includes(tagTypeahead.toLowerCase()) &&
     !tagFilters.includes(t.name)
   )
+  const filteredCollections = allCollections.filter(c =>
+    c.title.toLowerCase().includes(collectionTypeahead.toLowerCase())
+  )
   const hasDateFilter = fromDate || toDate
   const dateLabel = hasDateFilter
     ? `${fromDate || '…'} – ${toDate || 'today'}`
     : 'Date'
+
+  const typeLabel = typeFilter === 'log' ? 'Logs' : typeFilter === 'collection_item' ? 'Collection Items' : 'All types'
 
   return (
     <>
@@ -396,6 +447,211 @@ export default function SearchPage() {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Collection typeahead filter */}
+        <div ref={collectionDropdownRef} style={{ position: 'relative', flexShrink: 0 }}>
+          {collectionFilter ? (
+            <span
+              data-testid="collection-filter-pill"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                padding: '3px 9px',
+                borderRadius: 6,
+                fontSize: 11,
+                fontWeight: 500,
+                background: 'var(--accent-light)',
+                border: '1px solid var(--accent)',
+                color: 'var(--accent-text)',
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 2,
+                  background: collectionDotColor(collectionFilter.color),
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ fontSize: 10, opacity: 0.7 }}>Collection:</span>
+              {collectionFilter.title}
+              <button
+                onClick={() => selectCollection(null)}
+                aria-label={`Remove collection filter ${collectionFilter.title}`}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 10, opacity: 0.6, fontFamily: 'var(--font)' }}
+              >
+                ✕
+              </button>
+            </span>
+          ) : (
+            <button
+              onClick={() => { setCollectionDropdownOpen(v => !v); setCollectionTypeahead('') }}
+              aria-label="Filter by collection"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                padding: '3px 9px',
+                borderRadius: 6,
+                fontSize: 11,
+                cursor: 'pointer',
+                border: '1px solid var(--border-mid)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-secondary)',
+                fontFamily: 'var(--font)',
+              }}
+            >
+              <span style={{ color: 'var(--text-tertiary)', fontSize: 10 }}>Collection:</span>
+              All
+              <span style={{ fontSize: 9, opacity: 0.4 }}>▾</span>
+            </button>
+          )}
+          {collectionDropdownOpen && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 4px)',
+              left: 0,
+              background: 'var(--bg)',
+              border: '1px solid var(--border-mid)',
+              borderRadius: 8,
+              overflow: 'hidden',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+              minWidth: 180,
+              zIndex: 50,
+            }}>
+              <div style={{ padding: '0.4rem 0.6rem', borderBottom: '1px solid var(--border)' }}>
+                <input
+                  type="text"
+                  placeholder="Search collections..."
+                  value={collectionTypeahead}
+                  onChange={e => setCollectionTypeahead(e.target.value)}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    fontSize: 12,
+                    border: 'none',
+                    outline: 'none',
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font)',
+                  }}
+                />
+              </div>
+              <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                {filteredCollections.length === 0 && (
+                  <div style={{ padding: '0.4rem 0.75rem', fontSize: 12, color: 'var(--text-tertiary)' }}>No collections found</div>
+                )}
+                {filteredCollections.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => selectCollection(c)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '0.4rem 0.75rem',
+                      fontSize: 12,
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      background: 'none',
+                      border: 'none',
+                      fontFamily: 'var(--font)',
+                    }}
+                  >
+                    <span style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: 2,
+                      background: collectionDotColor(c.color),
+                      flexShrink: 0,
+                    }} />
+                    {c.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Type filter */}
+        <div ref={typeDropdownRef} style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => setTypeDropdownOpen(v => !v)}
+            aria-label="Filter by type"
+            data-testid="type-filter-button"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              padding: '3px 9px',
+              borderRadius: 6,
+              fontSize: 11,
+              cursor: 'pointer',
+              border: typeFilter ? '1px solid var(--accent)' : '1px solid var(--border-mid)',
+              background: typeFilter ? 'var(--accent-light)' : 'var(--bg-secondary)',
+              color: typeFilter ? 'var(--accent-text)' : 'var(--text-secondary)',
+              fontFamily: 'var(--font)',
+            }}
+          >
+            <span style={{ color: typeFilter ? 'var(--accent-text)' : 'var(--text-tertiary)', fontSize: 10 }}>Type:</span>
+            {typeLabel}
+            {typeFilter && (
+              <button
+                onClick={e => { e.stopPropagation(); selectType(null) }}
+                aria-label="Clear type filter"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 10, opacity: 0.6, fontFamily: 'var(--font)' }}
+              >
+                ✕
+              </button>
+            )}
+            {!typeFilter && <span style={{ fontSize: 9, opacity: 0.4 }}>▾</span>}
+          </button>
+          {typeDropdownOpen && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 4px)',
+              left: 0,
+              background: 'var(--bg)',
+              border: '1px solid var(--border-mid)',
+              borderRadius: 8,
+              overflow: 'hidden',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+              minWidth: 160,
+              zIndex: 50,
+            }}>
+              {[
+                { value: null, label: 'All types' },
+                { value: 'log', label: 'Logs' },
+                { value: 'collection_item', label: 'Collection Items' },
+              ].map(opt => (
+                <button
+                  key={opt.label}
+                  onClick={() => selectType(opt.value)}
+                  data-testid={`type-option-${opt.value ?? 'all'}`}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '0.4rem 0.75rem',
+                    fontSize: 12,
+                    color: typeFilter === opt.value ? 'var(--accent)' : 'var(--text-secondary)',
+                    fontWeight: typeFilter === opt.value ? 500 : 400,
+                    cursor: 'pointer',
+                    background: 'none',
+                    border: 'none',
+                    fontFamily: 'var(--font)',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -656,7 +912,7 @@ export default function SearchPage() {
         {/* Empty state — no search yet */}
         {!searched && (
           <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>
-            Type to search logs, or use filters to browse by kase, tag, or date.
+            Type to search logs, or use filters to browse by kase, collection, tag, or date.
           </p>
         )}
 
@@ -677,72 +933,127 @@ export default function SearchPage() {
         )}
 
         {/* Result cards */}
-        {results.map(r => (
-          <div
-            key={r.logId}
-            data-testid="result-card"
-            onClick={() => navigate(`/logs/${r.logId}`)}
-            style={{
-              padding: '0.9rem 1.1rem',
-              border: '1px solid var(--border)',
-              borderRadius: 10,
-              cursor: 'pointer',
-              background: 'var(--bg)',
-              transition: 'border-color 0.12s, box-shadow 0.12s',
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border-mid)'
-              ;(e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)'
-              ;(e.currentTarget as HTMLDivElement).style.boxShadow = 'none'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.2rem' }}>
-              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3 }}>
-                {r.title}
-              </div>
-              {r.updatedAt && (
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0, marginTop: 1 }}>
-                  {formatDate(r.updatedAt)}
-                </div>
+        {results.map(r => {
+          const isItem = r.entityType === 'collection_item'
+
+          return (
+            <div
+              key={r.logId}
+              data-testid="result-card"
+              onClick={() => navigate(isItem ? `/items/${r.logId}` : `/logs/${r.logId}`)}
+              style={{
+                padding: '0.9rem 1.1rem',
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                cursor: 'pointer',
+                background: 'var(--bg)',
+                transition: 'border-color 0.12s, box-shadow 0.12s',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border-mid)'
+                ;(e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)'
+                ;(e.currentTarget as HTMLDivElement).style.boxShadow = 'none'
+              }}
+            >
+              {isItem ? (
+                /* Collection item card */
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                    <span
+                      data-testid={`collection-dot-${r.logId}`}
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 2,
+                        background: collectionDotColor(r.collectionColor),
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 500 }}>
+                      {r.collectionTitle}
+                    </span>
+                    {r.updatedAt && (
+                      <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
+                        {formatDate(r.updatedAt)}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: '0.3rem' }}>
+                    {r.title || r.collectionTitle}
+                  </div>
+                  {r.highlight && (
+                    <div
+                      style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: '0.4rem' }}
+                      dangerouslySetInnerHTML={{ __html: highlightTerms(r.highlight, query) }}
+                    />
+                  )}
+                  {r.kaseTitle && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <span style={{
+                        fontSize: 10,
+                        padding: '1px 7px',
+                        borderRadius: 99,
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text-tertiary)',
+                      }}>
+                        Kase: {r.kaseTitle}
+                      </span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Log card (existing layout) */
+                <>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3 }}>
+                      {r.title}
+                    </div>
+                    {r.updatedAt && (
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0, marginTop: 1 }}>
+                        {formatDate(r.updatedAt)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>
+                    {r.kaseTitle}
+                  </div>
+
+                  {r.highlight && (
+                    <div
+                      style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: '0.55rem' }}
+                      dangerouslySetInnerHTML={{ __html: highlightTerms(r.highlight, query) }}
+                    />
+                  )}
+
+                  {r.tags && r.tags.length > 0 && (
+                    <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                      {r.tags.map(tag => {
+                        const c = tagColor(tag)
+                        return (
+                          <span key={tag} style={{
+                            fontSize: 10,
+                            padding: '2px 8px',
+                            borderRadius: 99,
+                            fontWeight: 500,
+                            background: c.bg,
+                            color: c.color,
+                          }}>
+                            {tag}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </div>
-
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>
-              {r.kaseTitle}
-            </div>
-
-            {r.highlight && (
-              <div
-                style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: '0.55rem' }}
-                // Safe: backend strips HTML; we only add <mark> tags via highlightTerms
-                dangerouslySetInnerHTML={{ __html: highlightTerms(r.highlight, query) }}
-              />
-            )}
-
-            {r.tags && r.tags.length > 0 && (
-              <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                {r.tags.map(tag => {
-                  const c = tagColor(tag)
-                  return (
-                    <span key={tag} style={{
-                      fontSize: 10,
-                      padding: '2px 8px',
-                      borderRadius: 99,
-                      fontWeight: 500,
-                      background: c.bg,
-                      color: c.color,
-                    }}>
-                      {tag}
-                    </span>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        ))}
+          )
+        })}
       </div>
     </>
   )

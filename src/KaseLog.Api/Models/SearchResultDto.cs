@@ -10,4 +10,8 @@ public sealed class SearchResultDto
     public string Highlight { get; init; } = string.Empty;
     public IReadOnlyList<string> Tags { get; init; } = [];
     public string UpdatedAt { get; init; } = string.Empty;
+    // Collection item fields
+    public string? CollectionId { get; init; }
+    public string? CollectionTitle { get; init; }
+    public string? CollectionColor { get; init; }
 }

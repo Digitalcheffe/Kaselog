@@ -24,16 +24,18 @@ function tagColor(name: string) {
   return TAG_PALETTES[Math.abs(hash) % TAG_PALETTES.length]
 }
 
-/** Wraps all occurrences of query terms in <mark> tags within plain text. */
-function highlightTerms(text: string, q: string): string {
-  if (!q.trim()) return text
-  const terms = q.trim().split(/\s+/).filter(Boolean)
-  let result = text
-  for (const term of terms) {
-    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    result = result.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>')
-  }
-  return result
+// Map collection color name to CSS variable / hex
+const COLLECTION_COLORS: Record<string, string> = {
+  teal: '#1D9E75',
+  blue: '#378ADD',
+  purple: '#7F77DD',
+  coral: '#D85A30',
+  amber: '#BA7517',
+}
+
+function collectionDotColor(color: string | null | undefined): string {
+  if (!color) return '#9a9890'
+  return COLLECTION_COLORS[color.toLowerCase()] ?? '#9a9890'
 }
 
 export default function SearchOverlay({ onClose }: Props) {
@@ -66,7 +68,6 @@ export default function SearchOverlay({ onClose }: Props) {
         onClose()
       }
     }
-    // Use capture so this runs before child click handlers
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [onClose])
@@ -92,9 +93,14 @@ export default function SearchOverlay({ onClose }: Props) {
     }, 200)
   }
 
-  function handleResultClick(logId: string) {
+  function handleLogClick(logId: string) {
     onClose()
     navigate(`/logs/${logId}`)
+  }
+
+  function handleItemClick(itemId: string) {
+    onClose()
+    navigate(`/items/${itemId}`)
   }
 
   function handleAdvancedSearch() {
@@ -103,8 +109,53 @@ export default function SearchOverlay({ onClose }: Props) {
     navigate(`/search${params}`)
   }
 
+  const logs = results.filter(r => r.entityType === 'log' || !r.entityType)
+  const items = results.filter(r => r.entityType === 'collection_item')
   const showResults = results.length > 0
   const showEmpty = !loading && query.trim() && results.length === 0
+
+  const groupHeader = (label: string) => (
+    <div style={{
+      padding: '0.25rem 1rem 0.2rem',
+      fontSize: 9,
+      fontWeight: 600,
+      color: 'var(--text-tertiary)',
+      textTransform: 'uppercase',
+      letterSpacing: '0.08em',
+      borderTop: '1px solid var(--border)',
+    }}>
+      {label}
+    </div>
+  )
+
+  const resultButton = (
+    children: React.ReactNode,
+    key: string,
+    onClick: () => void,
+    isFirst: boolean,
+  ) => (
+    <button
+      key={key}
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '0.6rem',
+        padding: '0.55rem 1rem',
+        cursor: 'pointer',
+        borderTop: isFirst ? 'none' : '1px solid var(--border)',
+        background: 'transparent',
+        width: '100%',
+        textAlign: 'left',
+        fontFamily: 'var(--font)',
+        transition: 'background 0.1s',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-secondary)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
+      {children}
+    </button>
+  )
 
   return (
     <>
@@ -184,76 +235,116 @@ export default function SearchOverlay({ onClose }: Props) {
           </button>
         </div>
 
-        {/* Results */}
+        {/* Results — grouped by entity type */}
         {showResults && (
           <div>
-            <div style={{
-              padding: '0.25rem 1rem 0.3rem',
-              fontSize: 10,
-              fontWeight: 600,
-              color: 'var(--text-tertiary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.07em',
-            }}>
-              {results.length} result{results.length !== 1 ? 's' : ''}
-            </div>
-            {results.map((r, i) => (
-              <button
-                key={r.logId}
-                onClick={() => handleResultClick(r.logId)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '0.6rem',
-                  padding: '0.55rem 1rem',
-                  cursor: 'pointer',
-                  borderTop: i === 0 ? 'none' : '1px solid var(--border)',
-                  background: 'transparent',
-                  width: '100%',
-                  textAlign: 'left',
-                  fontFamily: 'var(--font)',
-                  transition: 'background 0.1s',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-secondary)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: 'var(--text-primary)',
-                    marginBottom: '0.15rem',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {r.title}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: r.tags.length ? '0.3rem' : 0 }}>
-                    {r.kaseTitle}
-                  </div>
-                  {r.tags.length > 0 && (
-                    <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                      {r.tags.map(tag => {
-                        const c = tagColor(tag)
-                        return (
-                          <span key={tag} style={{
-                            fontSize: 10,
-                            padding: '1px 7px',
-                            borderRadius: 99,
-                            fontWeight: 500,
-                            background: c.bg,
-                            color: c.color,
-                          }}>
-                            {tag}
-                          </span>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              </button>
-            ))}
+            {/* Logs group */}
+            {logs.length > 0 && (
+              <>
+                {groupHeader(`Logs · ${logs.length}`)}
+                {logs.map((r, i) =>
+                  resultButton(
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: 'var(--text-primary)',
+                        marginBottom: '0.15rem',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {r.title}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: r.tags.length ? '0.3rem' : 0 }}>
+                        {r.kaseTitle}
+                      </div>
+                      {r.tags.length > 0 && (
+                        <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                          {r.tags.map(tag => {
+                            const c = tagColor(tag)
+                            return (
+                              <span key={tag} style={{
+                                fontSize: 10,
+                                padding: '1px 7px',
+                                borderRadius: 99,
+                                fontWeight: 500,
+                                background: c.bg,
+                                color: c.color,
+                              }}>
+                                {tag}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>,
+                    r.logId,
+                    () => handleLogClick(r.logId),
+                    i === 0,
+                  )
+                )}
+              </>
+            )}
+
+            {/* Collection items group */}
+            {items.length > 0 && (
+              <>
+                {groupHeader(`Collection Items · ${items.length}`)}
+                {items.map((r, i) =>
+                  resultButton(
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.15rem' }}>
+                        {/* Collection dot */}
+                        <span
+                          data-testid={`collection-dot-${r.logId}`}
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: 2,
+                            background: collectionDotColor(r.collectionColor),
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 500 }}>
+                          {r.collectionTitle}
+                        </span>
+                      </div>
+                      <div style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: 'var(--text-primary)',
+                        marginBottom: '0.15rem',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {r.title || r.collectionTitle}
+                      </div>
+                      {r.highlight && (
+                        <div style={{
+                          fontSize: 11,
+                          color: 'var(--text-tertiary)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {r.highlight}
+                        </div>
+                      )}
+                      {r.kaseTitle && (
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: '0.1rem' }}>
+                          Kase: {r.kaseTitle}
+                        </div>
+                      )}
+                    </div>,
+                    r.logId,
+                    () => handleItemClick(r.logId),
+                    i === 0 && logs.length === 0,
+                  )
+                )}
+              </>
+            )}
           </div>
         )}
 
