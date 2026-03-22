@@ -58,7 +58,7 @@ function RatingWidget({
           onMouseEnter={() => !readOnly && setHover(n)}
           onMouseLeave={() => !readOnly && setHover(0)}
           style={{
-            fontSize: 22,
+            fontSize: 'var(--text-xl)',
             color: n <= display ? '#BA7517' : 'var(--border-mid)',
             cursor: readOnly ? 'default' : 'pointer',
             lineHeight: 1,
@@ -69,7 +69,7 @@ function RatingWidget({
           ★
         </span>
       ))}
-      <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 4, fontFamily: 'var(--font-mono, monospace)' }}>
+      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginLeft: 4, fontFamily: 'var(--font-mono, monospace)' }}>
         {value}/5
       </span>
     </div>
@@ -118,7 +118,7 @@ function ImageField({
           <button
             onClick={() => onChange(null)}
             style={{
-              width: '100%', padding: '6px', fontSize: 11,
+              width: '100%', padding: '6px', fontSize: 'var(--text-xs)',
               color: 'var(--accent)', background: 'transparent',
               border: 'none', borderTop: '1px solid var(--border)',
               cursor: 'pointer', fontFamily: 'inherit',
@@ -132,7 +132,7 @@ function ImageField({
   }
 
   if (readOnly) {
-    return <span style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>—</span>
+    return <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-base)' }}>—</span>
   }
 
   return (
@@ -148,11 +148,11 @@ function ImageField({
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
         }}
       >
-        <span style={{ fontSize: 24, opacity: 0.4 }}>🖼</span>
-        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+        <span style={{ fontSize: 'var(--text-xl)', opacity: 0.4 }}>🖼</span>
+        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>
           {uploading ? 'Uploading…' : 'Click to upload image'}
         </span>
-        <span style={{ fontSize: 10, color: 'var(--text-tertiary)', opacity: 0.7 }}>JPG, PNG, WEBP · max 10MB</span>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', opacity: 0.7 }}>JPG, PNG, WEBP · max 10MB</span>
       </div>
       <input
         ref={fileRef}
@@ -186,7 +186,7 @@ function FieldInput({
     border: hasError ? '1px solid #E24B4A' : readOnly ? '1px solid transparent' : '1px solid var(--border-mid)',
     borderRadius: readOnly ? 0 : 7,
     padding: readOnly ? '2px 0' : '8px 11px',
-    fontSize: 13,
+    fontSize: 'var(--text-base)',
     color: 'var(--text-primary)',
     fontFamily: 'inherit',
     outline: 'none',
@@ -221,7 +221,7 @@ function FieldInput({
             ...inputStyle,
             resize: readOnly ? 'none' : 'vertical',
             lineHeight: 1.6,
-            fontSize: 12,
+            fontSize: 'var(--text-sm)',
           }}
         />
       )
@@ -250,7 +250,7 @@ function FieldInput({
       )
     case 'select': {
       if (readOnly) {
-        return <span style={{ fontSize: 13, color: str ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{str || '—'}</span>
+        return <span style={{ fontSize: 'var(--text-base)', color: str ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{str || '—'}</span>
       }
       return (
         <select
@@ -289,7 +289,7 @@ function FieldInput({
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ opacity: 0.6 }}>🔗</span>
             <a href={str} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              style={{ fontSize: 'var(--text-base)', color: 'var(--accent)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {str}
             </a>
           </div>
@@ -297,7 +297,7 @@ function FieldInput({
       }
       return (
         <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, opacity: 0.4, pointerEvents: 'none' }}>🔗</span>
+          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 'var(--text-base)', opacity: 0.4, pointerEvents: 'none' }}>🔗</span>
           <input
             aria-label={field.name}
             type="url"
@@ -313,7 +313,7 @@ function FieldInput({
       const isYes = value === true || value === 'true'
       const isNo = value === false || value === 'false'
       if (readOnly) {
-        return <span style={{ fontSize: 13 }}>{isYes ? 'Yes' : isNo ? 'No' : '—'}</span>
+        return <span style={{ fontSize: 'var(--text-base)' }}>{isYes ? 'Yes' : isNo ? 'No' : '—'}</span>
       }
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 0' }}>
@@ -338,7 +338,7 @@ function FieldInput({
                 }}>
                   {selected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'white' }} />}
                 </div>
-                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</span>
+                <span style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)' }}>{label}</span>
               </label>
             )
           })}
@@ -354,7 +354,7 @@ function FieldInput({
         />
       )
     default:
-      return <span style={{ fontSize: 13 }}>{str || '—'}</span>
+      return <span style={{ fontSize: 'var(--text-base)' }}>{str || '—'}</span>
   }
 }
 
@@ -413,7 +413,7 @@ function FormLayout({
         items.push(
           <div key={key} style={{ gridColumn, gridRow, display: 'flex', alignItems: 'center', gap: 12, padding: '2px 0', margin: '4px 0' }}>
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-            {cell.label && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{cell.label}</span>}
+            {cell.label && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{cell.label}</span>}
             {cell.label && <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />}
           </div>
         )
@@ -422,7 +422,7 @@ function FormLayout({
 
       if (cell.kind === 'label') {
         items.push(
-          <div key={key} style={{ gridColumn, gridRow, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '8px 0 2px' }}>
+          <div key={key} style={{ gridColumn, gridRow, fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '8px 0 2px' }}>
             {cell.label}
           </div>
         )
@@ -435,9 +435,9 @@ function FormLayout({
 
       items.push(
         <div key={key} style={{ gridColumn, gridRow, display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: 4 }}>
             {field.name}
-            {field.required && <span style={{ color: '#A32D2D', fontSize: 11 }}>*</span>}
+            {field.required && <span style={{ color: '#A32D2D', fontSize: 'var(--text-xs)' }}>*</span>}
           </div>
           <FieldInput
             field={field}
@@ -604,18 +604,18 @@ export default function CollectionItemPage() {
         <button
           onClick={() => navigate(`/collections/${collectionId}`)}
           style={{
-            fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer',
+            fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', cursor: 'pointer',
             padding: '4px 8px', borderRadius: 5, background: 'transparent',
             border: 'none', fontFamily: 'inherit',
           }}
         >
           ← {collection?.title ?? 'Collection'}
         </button>
-        <span style={{ fontSize: 12, color: 'var(--border-mid)' }}>/</span>
+        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--border-mid)' }}>/</span>
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{collection?.title ?? '…'}</span>
-        <span style={{ fontSize: 12, color: 'var(--border-mid)' }}>/</span>
-        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+        <span style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)' }}>{collection?.title ?? '…'}</span>
+        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--border-mid)' }}>/</span>
+        <span style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)' }}>
           {isNew ? 'New item' : (item ? String(Object.values(item.fieldValues)[0] ?? 'Item') : '…')}
         </span>
         <div style={{ flex: 1 }} />
@@ -623,7 +623,7 @@ export default function CollectionItemPage() {
           <button
             onClick={() => setMode(m => m === 'edit' ? 'view' : 'edit')}
             style={{
-              fontSize: 11, color: 'var(--text-tertiary)',
+              fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)',
               padding: '4px 10px', borderRadius: 6,
               border: '1px solid var(--border)',
               cursor: 'pointer', background: 'var(--bg)',
@@ -648,7 +648,7 @@ export default function CollectionItemPage() {
             key={m}
             onClick={() => !isNew && setMode(m as 'edit' | 'view')}
             style={{
-              fontSize: 10, fontWeight: 500,
+              fontSize: 'var(--text-xs)', fontWeight: 500,
               padding: '2px 8px', borderRadius: 99,
               cursor: isNew && m === 'view' ? 'default' : 'pointer',
               background: mode === m ? 'var(--accent)' : 'var(--bg)',
@@ -662,7 +662,7 @@ export default function CollectionItemPage() {
         ))}
         <div style={{ flex: 1 }} />
         {mode === 'edit' && (
-          <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
             <span style={{ color: '#A32D2D' }}>*</span> Required fields
           </span>
         )}
@@ -688,25 +688,25 @@ export default function CollectionItemPage() {
             borderRadius: 8,
             display: 'flex', alignItems: 'center', gap: 12,
           }}>
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 }}>Link to Kase</span>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', flexShrink: 0 }}>Link to Kase</span>
 
             {mode === 'view' && !isNew ? (
               // View mode: show kase title as link, or "— none —"
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
                 {kaseId ? (
                   <>
-                    <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>
                       {kases.find(k => k.id === kaseId)?.title ?? kaseId}
                     </span>
                     <Link
                       to={`/kases/${kaseId}`}
-                      style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}
+                      style={{ fontSize: 'var(--text-xs)', color: 'var(--accent)', textDecoration: 'none' }}
                     >
                       → open
                     </Link>
                   </>
                 ) : (
-                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>— none —</span>
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>— none —</span>
                 )}
               </div>
             ) : kasesLoading ? (
@@ -714,7 +714,7 @@ export default function CollectionItemPage() {
                 disabled
                 style={{
                   flex: 1, background: 'var(--bg)', border: '1px solid var(--border-mid)',
-                  borderRadius: 6, padding: '5px 8px', fontSize: 12,
+                  borderRadius: 6, padding: '5px 8px', fontSize: 'var(--text-sm)',
                   color: 'var(--text-tertiary)', fontFamily: 'inherit', outline: 'none',
                 }}
               >
@@ -725,7 +725,7 @@ export default function CollectionItemPage() {
                 disabled
                 style={{
                   flex: 1, background: 'var(--bg)', border: '1px solid var(--border-mid)',
-                  borderRadius: 6, padding: '5px 8px', fontSize: 12,
+                  borderRadius: 6, padding: '5px 8px', fontSize: 'var(--text-sm)',
                   color: 'var(--text-tertiary)', fontFamily: 'inherit', outline: 'none',
                 }}
               >
@@ -738,7 +738,7 @@ export default function CollectionItemPage() {
                 onChange={e => handleKaseChange(e.target.value)}
                 style={{
                   flex: 1, background: 'var(--bg)', border: '1px solid var(--border-mid)',
-                  borderRadius: 6, padding: '5px 8px', fontSize: 12,
+                  borderRadius: 6, padding: '5px 8px', fontSize: 'var(--text-sm)',
                   color: 'var(--text-secondary)', fontFamily: 'inherit',
                   outline: 'none', cursor: 'pointer',
                 }}
@@ -750,7 +750,7 @@ export default function CollectionItemPage() {
               </select>
             )}
 
-            <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Optional — appears on the Kase timeline</span>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>Optional — appears on the Kase timeline</span>
           </div>
 
           {/* Metadata footer */}
@@ -758,7 +758,7 @@ export default function CollectionItemPage() {
             <div style={{
               marginTop: 16,
               display: 'flex', gap: 20,
-              fontSize: 11, color: 'var(--text-tertiary)',
+              fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)',
             }}>
               <span>Created {formatDate(item.createdAt)}</span>
               <span>Updated {formatDate(item.updatedAt)}</span>
@@ -776,14 +776,14 @@ export default function CollectionItemPage() {
           flexShrink: 0, background: 'var(--bg)',
         }}>
           {saveError ? (
-            <div style={{ fontSize: 11, color: '#B91C1C', flex: 1 }}>{saveError}</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: '#B91C1C', flex: 1 }}>{saveError}</div>
           ) : (
             <div style={{ flex: 1 }} />
           )}
           <button
             onClick={() => isNew ? navigate(`/collections/${collectionId}`) : setMode('view')}
             style={{
-              fontSize: 12, color: 'var(--text-secondary)',
+              fontSize: 'var(--text-sm)', color: 'var(--text-secondary)',
               padding: '6px 14px', borderRadius: 6,
               border: '1px solid var(--border-mid)',
               cursor: 'pointer', background: 'var(--bg)',
@@ -796,7 +796,7 @@ export default function CollectionItemPage() {
             onClick={handleSave}
             disabled={saving}
             style={{
-              fontSize: 12, fontWeight: 500, color: 'white',
+              fontSize: 'var(--text-sm)', fontWeight: 500, color: 'white',
               background: 'var(--accent)', padding: '6px 20px',
               borderRadius: 6, border: 'none', cursor: 'pointer',
               fontFamily: 'inherit', opacity: saving ? 0.6 : 1,
@@ -819,7 +819,7 @@ export default function CollectionItemPage() {
             data-testid="edit-item-btn"
             onClick={() => setMode('edit')}
             style={{
-              fontSize: 12, fontWeight: 500,
+              fontSize: 'var(--text-sm)', fontWeight: 500,
               color: 'var(--accent)',
               background: 'var(--accent-light)',
               padding: '6px 16px', borderRadius: 6,

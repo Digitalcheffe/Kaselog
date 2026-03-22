@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditorState } from '@tiptap/react'
-import { markdownToHtml, editorToMarkdown } from '../utils/markdown'
 import type { NodeViewProps } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
@@ -26,6 +25,7 @@ import Typography from '@tiptap/extension-typography'
 import Focus from '@tiptap/extension-focus'
 import Mathematics from '@tiptap/extension-mathematics'
 import 'katex/dist/katex.min.css'
+import { Markdown } from '@tiptap/markdown'
 import './TiptapEditor.css'
 
 // ── Resizable image node view ─────────────────────────────────────────────────
@@ -106,7 +106,7 @@ function TbBtn({
       style={{
         padding: '4px 7px',
         borderRadius: 5,
-        fontSize: 11,
+        fontSize: 'var(--text-xs)',
         fontWeight: 500,
         color: active ? 'var(--accent)' : 'var(--text-tertiary)',
         background: active ? 'var(--accent-light)' : 'transparent',
@@ -238,7 +238,7 @@ import React from 'react'
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 export interface TiptapEditorProps {
-  /** Markdown string (stored format). Converted to HTML before passing to the editor. */
+  /** Markdown string (stored format). Parsed natively by the Markdown extension. */
   content: string
   /** Called with a markdown string whenever the editor content changes. */
   onChange: (markdown: string) => void
@@ -249,8 +249,6 @@ export interface TiptapEditorProps {
 
 export default function TiptapEditor({ content, onChange, onImageUpload }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const initialHtml = markdownToHtml(content) || undefined
 
   const editor = useEditor({
     extensions: [
@@ -278,10 +276,15 @@ export default function TiptapEditor({ content, onChange, onImageUpload }: Tipta
       Typography,
       Focus,
       Mathematics,
+      Markdown.configure({
+        indentation: { style: 'space', size: 2 },
+      }),
     ],
-    content: initialHtml,
+    content: content || '',
+    // Tell the Markdown extension to parse the initial content as markdown
+    contentType: 'markdown',
     onUpdate({ editor: ed }) {
-      onChange(editorToMarkdown(ed))
+      onChange(ed.getMarkdown())
     },
     editorProps: {
       handlePaste(_view, event) {
@@ -317,13 +320,12 @@ export default function TiptapEditor({ content, onChange, onImageUpload }: Tipta
   }
 
   // Sync content when prop changes (e.g. version restore).
-  // Convert markdown → HTML before passing to the editor.
+  // The Markdown extension parses the markdown string natively.
   useEffect(() => {
     if (!editor) return
-    const html = markdownToHtml(content) || ''
-    const current = editor.getHTML()
-    if (current !== html) {
-      editor.commands.setContent(html || '')
+    const current = editor.getMarkdown()
+    if (current.trim() !== (content || '').trim()) {
+      editor.commands.setContent(content || '', { contentType: 'markdown' })
     }
   }, [content, editor])
 

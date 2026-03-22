@@ -55,7 +55,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
   }
 
   const sectionLabelStyle: React.CSSProperties = {
-    fontSize: 9,
+    fontSize: 'var(--text-2xs)',
     fontWeight: 600,
     color: 'var(--text-tertiary)',
     textTransform: 'uppercase',
@@ -63,7 +63,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
   }
 
   const arrowStyle = (open: boolean): React.CSSProperties => ({
-    fontSize: 9,
+    fontSize: 'var(--text-2xs)',
     color: 'var(--text-tertiary)',
     transition: 'transform 0.2s',
     transform: open ? 'none' : 'rotate(-90deg)',
@@ -71,7 +71,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
   })
 
   const newBtnStyle: React.CSSProperties = {
-    fontSize: 10,
+    fontSize: 'var(--text-xs)',
     color: 'var(--text-tertiary)',
     padding: '2px 6px',
     borderRadius: 4,
@@ -93,7 +93,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
   })
 
   const navItemNameStyle = (active: boolean): React.CSSProperties => ({
-    fontSize: 12,
+    fontSize: 'var(--text-sm)',
     color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
     fontWeight: active ? 500 : 400,
     whiteSpace: 'nowrap',
@@ -102,7 +102,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
   })
 
   const navItemCountStyle: React.CSSProperties = {
-    fontSize: 10,
+    fontSize: 'var(--text-xs)',
     color: 'var(--text-tertiary)',
     flexShrink: 0,
     marginLeft: '0.3rem',
@@ -110,7 +110,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
 
   const navMoreStyle: React.CSSProperties = {
     padding: '0.25rem 0.55rem',
-    fontSize: 11,
+    fontSize: 'var(--text-xs)',
     color: 'var(--accent)',
     cursor: 'pointer',
     display: 'inline-block',
@@ -130,10 +130,10 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
     }}>
       {/* Logo */}
       <div style={{ padding: '1rem 1rem 0.75rem', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+        <div style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
           KaseLog
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1, letterSpacing: '0.02em' }}>
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 1, letterSpacing: '0.02em' }}>
           private ops journal
         </div>
       </div>
@@ -165,7 +165,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
           {kasesOpen && (
             <div style={{ padding: '0 0.4rem 0.4rem' }}>
               {visibleKases.length === 0 && (
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '0.35rem 0.55rem', fontStyle: 'italic' }}>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', padding: '0.35rem 0.55rem', fontStyle: 'italic' }}>
                   No kases yet
                 </div>
               )}
@@ -221,7 +221,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
           {collectionsOpen && (
             <div style={{ padding: '0 0.4rem 0.4rem' }}>
               {visibleCollections.length === 0 && (
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '0.35rem 0.55rem', fontStyle: 'italic' }}>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', padding: '0.35rem 0.55rem', fontStyle: 'italic' }}>
                   No collections yet
                 </div>
               )}
@@ -281,12 +281,12 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
             width: 24, height: 24, borderRadius: '50%',
             background: 'var(--accent)', display: 'flex',
             alignItems: 'center', justifyContent: 'center',
-            fontSize: 10, fontWeight: 600, color: 'white',
+            fontSize: 'var(--text-xs)', fontWeight: 600, color: 'white',
             flexShrink: 0, letterSpacing: '-0.02em',
           }}>
             {initials}
           </div>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {displayName}
           </span>
         </button>
@@ -304,7 +304,7 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
             <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.4" />
             <line x1="8.5" y1="8.5" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.4" />
           </svg>
-          <span style={{ fontSize: 13, color: 'var(--text-tertiary)', flex: 1, textAlign: 'left' }}>
+          <span style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)', flex: 1, textAlign: 'left' }}>
             Search logs...
           </span>
         </button>

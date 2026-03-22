@@ -57,7 +57,7 @@ export default function UserProfilePanel({ onClose }: Props) {
     border: '1px solid var(--border-mid)',
     borderRadius: 6,
     padding: '0.4rem 0.6rem',
-    fontSize: 12,
+    fontSize: 'var(--text-sm)',
     color: 'var(--text-primary)',
     fontFamily: 'var(--font)',
     width: '100%',
@@ -65,7 +65,7 @@ export default function UserProfilePanel({ onClose }: Props) {
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 10,
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     color: 'var(--text-tertiary)',
     textTransform: 'uppercase',
@@ -106,8 +106,8 @@ export default function UserProfilePanel({ onClose }: Props) {
           justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>Profile</div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Account details and appearance</div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-primary)' }}>Profile</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 1 }}>Account details and appearance</div>
           </div>
           <button
             onClick={onClose}
@@ -116,7 +116,7 @@ export default function UserProfilePanel({ onClose }: Props) {
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              fontSize: 14,
+              fontSize: 'var(--text-base)',
               color: 'var(--text-tertiary)',
               padding: '2px 4px',
               fontFamily: 'var(--font)',
@@ -174,7 +174,7 @@ export default function UserProfilePanel({ onClose }: Props) {
               color: 'white',
               border: 'none',
               borderRadius: 6,
-              fontSize: 12,
+              fontSize: 'var(--text-sm)',
               fontWeight: 500,
               cursor: saving ? 'default' : 'pointer',
               fontFamily: 'var(--font)',
@@ -193,13 +193,13 @@ export default function UserProfilePanel({ onClose }: Props) {
         {/* Appearance section */}
         <div style={{ padding: '0.85rem 0.9rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
 
-          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             Appearance
           </div>
 
           {/* Theme row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 52 }}>Theme</div>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', minWidth: 52 }}>Theme</div>
             <div style={{ display: 'flex', gap: '0.4rem' }}>
               <button
                 aria-label="Light theme"
@@ -210,7 +210,7 @@ export default function UserProfilePanel({ onClose }: Props) {
                   border: `2px solid ${theme === 'light' ? 'var(--accent)' : 'var(--border)'}`,
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 500,
+                  fontSize: 'var(--text-xs)', fontWeight: 500,
                   color: theme === 'light' ? 'var(--accent)' : 'var(--text-tertiary)',
                   background: '#f7f6f3',
                   fontFamily: 'var(--font)',
@@ -228,7 +228,7 @@ export default function UserProfilePanel({ onClose }: Props) {
                   border: `2px solid ${theme === 'dark' ? 'var(--accent)' : 'var(--border)'}`,
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 500,
+                  fontSize: 'var(--text-xs)', fontWeight: 500,
                   color: theme === 'dark' ? 'var(--accent)' : 'var(--text-tertiary)',
                   background: '#1c1c1a',
                   fontFamily: 'var(--font)',
@@ -242,7 +242,7 @@ export default function UserProfilePanel({ onClose }: Props) {
 
           {/* Accent row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 52 }}>Accent</div>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', minWidth: 52 }}>Accent</div>
             <div style={{ display: 'flex', gap: '0.45rem' }}>
               {ACCENT_DEFS.map(def => (
                 <button

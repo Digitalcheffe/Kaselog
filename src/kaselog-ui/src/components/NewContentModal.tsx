@@ -116,14 +116,14 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+                  <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)' }}>
                     Add to {kaseName}
                   </div>
                 </div>
                 <button
                   aria-label="Close modal"
                   onClick={onClose}
-                  style={{ fontSize: 18, color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none', lineHeight: 1, padding: 2 }}
+                  style={{ fontSize: 'var(--text-lg)', color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none', lineHeight: 1, padding: 2 }}
                 >
                   ×
                 </button>
@@ -151,8 +151,8 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
                     </svg>
                   </div>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 3 }}>New Log</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>A freeform note, journal entry, or session summary</div>
+                    <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)', marginBottom: 3 }}>New Log</div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', lineHeight: 1.5 }}>A freeform note, journal entry, or session summary</div>
                   </div>
                 </button>
 
@@ -179,8 +179,8 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
                     </svg>
                   </div>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 3 }}>Add Collection Item</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>Track a structured entry in one of your collections</div>
+                    <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)', marginBottom: 3 }}>Add Collection Item</div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', lineHeight: 1.5 }}>Track a structured entry in one of your collections</div>
                   </div>
                 </button>
               </div>
@@ -196,13 +196,13 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>New Log</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{kaseName}</div>
+                  <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)' }}>New Log</div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>{kaseName}</div>
                 </div>
                 <button
                   aria-label="Close modal"
                   onClick={onClose}
-                  style={{ fontSize: 18, color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none', lineHeight: 1, padding: 2 }}
+                  style={{ fontSize: 'var(--text-lg)', color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none', lineHeight: 1, padding: 2 }}
                 >
                   ×
                 </button>
@@ -214,7 +214,7 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
               }}>
                 <button
                   onClick={() => setStep('pick')}
-                  style={{ fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'inherit' }}
+                  style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'inherit' }}
                 >
                   ← back
                 </button>
@@ -223,7 +223,7 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   <label
                     htmlFor="modal-log-title"
-                    style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}
+                    style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}
                   >
                     Title
                   </label>
@@ -239,7 +239,7 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
                       border: `1px solid ${titleError ? '#E24B4A' : 'var(--border-mid)'}`,
                       borderRadius: 7,
                       padding: '8px 11px',
-                      fontSize: 13,
+                      fontSize: 'var(--text-base)',
                       color: 'var(--text-primary)',
                       fontFamily: 'inherit',
                       outline: 'none',
@@ -248,15 +248,15 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
                     }}
                   />
                   {titleError && (
-                    <span style={{ fontSize: 11, color: '#E24B4A' }}>Title is required</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: '#E24B4A' }}>Title is required</span>
                   )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   <label
                     htmlFor="modal-log-desc"
-                    style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}
+                    style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}
                   >
-                    Description <span style={{ fontWeight: 400, textTransform: 'none', fontSize: 10, color: 'var(--text-tertiary)' }}>optional</span>
+                    Description <span style={{ fontWeight: 400, textTransform: 'none', fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>optional</span>
                   </label>
                   <textarea
                     id="modal-log-desc"
@@ -269,7 +269,7 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
                       border: '1px solid var(--border-mid)',
                       borderRadius: 7,
                       padding: '8px 11px',
-                      fontSize: 12,
+                      fontSize: 'var(--text-sm)',
                       color: 'var(--text-primary)',
                       fontFamily: 'inherit',
                       outline: 'none',
@@ -284,7 +284,7 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
                   <button
                     onClick={() => setStep('pick')}
                     style={{
-                      fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer',
+                      fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', cursor: 'pointer',
                       padding: '5px 10px', borderRadius: 6,
                       border: '1px solid var(--border-mid)',
                       background: 'transparent', fontFamily: 'inherit',
@@ -297,7 +297,7 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
                     onClick={handleCreateLog}
                     disabled={saving}
                     style={{
-                      fontSize: 12, fontWeight: 500, color: 'white',
+                      fontSize: 'var(--text-sm)', fontWeight: 500, color: 'white',
                       background: 'var(--accent)', padding: '6px 16px',
                       borderRadius: 6, cursor: 'pointer', border: 'none',
                       fontFamily: 'inherit', opacity: saving ? 0.6 : 1,
@@ -319,13 +319,13 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Add Collection Item</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{kaseName}</div>
+                  <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)' }}>Add Collection Item</div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>{kaseName}</div>
                 </div>
                 <button
                   aria-label="Close modal"
                   onClick={onClose}
-                  style={{ fontSize: 18, color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none', lineHeight: 1, padding: 2 }}
+                  style={{ fontSize: 'var(--text-lg)', color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none', lineHeight: 1, padding: 2 }}
                 >
                   ×
                 </button>
@@ -337,15 +337,15 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
               }}>
                 <button
                   onClick={() => setStep('pick')}
-                  style={{ fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'inherit' }}
+                  style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'inherit' }}
                 >
                   ← back
                 </button>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Choose a collection</span>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Choose a collection</span>
               </div>
               <div style={{ padding: '0.5rem 0.75rem 0.75rem', display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {collections.length === 0 && (
-                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '0.5rem 0.65rem' }}>
+                  <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', padding: '0.5rem 0.65rem' }}>
                     No collections yet.
                   </div>
                 )}
@@ -367,16 +367,16 @@ export default function NewContentModal({ kaseId, kaseName, onClose }: Props) {
                       width: 8, height: 8, borderRadius: '50%',
                       background: COLOR_MAP[col.color] ?? '#1D9E75', flexShrink: 0,
                     }} />
-                    <span style={{ fontSize: 13, color: 'var(--text-primary)', flex: 1 }}>{col.title}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{col.itemCount} items</span>
-                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)', opacity: 0.5 }}>›</span>
+                    <span style={{ fontSize: 'var(--text-base)', color: 'var(--text-primary)', flex: 1 }}>{col.title}</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>{col.itemCount} items</span>
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', opacity: 0.5 }}>›</span>
                   </button>
                 ))}
                 <div style={{ padding: '0.5rem 0.65rem' }}>
                   <button
                     onClick={() => { navigate('/collections/new'); onClose() }}
                     style={{
-                      fontSize: 11, color: 'var(--accent)', cursor: 'pointer',
+                      fontSize: 'var(--text-xs)', color: 'var(--accent)', cursor: 'pointer',
                       background: 'none', border: 'none', fontFamily: 'inherit', padding: 0,
                     }}
                   >

@@ -62,7 +62,7 @@ export default function ProfilePage() {
     border: '1px solid var(--border-mid)',
     borderRadius: 6,
     padding: '0.5rem 0.7rem',
-    fontSize: 13,
+    fontSize: 'var(--text-base)',
     color: 'var(--text-primary)',
     fontFamily: 'var(--font)',
     width: '100%',
@@ -71,7 +71,7 @@ export default function ProfilePage() {
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
-    fontSize: 11,
+    fontSize: 'var(--text-xs)',
     fontWeight: 600,
     color: 'var(--text-secondary)',
     textTransform: 'uppercase',
@@ -101,7 +101,7 @@ export default function ProfilePage() {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            fontSize: 13,
+            fontSize: 'var(--text-base)',
             color: 'var(--text-secondary)',
             fontFamily: 'var(--font)',
             padding: '4px 6px',
@@ -110,7 +110,7 @@ export default function ProfilePage() {
         >
           ← Back
         </button>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+        <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
           Profile
         </div>
         <div style={{ flex: 1 }} />
@@ -132,8 +132,8 @@ export default function ProfilePage() {
               padding: '0.9rem 1.1rem',
               borderBottom: '1px solid var(--border)',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Account</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>Your name and email address</div>
+              <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)' }}>Account</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 2 }}>Your name and email address</div>
             </div>
 
             <form onSubmit={handleSaveProfile} noValidate>
@@ -176,7 +176,7 @@ export default function ProfilePage() {
 
                 {saveStatus === 'error' && (
                   <div style={{
-                    fontSize: 12,
+                    fontSize: 'var(--text-sm)',
                     color: '#d85a30',
                     padding: '8px 10px',
                     background: 'rgba(216,90,48,0.08)',
@@ -198,7 +198,7 @@ export default function ProfilePage() {
                       color: 'white',
                       border: 'none',
                       borderRadius: 6,
-                      fontSize: 13,
+                      fontSize: 'var(--text-base)',
                       fontWeight: 500,
                       cursor: saving ? 'default' : 'pointer',
                       fontFamily: 'var(--font)',
@@ -208,7 +208,7 @@ export default function ProfilePage() {
                     {saving ? 'Saving...' : 'Save changes'}
                   </button>
                   {saveStatus === 'saved' && (
-                    <span style={{ fontSize: 12, color: 'var(--accent)' }}>Saved</span>
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--accent)' }}>Saved</span>
                   )}
                 </div>
 
@@ -227,15 +227,15 @@ export default function ProfilePage() {
               padding: '0.9rem 1.1rem',
               borderBottom: '1px solid var(--border)',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Appearance</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>Theme and accent color</div>
+              <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)' }}>Appearance</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 2 }}>Theme and accent color</div>
             </div>
 
             <div style={{ padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
               {/* Theme row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 64 }}>Theme</div>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', minWidth: 64 }}>Theme</div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
                     aria-label="Light theme"
@@ -246,7 +246,7 @@ export default function ProfilePage() {
                       border: `2px solid ${theme === 'light' ? 'var(--accent)' : 'var(--border-mid)'}`,
                       cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
-                      fontSize: 12, fontWeight: 500,
+                      fontSize: 'var(--text-sm)', fontWeight: 500,
                       color: theme === 'light' ? 'var(--accent)' : 'var(--text-tertiary)',
                       background: '#f7f6f3',
                       fontFamily: 'var(--font)',
@@ -263,7 +263,7 @@ export default function ProfilePage() {
                       border: `2px solid ${theme === 'dark' ? 'var(--accent)' : 'var(--border-mid)'}`,
                       cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
-                      fontSize: 12, fontWeight: 500,
+                      fontSize: 'var(--text-sm)', fontWeight: 500,
                       color: theme === 'dark' ? 'var(--accent)' : 'var(--text-secondary)',
                       background: '#1c1c1a',
                       fontFamily: 'var(--font)',
@@ -276,7 +276,7 @@ export default function ProfilePage() {
 
               {/* Accent row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 64 }}>Accent</div>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', minWidth: 64 }}>Accent</div>
                 <div style={{ display: 'flex', gap: '0.6rem' }}>
                   {ACCENT_DEFS.map(def => (
                     <button

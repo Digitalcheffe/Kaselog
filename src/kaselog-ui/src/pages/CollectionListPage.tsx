@@ -18,16 +18,10 @@ function getItemTitle(item: CollectionItemResponse, fields: CollectionFieldRespo
   return typeof val === 'string' && val ? val : '—'
 }
 
-function getFieldValue(item: CollectionItemResponse, fieldId: string): string {
-  const val = item.fieldValues[fieldId]
-  if (val == null || val === '') return '—'
-  return String(val)
-}
-
 function Stars({ n }: { n: number }) {
   const filled = Math.max(0, Math.min(5, Number(n) || 0))
   return (
-    <span style={{ color: '#BA7517', fontSize: 11, letterSpacing: -1 }}>
+    <span style={{ color: '#BA7517', fontSize: 'var(--text-xs)', letterSpacing: -1 }}>
       {'★'.repeat(filled)}{'☆'.repeat(5 - filled)}
     </span>
   )
@@ -190,11 +184,11 @@ export default function CollectionListPage() {
         {collection && (
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
         )}
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+        <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text-primary)' }}>
           {collection?.title ?? '…'}
         </div>
         <div style={{
-          fontSize: 11, color: 'var(--text-tertiary)',
+          fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)',
           padding: '2px 8px', background: 'var(--bg-secondary)',
           borderRadius: 99, border: '1px solid var(--border)', whiteSpace: 'nowrap',
         }}>
@@ -204,7 +198,7 @@ export default function CollectionListPage() {
         <button
           onClick={() => navigate(`/collections/${id}/design`)}
           style={{
-            fontSize: 11, color: 'var(--text-tertiary)',
+            fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)',
             padding: '4px 10px', borderRadius: 6,
             border: '1px solid var(--border)',
             cursor: 'pointer', background: 'var(--bg)',
@@ -216,7 +210,7 @@ export default function CollectionListPage() {
         <button
           onClick={() => navigate(`/items/new?collectionId=${id}`)}
           style={{
-            fontSize: 12, fontWeight: 500, color: 'white',
+            fontSize: 'var(--text-sm)', fontWeight: 500, color: 'white',
             background: 'var(--accent)', padding: '5px 12px',
             borderRadius: 6, border: 'none', cursor: 'pointer',
             fontFamily: 'var(--font)', whiteSpace: 'nowrap',
@@ -252,7 +246,7 @@ export default function CollectionListPage() {
             onChange={e => handleSearchChange(e.target.value)}
             placeholder={`Search ${collection?.title ?? 'items'}…`}
             style={{
-              fontSize: 12, color: 'var(--text-primary)',
+              fontSize: 'var(--text-sm)', color: 'var(--text-primary)',
               border: 'none', outline: 'none',
               background: 'transparent', fontFamily: 'var(--font)',
               width: 120,
@@ -269,7 +263,7 @@ export default function CollectionListPage() {
               key={f.id}
               style={{
                 display: 'flex', alignItems: 'center', gap: '0.3rem',
-                padding: '4px 9px', borderRadius: 6, fontSize: 11,
+                padding: '4px 9px', borderRadius: 6, fontSize: 'var(--text-xs)',
                 cursor: 'pointer',
                 border: `1px solid ${isActive ? 'rgba(29,158,117,0.35)' : 'var(--border-mid)'}`,
                 background: isActive ? 'var(--accent-light)' : 'var(--bg-secondary)',
@@ -278,9 +272,9 @@ export default function CollectionListPage() {
               }}
               onClick={e => { e.stopPropagation(); setOpenDropdown(openDropdown === f.id ? null : f.id); setColPickerOpen(false) }}
             >
-              <span style={{ fontSize: 10, opacity: 0.65 }}>{f.name}</span>
+              <span style={{ fontSize: 'var(--text-xs)', opacity: 0.65 }}>{f.name}</span>
               <span>{activeVal || 'Any'}</span>
-              <span style={{ fontSize: 9, opacity: 0.45 }}>▾</span>
+              <span style={{ fontSize: 'var(--text-2xs)', opacity: 0.45 }}>▾</span>
 
               {/* Dropdown */}
               {openDropdown === f.id && (
@@ -295,20 +289,20 @@ export default function CollectionListPage() {
                 >
                   {/* Clear / Any option */}
                   <div
-                    style={{ padding: '0.4rem 0.65rem', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    style={{ padding: '0.4rem 0.65rem', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                     onClick={() => { setFieldFilters(prev => { const n = { ...prev }; delete n[f.id]; return n }); setOpenDropdown(null) }}
                   >
-                    <span style={{ fontSize: 11, color: 'var(--accent)', width: 14 }}>{!activeVal ? '✓' : ''}</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--accent)', width: 14 }}>{!activeVal ? '✓' : ''}</span>
                     Any
                   </div>
                   {f.type === 'boolean' ? (
                     ['true', 'false'].map(v => (
                       <div
                         key={v}
-                        style={{ padding: '0.4rem 0.65rem', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                        style={{ padding: '0.4rem 0.65rem', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                         onClick={() => { setFieldFilters(prev => ({ ...prev, [f.id]: v })); setOpenDropdown(null) }}
                       >
-                        <span style={{ fontSize: 11, color: 'var(--accent)', width: 14 }}>{activeVal === v ? '✓' : ''}</span>
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--accent)', width: 14 }}>{activeVal === v ? '✓' : ''}</span>
                         {v === 'true' ? 'Yes' : 'No'}
                       </div>
                     ))
@@ -316,10 +310,10 @@ export default function CollectionListPage() {
                     (f.options ?? []).map(opt => (
                       <div
                         key={opt}
-                        style={{ padding: '0.4rem 0.65rem', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                        style={{ padding: '0.4rem 0.65rem', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                         onClick={() => { setFieldFilters(prev => ({ ...prev, [f.id]: opt })); setOpenDropdown(null) }}
                       >
-                        <span style={{ fontSize: 11, color: 'var(--accent)', width: 14 }}>{activeVal === opt ? '✓' : ''}</span>
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--accent)', width: 14 }}>{activeVal === opt ? '✓' : ''}</span>
                         {opt}
                       </div>
                     ))
@@ -334,11 +328,11 @@ export default function CollectionListPage() {
 
         {hasFilters && (
           <>
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
               {items.length} results
             </span>
             <span
-              style={{ fontSize: 11, color: 'var(--accent)', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}
+              style={{ fontSize: 'var(--text-xs)', color: 'var(--accent)', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}
               onClick={clearAll}
             >
               Clear
@@ -350,7 +344,7 @@ export default function CollectionListPage() {
         <div
           style={{
             display: 'flex', alignItems: 'center', gap: '0.35rem',
-            padding: '4px 10px', borderRadius: 6, fontSize: 11,
+            padding: '4px 10px', borderRadius: 6, fontSize: 'var(--text-xs)',
             cursor: 'pointer', userSelect: 'none', flexShrink: 0, whiteSpace: 'nowrap',
             border: hiddenCount > 0 ? '1px solid rgba(29,158,117,0.35)' : '1px solid var(--border-mid)',
             background: hiddenCount > 0 ? 'var(--accent-light)' : 'var(--bg-secondary)',
@@ -368,7 +362,7 @@ export default function CollectionListPage() {
           Columns
           {hiddenCount > 0 && (
             <span style={{
-              fontSize: 10, background: 'var(--accent)', color: 'white',
+              fontSize: 'var(--text-xs)', background: 'var(--accent)', color: 'white',
               borderRadius: 99, padding: '1px 5px', marginLeft: 1,
             }}>
               {colVisibility.filter(c => c.fieldId !== titleField?.id).length - hiddenCount}/{colVisibility.filter(c => c.fieldId !== titleField?.id).length}
@@ -391,11 +385,11 @@ export default function CollectionListPage() {
                 borderBottom: '1px solid var(--border)',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                   Columns
                 </span>
                 <span
-                  style={{ fontSize: 11, color: 'var(--accent)', cursor: 'pointer' }}
+                  style={{ fontSize: 'var(--text-xs)', color: 'var(--accent)', cursor: 'pointer' }}
                   onClick={() => setColVisibility(cv => cv.map(c => ({ ...c, visible: true })))}
                 >
                   Show all
@@ -420,8 +414,8 @@ export default function CollectionListPage() {
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{f.name}</div>
-                        {isTitle && <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>always visible</div>}
+                        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>{f.name}</div>
+                        {isTitle && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>always visible</div>}
                       </div>
                       <div style={{
                         width: 30, height: 17, borderRadius: 9, position: 'relative',
@@ -447,7 +441,7 @@ export default function CollectionListPage() {
                 padding: '0.5rem 0.9rem', borderTop: '1px solid var(--border)',
                 display: 'flex', justifyContent: 'flex-end',
               }}>
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
                   {colVisibility.filter(c => c.visible).length} of {fields.length} shown
                 </span>
               </div>
@@ -471,7 +465,7 @@ export default function CollectionListPage() {
               <div
                 key={f.id}
                 style={{
-                  fontSize: 10, fontWeight: 600,
+                  fontSize: 'var(--text-xs)', fontWeight: 600,
                   color: sorted ? 'var(--accent)' : 'var(--text-tertiary)',
                   textTransform: 'uppercase', letterSpacing: '0.07em',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem',
@@ -481,7 +475,7 @@ export default function CollectionListPage() {
                 onClick={() => handleSortClick(f.id)}
               >
                 {f.name}
-                {sorted && <span style={{ fontSize: 9, opacity: 0.7 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                {sorted && <span style={{ fontSize: 'var(--text-2xs)', opacity: 0.7 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
               </div>
             )
           })}
@@ -490,18 +484,18 @@ export default function CollectionListPage() {
         {/* Rows */}
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
           {loading ? (
-            <div style={{ padding: '2rem 1.25rem', fontSize: 13, color: 'var(--text-tertiary)' }}>Loading…</div>
+            <div style={{ padding: '2rem 1.25rem', fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>Loading…</div>
           ) : items.length === 0 ? (
             <div style={{
               display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
               gap: '0.5rem', padding: '3rem',
             }}>
-              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)' }}>No items match</div>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Try adjusting your search or filters</div>
+              <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-secondary)' }}>No items match</div>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>Try adjusting your search or filters</div>
               {hasFilters && (
                 <span
-                  style={{ fontSize: 12, color: 'var(--accent)', cursor: 'pointer', marginTop: '0.5rem' }}
+                  style={{ fontSize: 'var(--text-sm)', color: 'var(--accent)', cursor: 'pointer', marginTop: '0.5rem' }}
                   onClick={clearAll}
                 >
                   Clear filters
@@ -527,7 +521,7 @@ export default function CollectionListPage() {
                   <div
                     key={f.id}
                     style={{
-                      fontSize: i === 0 ? 13 : 12,
+                      fontSize: i === 0 ? 'var(--text-base)' : 'var(--text-sm)',
                       fontWeight: i === 0 ? 500 : 400,
                       color: i === 0 ? 'var(--text-primary)' : 'var(--text-secondary)',
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',

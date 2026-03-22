@@ -296,7 +296,7 @@ export default function SearchPage() {
             autoFocus
             style={{
               flex: 1,
-              fontSize: 13,
+              fontSize: 'var(--text-base)',
               color: 'var(--text-primary)',
               border: 'none',
               outline: 'none',
@@ -314,7 +314,7 @@ export default function SearchPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 11,
+          fontSize: 'var(--text-xs)',
           fontWeight: 600,
           color: 'var(--accent-text)',
           flexShrink: 0,
@@ -338,7 +338,7 @@ export default function SearchPage() {
           position: 'relative',
         }}
       >
-        <span style={{ fontSize: 10, color: 'var(--text-tertiary)', flexShrink: 0 }}>Filters:</span>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', flexShrink: 0 }}>Filters:</span>
 
         {/* Kase typeahead filter */}
         <div ref={kaseDropdownRef} style={{ position: 'relative', flexShrink: 0 }}>
@@ -351,19 +351,19 @@ export default function SearchPage() {
                 gap: '0.25rem',
                 padding: '3px 9px',
                 borderRadius: 6,
-                fontSize: 11,
+                fontSize: 'var(--text-xs)',
                 fontWeight: 500,
                 background: 'var(--accent-light)',
                 border: '1px solid var(--accent)',
                 color: 'var(--accent-text)',
               }}
             >
-              <span style={{ fontSize: 10, opacity: 0.7 }}>Kase:</span>
+              <span style={{ fontSize: 'var(--text-xs)', opacity: 0.7 }}>Kase:</span>
               {kaseFilter.title}
               <button
                 onClick={() => selectKase(null)}
                 aria-label={`Remove kase filter ${kaseFilter.title}`}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 10, opacity: 0.6, fontFamily: 'var(--font)' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'var(--text-xs)', opacity: 0.6, fontFamily: 'var(--font)' }}
               >
                 ✕
               </button>
@@ -378,7 +378,7 @@ export default function SearchPage() {
                 gap: '0.3rem',
                 padding: '3px 9px',
                 borderRadius: 6,
-                fontSize: 11,
+                fontSize: 'var(--text-xs)',
                 cursor: 'pointer',
                 border: '1px solid var(--border-mid)',
                 background: 'var(--bg-secondary)',
@@ -386,9 +386,9 @@ export default function SearchPage() {
                 fontFamily: 'var(--font)',
               }}
             >
-              <span style={{ color: 'var(--text-tertiary)', fontSize: 10 }}>Kase:</span>
+              <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' }}>Kase:</span>
               All
-              <span style={{ fontSize: 9, opacity: 0.4 }}>▾</span>
+              <span style={{ fontSize: 'var(--text-2xs)', opacity: 0.4 }}>▾</span>
             </button>
           )}
           {kaseDropdownOpen && (
@@ -413,7 +413,7 @@ export default function SearchPage() {
                   autoFocus
                   style={{
                     width: '100%',
-                    fontSize: 12,
+                    fontSize: 'var(--text-sm)',
                     border: 'none',
                     outline: 'none',
                     background: 'transparent',
@@ -424,7 +424,7 @@ export default function SearchPage() {
               </div>
               <div style={{ maxHeight: 200, overflowY: 'auto' }}>
                 {filteredKases.length === 0 && (
-                  <div style={{ padding: '0.4rem 0.75rem', fontSize: 12, color: 'var(--text-tertiary)' }}>No kases found</div>
+                  <div style={{ padding: '0.4rem 0.75rem', fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>No kases found</div>
                 )}
                 {filteredKases.map(k => (
                   <button
@@ -435,7 +435,7 @@ export default function SearchPage() {
                       width: '100%',
                       textAlign: 'left',
                       padding: '0.4rem 0.75rem',
-                      fontSize: 12,
+                      fontSize: 'var(--text-sm)',
                       color: 'var(--text-secondary)',
                       cursor: 'pointer',
                       background: 'none',
@@ -462,7 +462,7 @@ export default function SearchPage() {
                 gap: '0.25rem',
                 padding: '3px 9px',
                 borderRadius: 6,
-                fontSize: 11,
+                fontSize: 'var(--text-xs)',
                 fontWeight: 500,
                 background: 'var(--accent-light)',
                 border: '1px solid var(--accent)',
@@ -478,12 +478,12 @@ export default function SearchPage() {
                   flexShrink: 0,
                 }}
               />
-              <span style={{ fontSize: 10, opacity: 0.7 }}>Collection:</span>
+              <span style={{ fontSize: 'var(--text-xs)', opacity: 0.7 }}>Collection:</span>
               {collectionFilter.title}
               <button
                 onClick={() => selectCollection(null)}
                 aria-label={`Remove collection filter ${collectionFilter.title}`}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 10, opacity: 0.6, fontFamily: 'var(--font)' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'var(--text-xs)', opacity: 0.6, fontFamily: 'var(--font)' }}
               >
                 ✕
               </button>
@@ -498,7 +498,7 @@ export default function SearchPage() {
                 gap: '0.3rem',
                 padding: '3px 9px',
                 borderRadius: 6,
-                fontSize: 11,
+                fontSize: 'var(--text-xs)',
                 cursor: 'pointer',
                 border: '1px solid var(--border-mid)',
                 background: 'var(--bg-secondary)',
@@ -506,9 +506,9 @@ export default function SearchPage() {
                 fontFamily: 'var(--font)',
               }}
             >
-              <span style={{ color: 'var(--text-tertiary)', fontSize: 10 }}>Collection:</span>
+              <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' }}>Collection:</span>
               All
-              <span style={{ fontSize: 9, opacity: 0.4 }}>▾</span>
+              <span style={{ fontSize: 'var(--text-2xs)', opacity: 0.4 }}>▾</span>
             </button>
           )}
           {collectionDropdownOpen && (
@@ -533,7 +533,7 @@ export default function SearchPage() {
                   autoFocus
                   style={{
                     width: '100%',
-                    fontSize: 12,
+                    fontSize: 'var(--text-sm)',
                     border: 'none',
                     outline: 'none',
                     background: 'transparent',
@@ -544,7 +544,7 @@ export default function SearchPage() {
               </div>
               <div style={{ maxHeight: 200, overflowY: 'auto' }}>
                 {filteredCollections.length === 0 && (
-                  <div style={{ padding: '0.4rem 0.75rem', fontSize: 12, color: 'var(--text-tertiary)' }}>No collections found</div>
+                  <div style={{ padding: '0.4rem 0.75rem', fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>No collections found</div>
                 )}
                 {filteredCollections.map(c => (
                   <button
@@ -557,7 +557,7 @@ export default function SearchPage() {
                       width: '100%',
                       textAlign: 'left',
                       padding: '0.4rem 0.75rem',
-                      fontSize: 12,
+                      fontSize: 'var(--text-sm)',
                       color: 'var(--text-secondary)',
                       cursor: 'pointer',
                       background: 'none',
@@ -592,7 +592,7 @@ export default function SearchPage() {
               gap: '0.3rem',
               padding: '3px 9px',
               borderRadius: 6,
-              fontSize: 11,
+              fontSize: 'var(--text-xs)',
               cursor: 'pointer',
               border: typeFilter ? '1px solid var(--accent)' : '1px solid var(--border-mid)',
               background: typeFilter ? 'var(--accent-light)' : 'var(--bg-secondary)',
@@ -600,18 +600,18 @@ export default function SearchPage() {
               fontFamily: 'var(--font)',
             }}
           >
-            <span style={{ color: typeFilter ? 'var(--accent-text)' : 'var(--text-tertiary)', fontSize: 10 }}>Type:</span>
+            <span style={{ color: typeFilter ? 'var(--accent-text)' : 'var(--text-tertiary)', fontSize: 'var(--text-xs)' }}>Type:</span>
             {typeLabel}
             {typeFilter && (
               <button
                 onClick={e => { e.stopPropagation(); selectType(null) }}
                 aria-label="Clear type filter"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 10, opacity: 0.6, fontFamily: 'var(--font)' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'var(--text-xs)', opacity: 0.6, fontFamily: 'var(--font)' }}
               >
                 ✕
               </button>
             )}
-            {!typeFilter && <span style={{ fontSize: 9, opacity: 0.4 }}>▾</span>}
+            {!typeFilter && <span style={{ fontSize: 'var(--text-2xs)', opacity: 0.4 }}>▾</span>}
           </button>
           {typeDropdownOpen && (
             <div style={{
@@ -640,7 +640,7 @@ export default function SearchPage() {
                     width: '100%',
                     textAlign: 'left',
                     padding: '0.4rem 0.75rem',
-                    fontSize: 12,
+                    fontSize: 'var(--text-sm)',
                     color: typeFilter === opt.value ? 'var(--accent)' : 'var(--text-secondary)',
                     fontWeight: typeFilter === opt.value ? 500 : 400,
                     cursor: 'pointer',
@@ -669,7 +669,7 @@ export default function SearchPage() {
                 gap: '0.25rem',
                 padding: '3px 9px',
                 borderRadius: 6,
-                fontSize: 11,
+                fontSize: 'var(--text-xs)',
                 fontWeight: 500,
                 background: c.bg,
                 border: `1px solid ${c.border}`,
@@ -681,7 +681,7 @@ export default function SearchPage() {
               <button
                 onClick={() => removeTag(tag)}
                 aria-label={`Remove tag filter ${tag}`}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 10, opacity: 0.5, fontFamily: 'var(--font)' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'var(--text-xs)', opacity: 0.5, fontFamily: 'var(--font)' }}
               >
                 ✕
               </button>
@@ -700,7 +700,7 @@ export default function SearchPage() {
               gap: '0.3rem',
               padding: '3px 9px',
               borderRadius: 6,
-              fontSize: 11,
+              fontSize: 'var(--text-xs)',
               cursor: 'pointer',
               border: hasDateFilter ? '1px solid var(--accent)' : '1px solid var(--border-mid)',
               background: hasDateFilter ? 'var(--accent-light)' : 'var(--bg-secondary)',
@@ -708,9 +708,9 @@ export default function SearchPage() {
               fontFamily: 'var(--font)',
             }}
           >
-            <span style={{ color: hasDateFilter ? 'var(--accent-text)' : 'var(--text-tertiary)', fontSize: 10 }}>Date:</span>
+            <span style={{ color: hasDateFilter ? 'var(--accent-text)' : 'var(--text-tertiary)', fontSize: 'var(--text-xs)' }}>Date:</span>
             {dateLabel}
-            <span style={{ fontSize: 9, opacity: 0.4 }}>▾</span>
+            <span style={{ fontSize: 'var(--text-2xs)', opacity: 0.4 }}>▾</span>
           </button>
           {dateDropdownOpen && (
             <div
@@ -728,7 +728,7 @@ export default function SearchPage() {
                 minWidth: 200,
               }}
             >
-              <label style={{ fontSize: 10, color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.25rem' }}>From</label>
+              <label style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.25rem' }}>From</label>
               <input
                 type="date"
                 value={fromDate}
@@ -736,7 +736,7 @@ export default function SearchPage() {
                 data-testid="date-from-input"
                 style={{
                   width: '100%',
-                  fontSize: 12,
+                  fontSize: 'var(--text-sm)',
                   color: 'var(--text-primary)',
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-mid)',
@@ -747,7 +747,7 @@ export default function SearchPage() {
                   marginBottom: '0.6rem',
                 }}
               />
-              <label style={{ fontSize: 10, color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.25rem' }}>To</label>
+              <label style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.25rem' }}>To</label>
               <input
                 type="date"
                 value={toDate}
@@ -755,7 +755,7 @@ export default function SearchPage() {
                 data-testid="date-to-input"
                 style={{
                   width: '100%',
-                  fontSize: 12,
+                  fontSize: 'var(--text-sm)',
                   color: 'var(--text-primary)',
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-mid)',
@@ -775,7 +775,7 @@ export default function SearchPage() {
                     borderRadius: 5,
                     background: 'var(--accent)',
                     color: 'white',
-                    fontSize: 12,
+                    fontSize: 'var(--text-sm)',
                     fontWeight: 500,
                     border: 'none',
                     cursor: 'pointer',
@@ -792,7 +792,7 @@ export default function SearchPage() {
                       borderRadius: 5,
                       background: 'var(--bg-secondary)',
                       color: 'var(--text-secondary)',
-                      fontSize: 12,
+                      fontSize: 'var(--text-sm)',
                       border: '1px solid var(--border-mid)',
                       cursor: 'pointer',
                       fontFamily: 'var(--font)',
@@ -815,7 +815,7 @@ export default function SearchPage() {
               padding: '3px 9px',
               borderRadius: 6,
               border: '1px dashed var(--border-mid)',
-              fontSize: 11,
+              fontSize: 'var(--text-xs)',
               color: 'var(--text-tertiary)',
               cursor: 'pointer',
               background: 'transparent',
@@ -846,7 +846,7 @@ export default function SearchPage() {
                   autoFocus
                   style={{
                     width: '100%',
-                    fontSize: 12,
+                    fontSize: 'var(--text-sm)',
                     border: 'none',
                     outline: 'none',
                     background: 'transparent',
@@ -857,7 +857,7 @@ export default function SearchPage() {
               </div>
               <div style={{ maxHeight: 180, overflowY: 'auto' }}>
                 {filteredTags.length === 0 && (
-                  <div style={{ padding: '0.4rem 0.75rem', fontSize: 12, color: 'var(--text-tertiary)' }}>No tags found</div>
+                  <div style={{ padding: '0.4rem 0.75rem', fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>No tags found</div>
                 )}
                 {filteredTags.map(t => {
                   const c = tagColor(t.name)
@@ -872,7 +872,7 @@ export default function SearchPage() {
                         width: '100%',
                         textAlign: 'left',
                         padding: '0.4rem 0.75rem',
-                        fontSize: 12,
+                        fontSize: 'var(--text-sm)',
                         color: 'var(--text-secondary)',
                         cursor: 'pointer',
                         background: 'none',
@@ -881,7 +881,7 @@ export default function SearchPage() {
                       }}
                     >
                       <span style={{
-                        fontSize: 10,
+                        fontSize: 'var(--text-xs)',
                         padding: '1px 6px',
                         borderRadius: 99,
                         background: c.bg,
@@ -900,7 +900,7 @@ export default function SearchPage() {
 
         {/* Result count */}
         {searched && (
-          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 }}>
+          <span style={{ marginLeft: 'auto', fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', flexShrink: 0 }}>
             {results.length} result{results.length !== 1 ? 's' : ''}
           </span>
         )}
@@ -911,7 +911,7 @@ export default function SearchPage() {
 
         {/* Empty state — no search yet */}
         {!searched && (
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>
+          <p style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>
             Type to search logs, or use filters to browse by kase, collection, tag, or date.
           </p>
         )}
@@ -922,11 +922,11 @@ export default function SearchPage() {
             data-testid="empty-state"
             style={{ padding: '2rem 0', textAlign: 'center' }}
           >
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+            <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
               No results
               {query.trim() ? ` for "${query}"` : ''}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>
               Try different search terms or remove some filters.
             </div>
           </div>
@@ -972,28 +972,28 @@ export default function SearchPage() {
                         flexShrink: 0,
                       }}
                     />
-                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 500 }}>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', fontWeight: 500 }}>
                       {r.collectionTitle}
                     </span>
                     {r.updatedAt && (
-                      <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
                         {formatDate(r.updatedAt)}
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: '0.3rem' }}>
+                  <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: '0.3rem' }}>
                     {r.title || r.collectionTitle}
                   </div>
                   {r.highlight && (
                     <div
-                      style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: '0.4rem' }}
+                      style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: '0.4rem' }}
                       dangerouslySetInnerHTML={{ __html: highlightTerms(r.highlight, query) }}
                     />
                   )}
                   {r.kaseTitle && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                       <span style={{
-                        fontSize: 10,
+                        fontSize: 'var(--text-xs)',
                         padding: '1px 7px',
                         borderRadius: 99,
                         background: 'var(--bg-secondary)',
@@ -1009,23 +1009,23 @@ export default function SearchPage() {
                 /* Log card (existing layout) */
                 <>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3 }}>
+                    <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3 }}>
                       {r.title}
                     </div>
                     {r.updatedAt && (
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0, marginTop: 1 }}>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', flexShrink: 0, marginTop: 1 }}>
                         {formatDate(r.updatedAt)}
                       </div>
                     )}
                   </div>
 
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>
                     {r.kaseTitle}
                   </div>
 
                   {r.highlight && (
                     <div
-                      style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: '0.55rem' }}
+                      style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: '0.55rem' }}
                       dangerouslySetInnerHTML={{ __html: highlightTerms(r.highlight, query) }}
                     />
                   )}
@@ -1036,7 +1036,7 @@ export default function SearchPage() {
                         const c = tagColor(tag)
                         return (
                           <span key={tag} style={{
-                            fontSize: 10,
+                            fontSize: 'var(--text-xs)',
                             padding: '2px 8px',
                             borderRadius: 99,
                             fontWeight: 500,

@@ -48,7 +48,7 @@ function timeAgo(iso: string): string {
 function SpLabel({ children }: { children: string }) {
   return (
     <div style={{
-      fontSize: 10,
+      fontSize: 'var(--text-xs)',
       fontWeight: 600,
       color: 'var(--text-tertiary)',
       textTransform: 'uppercase',
@@ -87,7 +87,7 @@ function SpInput({
         border: '1px solid var(--border-mid)',
         borderRadius: 6,
         padding: '0.4rem 0.6rem',
-        fontSize: 12,
+        fontSize: 'var(--text-sm)',
         color: 'var(--text-primary)',
         fontFamily: 'var(--font)',
         width: '100%',
@@ -382,11 +382,11 @@ export default function LogViewPage() {
   if (notFound) {
     return (
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Log not found</p>
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>This log may have been deleted.</p>
+        <p style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-primary)' }}>Log not found</p>
+        <p style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>This log may have been deleted.</p>
         <button
           onClick={() => navigate('/')}
-          style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)' }}
+          style={{ fontSize: 'var(--text-sm)', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)' }}
         >
           ← Back to Kases
         </button>
@@ -397,7 +397,7 @@ export default function LogViewPage() {
   if (!log) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Loading…</p>
+        <p style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>Loading…</p>
       </div>
     )
   }
@@ -423,7 +423,7 @@ export default function LogViewPage() {
         <button
           onClick={() => navigate(`/kases/${log.kaseId}`)}
           style={{
-            fontSize: 13,
+            fontSize: 'var(--text-base)',
             color: 'var(--text-tertiary)',
             cursor: 'pointer',
             padding: '4px 8px',
@@ -440,11 +440,11 @@ export default function LogViewPage() {
         >
           ← {kase?.title ?? 'Kase'}
         </button>
-        <span style={{ fontSize: 13, color: 'var(--border-mid)', flexShrink: 0 }}>/</span>
+        <span style={{ fontSize: 'var(--text-base)', color: 'var(--border-mid)', flexShrink: 0 }}>/</span>
         <span
           data-testid="topbar-log-title"
           style={{
-            fontSize: 14,
+            fontSize: 'var(--text-base)',
             fontWeight: 500,
             color: 'var(--text-primary)',
             whiteSpace: 'nowrap',
@@ -457,7 +457,7 @@ export default function LogViewPage() {
         </span>
         <div style={{ flex: 1, minWidth: '0.5rem' }} />
         <span style={{
-          fontSize: 11,
+          fontSize: 'var(--text-xs)',
           color: 'var(--text-tertiary)',
           padding: '3px 9px',
           background: 'var(--bg-secondary)',
@@ -473,7 +473,7 @@ export default function LogViewPage() {
           v{log.versionCount} · history
         </span>
         <span style={{
-          fontSize: 11,
+          fontSize: 'var(--text-xs)',
           color: unsaved && !log.autosaveEnabled ? '#BA7517' : 'var(--text-tertiary)',
           whiteSpace: 'nowrap',
           flexShrink: 0,
@@ -484,7 +484,7 @@ export default function LogViewPage() {
           <button
             onClick={handleManualSave}
             style={{
-              fontSize: 13,
+              fontSize: 'var(--text-base)',
               fontWeight: 500,
               color: 'var(--text-secondary)',
               background: 'var(--bg-secondary)',
@@ -503,7 +503,7 @@ export default function LogViewPage() {
         <button
           onClick={handleNewLog}
           style={{
-            fontSize: 13,
+            fontSize: 'var(--text-base)',
             fontWeight: 500,
             color: 'white',
             background: 'var(--accent)',
@@ -527,7 +527,7 @@ export default function LogViewPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 12,
+          fontSize: 'var(--text-sm)',
           fontWeight: 600,
           color: 'var(--accent-text)',
           cursor: 'pointer',
@@ -561,7 +561,7 @@ export default function LogViewPage() {
 
               {/* Meta line */}
               <div style={{
-                fontSize: 12,
+                fontSize: 'var(--text-sm)',
                 color: 'var(--text-tertiary)',
                 display: 'flex',
                 alignItems: 'center',
@@ -600,7 +600,7 @@ export default function LogViewPage() {
           {panelOpen && (
             <>
               <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Log settings</div>
+                <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-primary)' }}>Log settings</div>
               </div>
               <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
@@ -631,7 +631,7 @@ export default function LogViewPage() {
                         <span
                           key={t.id}
                           style={{
-                            fontSize: 11,
+                            fontSize: 'var(--text-xs)',
                             fontWeight: 500,
                             padding: '2px 7px',
                             borderRadius: 99,
@@ -671,7 +671,7 @@ export default function LogViewPage() {
                         border: '1px solid var(--border-mid)',
                         borderRadius: 5,
                         padding: '0.3rem 0.5rem',
-                        fontSize: 12,
+                        fontSize: 'var(--text-sm)',
                         color: 'var(--text-primary)',
                         fontFamily: 'var(--font)',
                         outline: 'none',
@@ -684,7 +684,7 @@ export default function LogViewPage() {
                         border: '1px solid var(--border-mid)',
                         borderRadius: 5,
                         padding: '0.3rem 0.6rem',
-                        fontSize: 12,
+                        fontSize: 'var(--text-sm)',
                         color: 'var(--text-tertiary)',
                         cursor: 'pointer',
                         fontFamily: 'var(--font)',
@@ -718,7 +718,7 @@ export default function LogViewPage() {
                               onMouseDown={(e) => { e.preventDefault(); void handleAddTag(t.name) }}
                               style={{
                                 padding: '0.35rem 0.5rem',
-                                fontSize: 12,
+                                fontSize: 'var(--text-sm)',
                                 color: 'var(--text-secondary)',
                                 cursor: 'pointer',
                               }}
@@ -741,8 +741,8 @@ export default function LogViewPage() {
                   <SpLabel>Autosave</SpLabel>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
                     <div>
-                      <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Save automatically</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>
+                      <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)' }}>Save automatically</div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 1 }}>
                         {log.autosaveEnabled
                           ? (lastSavedAt ? `Last saved ${timeAgo(lastSavedAt)}` : 'Enabled')
                           : 'Manual saves only'}
@@ -797,12 +797,12 @@ export default function LogViewPage() {
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.1rem' }}>
-                          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                          <span style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                             v{versions.length - i}
                           </span>
                           {i === 0 && (
                             <span style={{
-                              fontSize: 10, padding: '1px 5px', borderRadius: 99, fontWeight: 500,
+                              fontSize: 'var(--text-xs)', padding: '1px 5px', borderRadius: 99, fontWeight: 500,
                               background: 'var(--accent-light)', color: 'var(--accent-text)',
                             }}>
                               current
@@ -810,14 +810,14 @@ export default function LogViewPage() {
                           )}
                           {v.label && (
                             <span style={{
-                              fontSize: 10, padding: '1px 5px', borderRadius: 99, fontWeight: 500,
+                              fontSize: 'var(--text-xs)', padding: '1px 5px', borderRadius: 99, fontWeight: 500,
                               background: '#FAEEDA', color: '#412402',
                             }}>
                               {v.label}
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
                           {formatTs(v.createdAt)} · {v.isAutosave ? 'autosaved' : v.label ? 'checkpoint' : 'saved'}
                         </div>
                       </div>
@@ -836,7 +836,7 @@ export default function LogViewPage() {
                         border: '1px solid var(--border)',
                         borderRadius: 5,
                         padding: '0.35rem 0.5rem',
-                        fontSize: 12,
+                        fontSize: 'var(--text-sm)',
                         color: 'var(--text-tertiary)',
                         fontFamily: 'var(--font)',
                         outline: 'none',
@@ -849,7 +849,7 @@ export default function LogViewPage() {
                         border: '1px solid var(--border)',
                         borderRadius: 5,
                         padding: '0.35rem 0.5rem',
-                        fontSize: 12,
+                        fontSize: 'var(--text-sm)',
                         color: 'var(--text-tertiary)',
                         cursor: 'pointer',
                         fontFamily: 'var(--font)',
@@ -873,8 +873,8 @@ export default function LogViewPage() {
                       { key: 'Kase', val: kase?.title ?? '—' },
                     ].map(({ key, val }) => (
                       <div key={key} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
-                        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{key}</span>
-                        <span style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'right' }}>{val}</span>
+                        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>{key}</span>
+                        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', textAlign: 'right' }}>{val}</span>
                       </div>
                     ))}
                   </div>
@@ -889,7 +889,7 @@ export default function LogViewPage() {
                       onClick={() => void handleDelete()}
                       style={{
                         flex: 1,
-                        fontSize: 12,
+                        fontSize: 'var(--text-sm)',
                         color: 'white',
                         background: '#A32D2D',
                         border: 'none',
@@ -904,7 +904,7 @@ export default function LogViewPage() {
                     <button
                       onClick={() => setShowDeleteConfirm(false)}
                       style={{
-                        fontSize: 12,
+                        fontSize: 'var(--text-sm)',
                         color: 'var(--text-tertiary)',
                         background: 'var(--bg)',
                         border: '1px solid var(--border-mid)',
@@ -922,7 +922,7 @@ export default function LogViewPage() {
                     onClick={() => setShowDeleteConfirm(true)}
                     style={{
                       width: '100%',
-                      fontSize: 12,
+                      fontSize: 'var(--text-sm)',
                       color: '#A32D2D',
                       cursor: 'pointer',
                       textAlign: 'center',
@@ -967,7 +967,7 @@ export default function LogViewPage() {
               boxShadow: '-2px 0 8px rgba(0,0,0,0.06)',
             }}
           >
-            <span style={{ fontSize: 18, color: 'var(--text-tertiary)', lineHeight: 1 }}>
+            <span style={{ fontSize: 'var(--text-lg)', color: 'var(--text-tertiary)', lineHeight: 1 }}>
               {panelOpen ? '›' : '‹'}
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center' }}>
@@ -995,7 +995,7 @@ function TitleInput({ value, onBlur }: { value: string; onBlur: (val: string) =>
       onBlur={() => onBlur(local)}
       aria-label="Log title"
       style={{
-        fontSize: 26,
+        fontSize: 'var(--text-2xl)',
         fontWeight: 600,
         color: 'var(--text-primary)',
         letterSpacing: '-0.03em',
