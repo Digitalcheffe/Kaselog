@@ -456,3 +456,92 @@ describe('LogViewPage — settings panel pin toggle', () => {
     })
   })
 })
+
+// ── KaseViewPage — pin sort grouping ──────────────────────────────────────────
+
+describe('KaseViewPage — pin sort grouping', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(kasesApi.list).mockResolvedValue([])
+    vi.mocked(collectionsApi.list).mockResolvedValue([])
+    vi.mocked(kasesApi.get).mockResolvedValue(makeKase())
+  })
+
+  it('pinned logs appear before unpinned logs regardless of entry order', async () => {
+    vi.mocked(timelineApi.list).mockResolvedValue([
+      makeEntry({ id: 'log-unpinned-new', title: 'Newer Unpinned', isPinned: false, updatedAt: new Date().toISOString() }),
+      makeEntry({ id: 'log-pinned-old', title: 'Older Pinned', isPinned: true, updatedAt: new Date(Date.now() - 86400000 * 5).toISOString() }),
+    ])
+
+    renderKaseView()
+
+    await waitFor(() => {
+      screen.getByText('Newer Unpinned')
+      screen.getByText('Older Pinned')
+    })
+
+    const body = document.body.textContent ?? ''
+    expect(body.indexOf('Older Pinned')).toBeLessThan(body.indexOf('Newer Unpinned'))
+  })
+
+  it('shows pinned-section-label when there are pinned logs', async () => {
+    vi.mocked(timelineApi.list).mockResolvedValue([
+      makeEntry({ id: 'log-pinned', title: 'Pinned Log', isPinned: true }),
+      makeEntry({ id: 'log-normal', title: 'Normal Log', isPinned: false }),
+    ])
+
+    renderKaseView()
+
+    await waitFor(() => screen.getByTestId('pinned-section-label'))
+    expect(screen.getByTestId('pinned-section-label')).toBeInTheDocument()
+  })
+
+  it('does not show pinned-section-label when no logs are pinned', async () => {
+    vi.mocked(timelineApi.list).mockResolvedValue([
+      makeEntry({ id: 'log-normal', title: 'Normal Log', isPinned: false }),
+    ])
+
+    renderKaseView()
+
+    await waitFor(() => screen.getByText('Normal Log'))
+    expect(screen.queryByTestId('pinned-section-label')).not.toBeInTheDocument()
+  })
+
+  it('clicking pin-entry-badge on pinned entry calls logsApi.pin with isPinned=false', async () => {
+    vi.mocked(timelineApi.list).mockResolvedValue([
+      makeEntry({ id: 'log-pinned', title: 'Pinned Log', isPinned: true }),
+    ])
+    vi.mocked(logsApi.pin).mockResolvedValue(makeLog({ id: 'log-pinned', isPinned: false }))
+
+    const user = userEvent.setup()
+    renderKaseView()
+
+    await waitFor(() => screen.getByTestId('pin-entry-badge'))
+    await user.click(screen.getByTestId('pin-entry-badge'))
+
+    await waitFor(() => {
+      expect(logsApi.pin).toHaveBeenCalledWith('log-pinned', { isPinned: false })
+    })
+  })
+
+  it('unpinning a log via pin-entry-badge moves it out of pinned group instantly', async () => {
+    vi.mocked(timelineApi.list).mockResolvedValue([
+      makeEntry({ id: 'log-pinned', title: 'Pinned Log', isPinned: true }),
+      makeEntry({ id: 'log-normal', title: 'Normal Log', isPinned: false }),
+    ])
+    vi.mocked(logsApi.pin).mockResolvedValue(makeLog({ id: 'log-pinned', isPinned: false }))
+
+    const user = userEvent.setup()
+    renderKaseView()
+
+    // Before unpin: section label visible
+    await waitFor(() => screen.getByTestId('pinned-section-label'))
+
+    await user.click(screen.getByTestId('pin-entry-badge'))
+
+    // After optimistic update: section label gone (no pinned logs left)
+    await waitFor(() => {
+      expect(screen.queryByTestId('pinned-section-label')).not.toBeInTheDocument()
+    })
+  })
+})

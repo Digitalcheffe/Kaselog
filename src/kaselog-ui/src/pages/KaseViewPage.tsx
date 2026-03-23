@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { kases as kasesApi, timeline as timelineApi } from '../api/client'
+import { kases as kasesApi, timeline as timelineApi, logs as logsApi } from '../api/client'
 import type { KaseResponse, TimelineEntryResponse } from '../api/types'
 import { useKases } from '../contexts/KasesContext'
 import NewContentModal from '../components/NewContentModal'
@@ -327,6 +327,16 @@ export default function KaseViewPage() {
   const [pinnedFilterActive, setPinnedFilterActive] = useState(false)
   const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null)
 
+  async function handleLogPinToggle(entryId: string, currentPinned: boolean) {
+    const newPinned = !currentPinned
+    setEntries(prev => prev.map(e => e.id === entryId ? { ...e, isPinned: newPinned } : e))
+    try {
+      await logsApi.pin(entryId, { isPinned: newPinned })
+    } catch {
+      setEntries(prev => prev.map(e => e.id === entryId ? { ...e, isPinned: currentPinned } : e))
+    }
+  }
+
   useEffect(() => {
     if (!id) return
     setLoading(true)
@@ -415,7 +425,7 @@ export default function KaseViewPage() {
             transition: 'all 0.15s',
           }}
         >
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path d="M9.828 1.172a.5.5 0 0 0-.707 0L6.95 3.344a1 1 0 0 1-.707.293H3.5a1 1 0 0 0-.707 1.707l2 2A1 1 0 0 1 5 8.05v2.536a.5.5 0 0 0 .854.353L7.5 9.293l3.207 3.207a.5.5 0 0 0 .707-.707L8.207 8.586l1.621-1.621A3 3 0 0 0 10.657 5H12a1 1 0 0 0 .707-1.707l-2-2a1 1 0 0 0-.707-.293H9.828z" />
           </svg>
           Pinned
@@ -468,30 +478,85 @@ export default function KaseViewPage() {
             return <EmptyState onNew={() => setModalOpen(true)} />
           }
 
-          return filtered.map((entry, i) =>
-            entry.entityType === 'log' ? (
-              <LogTimelineEntry
-                key={entry.id}
-                entry={entry}
-                index={i}
-                isLast={i === filtered.length - 1}
-                isHovered={hoveredId === entry.id}
-                onMouseEnter={() => setHoveredId(entry.id)}
-                onMouseLeave={() => setHoveredId(null)}
-                onClick={() => navigate(`/logs/${entry.id}`)}
-              />
-            ) : (
-              <CollectionItemTimelineEntry
-                key={entry.id}
-                entry={entry}
-                index={i}
-                isLast={i === filtered.length - 1}
-                isHovered={hoveredId === entry.id}
-                onMouseEnter={() => setHoveredId(entry.id)}
-                onMouseLeave={() => setHoveredId(null)}
-                onClick={() => navigate(`/items/${entry.id}`)}
-              />
-            )
+          // Group: pinned logs float to top; rest stay in original order
+          const pinnedLogs = filtered.filter(e => e.entityType === 'log' && e.isPinned)
+          const otherEntries = filtered.filter(e => !(e.entityType === 'log' && e.isPinned))
+          const hasPinnedSection = pinnedLogs.length > 0
+          const hasOtherSection = otherEntries.length > 0
+
+          return (
+            <>
+              {/* Pinned section label */}
+              {hasPinnedSection && (
+                <div
+                  data-testid="pinned-section-label"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.4rem',
+                    paddingBottom: '0.75rem',
+                    color: 'var(--accent)',
+                    fontSize: 'var(--text-xs)',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.07em',
+                  }}
+                >
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M9.828 1.172a.5.5 0 0 0-.707 0L6.95 3.344a1 1 0 0 1-.707.293H3.5a1 1 0 0 0-.707 1.707l2 2A1 1 0 0 1 5 8.05v2.536a.5.5 0 0 0 .854.353L7.5 9.293l3.207 3.207a.5.5 0 0 0 .707-.707L8.207 8.586l1.621-1.621A3 3 0 0 0 10.657 5H12a1 1 0 0 0 .707-1.707l-2-2a1 1 0 0 0-.707-.293H9.828z" />
+                  </svg>
+                  Pinned
+                </div>
+              )}
+
+              {/* Pinned log entries */}
+              {pinnedLogs.map((entry, i) => (
+                <LogTimelineEntry
+                  key={entry.id}
+                  entry={entry}
+                  index={i}
+                  isLast={!hasOtherSection && i === pinnedLogs.length - 1}
+                  isHovered={hoveredId === entry.id}
+                  onMouseEnter={() => setHoveredId(entry.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                  onClick={() => navigate(`/logs/${entry.id}`)}
+                  onPinToggle={() => handleLogPinToggle(entry.id, entry.isPinned === true)}
+                />
+              ))}
+
+              {/* Separator between pinned and remaining entries */}
+              {hasPinnedSection && hasOtherSection && (
+                <div style={{ height: 1, background: 'var(--border)', margin: '0.25rem 0 1rem 0' }} />
+              )}
+
+              {/* Remaining entries in original order */}
+              {otherEntries.map((entry, i) => {
+                const globalIndex = hasPinnedSection ? pinnedLogs.length + i : i
+                const isLast = i === otherEntries.length - 1
+                return entry.entityType === 'log' ? (
+                  <LogTimelineEntry
+                    key={entry.id}
+                    entry={entry}
+                    index={globalIndex}
+                    isLast={isLast}
+                    isHovered={hoveredId === entry.id}
+                    onMouseEnter={() => setHoveredId(entry.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    onClick={() => navigate(`/logs/${entry.id}`)}
+                    onPinToggle={() => handleLogPinToggle(entry.id, entry.isPinned === true)}
+                  />
+                ) : (
+                  <CollectionItemTimelineEntry
+                    key={entry.id}
+                    entry={entry}
+                    index={globalIndex}
+                    isLast={isLast}
+                    isHovered={hoveredId === entry.id}
+                    onMouseEnter={() => setHoveredId(entry.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    onClick={() => navigate(`/items/${entry.id}`)}
+                  />
+                )
+              })}
+            </>
           )
         })()}
       </div>
@@ -580,9 +645,10 @@ interface LogEntryProps {
   onMouseEnter: () => void
   onMouseLeave: () => void
   onClick: () => void
+  onPinToggle: () => void
 }
 
-function LogTimelineEntry({ entry, index, isLast, isHovered, onMouseEnter, onMouseLeave, onClick }: LogEntryProps) {
+function LogTimelineEntry({ entry, index, isLast, isHovered, onMouseEnter, onMouseLeave, onClick, onPinToggle }: LogEntryProps) {
   const isNewest = index === 0
   const isPinned = entry.isPinned === true
 
@@ -609,13 +675,13 @@ function LogTimelineEntry({ entry, index, isLast, isHovered, onMouseEnter, onMou
           {isPinned && (
             <svg
               data-testid="pin-dot-marker"
-              width="8" height="8"
+              width="12" height="12"
               viewBox="0 0 16 16"
               fill="var(--accent)"
               aria-label="Pinned"
               style={{
                 position: 'absolute',
-                top: -5,
+                top: -7,
                 left: 6,
                 opacity: 0.9,
               }}
@@ -639,18 +705,25 @@ function LogTimelineEntry({ entry, index, isLast, isHovered, onMouseEnter, onMou
           }}>
             {entry.title}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
-            {isPinned && (
-              <svg
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
+            {(isPinned || isHovered) && (
+              <button
                 data-testid="pin-entry-badge"
-                width="10" height="10"
-                viewBox="0 0 16 16"
-                fill="var(--accent)"
-                aria-label="Pinned log"
-                style={{ opacity: 0.7 }}
+                aria-label={isPinned ? 'Unpin log' : 'Pin log'}
+                onClick={e => { e.stopPropagation(); onPinToggle() }}
+                style={{
+                  width: 32, height: 32,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  borderRadius: 6, flexShrink: 0,
+                  color: isPinned ? 'var(--accent)' : 'var(--text-tertiary)',
+                  opacity: isPinned ? 1 : 0.6,
+                }}
               >
-                <path d="M9.828 1.172a.5.5 0 0 0-.707 0L6.95 3.344a1 1 0 0 1-.707.293H3.5a1 1 0 0 0-.707 1.707l2 2A1 1 0 0 1 5 8.05v2.536a.5.5 0 0 0 .854.353L7.5 9.293l3.207 3.207a.5.5 0 0 0 .707-.707L8.207 8.586l1.621-1.621A3 3 0 0 0 10.657 5H12a1 1 0 0 0 .707-1.707l-2-2a1 1 0 0 0-.707-.293H9.828z" />
-              </svg>
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <path d="M9.828 1.172a.5.5 0 0 0-.707 0L6.95 3.344a1 1 0 0 1-.707.293H3.5a1 1 0 0 0-.707 1.707l2 2A1 1 0 0 1 5 8.05v2.536a.5.5 0 0 0 .854.353L7.5 9.293l3.207 3.207a.5.5 0 0 0 .707-.707L8.207 8.586l1.621-1.621A3 3 0 0 0 10.657 5H12a1 1 0 0 0 .707-1.707l-2-2a1 1 0 0 0-.707-.293H9.828z" />
+                </svg>
+              </button>
             )}
             <span style={{
               fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)',
