@@ -436,6 +436,7 @@ export default function LogViewPage() {
           onClick={() => navigate(`/kases/${log.kaseId}`)}
           style={{
             fontSize: 'var(--text-base)',
+            fontWeight: 500,
             color: 'var(--text-tertiary)',
             cursor: 'pointer',
             padding: '4px 8px',

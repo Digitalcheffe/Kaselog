@@ -472,7 +472,7 @@ function KaseRow({ kase, isLast, onPinToggle, onManage, isMedium = false }: Kase
 
         {/* Latest log preview */}
         {kase.latestLogTitle ? (
-          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', marginBottom: 3, lineHeight: 1.4 }}>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', marginBottom: 3, lineHeight: 1.5 }}>
             <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{kase.latestLogTitle}</span>
             {kase.latestLogPreview && (
               <span> — {kase.latestLogPreview}</span>

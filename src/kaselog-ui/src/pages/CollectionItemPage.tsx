@@ -755,7 +755,7 @@ export default function CollectionItemPage() {
         <button
           onClick={() => navigate(`/collections/${collectionId}`)}
           style={{
-            fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)', cursor: 'pointer',
+            fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-tertiary)', cursor: 'pointer',
             padding: '4px 8px', borderRadius: 5, background: 'transparent',
             border: 'none', fontFamily: 'inherit',
           }}

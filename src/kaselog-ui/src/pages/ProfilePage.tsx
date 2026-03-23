@@ -76,7 +76,7 @@ export default function ProfilePage() {
     fontWeight: 600,
     color: 'var(--text-secondary)',
     textTransform: 'uppercase',
-    letterSpacing: '0.07em',
+    letterSpacing: '0.08em',
     marginBottom: '0.4rem',
   }
 
@@ -103,6 +103,7 @@ export default function ProfilePage() {
             border: 'none',
             cursor: 'pointer',
             fontSize: 'var(--text-base)',
+            fontWeight: 500,
             color: 'var(--text-secondary)',
             fontFamily: 'var(--font)',
             padding: '4px 6px',

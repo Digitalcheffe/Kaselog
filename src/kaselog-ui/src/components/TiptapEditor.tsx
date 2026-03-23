@@ -115,7 +115,7 @@ function TbBtn({
         minWidth: 26,
         textAlign: 'center',
         whiteSpace: 'nowrap',
-        lineHeight: 1,
+        lineHeight: 1.5,
         flexShrink: 0,
         fontFamily: 'var(--font)',
         transition: 'all 0.12s',
