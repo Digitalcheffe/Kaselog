@@ -11,11 +11,26 @@ import CollectionDesignerPage from './pages/CollectionDesignerPage'
 import NewCollectionPage from './pages/NewCollectionPage'
 import CollectionItemPage from './pages/CollectionItemPage'
 
+// Registered routes (all paths the frontend handles):
+//   /                          → KaseListPage   (index)
+//   /kases                     → KaseListPage
+//   /kases/:id                 → KaseViewPage
+//   /logs/:id                  → LogViewPage
+//   /search                    → SearchPage
+//   /profile                   → ProfilePage
+//   /collections               → CollectionsIndexPage
+//   /collections/new           → NewCollectionPage
+//   /collections/:id           → CollectionListPage
+//   /collections/:id/design    → CollectionDesignerPage
+//   /items/new                 → CollectionItemPage
+//   /items/:id                 → CollectionItemPage
+
 const router = createBrowserRouter([
   {
     element: <Shell />,
     children: [
       { index: true, element: <KaseListPage /> },
+      { path: '/kases', element: <KaseListPage /> },
       { path: '/kases/:id', element: <KaseViewPage /> },
       { path: '/logs/:id', element: <LogViewPage /> },
       { path: '/search', element: <SearchPage /> },
