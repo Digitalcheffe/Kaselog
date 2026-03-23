@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { collections as collectionsApi } from '../api/client'
 import type { CollectionResponse, CollectionFieldResponse, CollectionItemResponse } from '../api/types'
+import { useIsMobile } from '../hooks/useMobile'
 
 const COLOR_MAP: Record<string, string> = {
   teal:   '#1D9E75',
@@ -50,6 +51,7 @@ interface ColVisibility {
 export default function CollectionListPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
 
   const [collection, setCollection] = useState<CollectionResponse | null>(null)
   const [fields, setFields] = useState<CollectionFieldResponse[]>([])
@@ -450,46 +452,111 @@ export default function CollectionListPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-        {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center',
-          padding: '0 1.25rem', height: 34, minHeight: 34,
-          borderBottom: '1px solid var(--border)',
-          background: 'var(--bg-secondary)', flexShrink: 0, overflow: 'hidden',
-        }}>
-          {visibleFields.map(f => {
-            const sorted = sortField === f.id
-            return (
-              <div
-                key={f.id}
-                style={{
-                  fontSize: 'var(--text-xs)', fontWeight: 600,
-                  color: sorted ? 'var(--accent)' : 'var(--text-tertiary)',
-                  textTransform: 'uppercase', letterSpacing: '0.07em',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem',
-                  userSelect: 'none', overflow: 'hidden', whiteSpace: 'nowrap',
-                  paddingRight: '1rem', flexShrink: 0, flex: 1, minWidth: 80,
-                }}
-                onClick={() => handleSortClick(f.id)}
-              >
-                {f.name}
-                {sorted && <span style={{ fontSize: 'var(--text-2xs)', opacity: 0.7 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
-              </div>
-            )
-          })}
-        </div>
+      {/* Table (desktop) */}
+      {!isMobile && (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+          {/* Header */}
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            padding: '0 1.25rem', height: 34, minHeight: 34,
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--bg-secondary)', flexShrink: 0, overflow: 'hidden',
+          }}>
+            {visibleFields.map(f => {
+              const sorted = sortField === f.id
+              return (
+                <div
+                  key={f.id}
+                  style={{
+                    fontSize: 'var(--text-xs)', fontWeight: 600,
+                    color: sorted ? 'var(--accent)' : 'var(--text-tertiary)',
+                    textTransform: 'uppercase', letterSpacing: '0.07em',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem',
+                    userSelect: 'none', overflow: 'hidden', whiteSpace: 'nowrap',
+                    paddingRight: '1rem', flexShrink: 0, flex: 1, minWidth: 80,
+                  }}
+                  onClick={() => handleSortClick(f.id)}
+                >
+                  {f.name}
+                  {sorted && <span style={{ fontSize: 'var(--text-2xs)', opacity: 0.7 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                </div>
+              )
+            })}
+          </div>
 
-        {/* Rows */}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+          {/* Rows */}
+          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+            {loading ? (
+              <div style={{ padding: '2rem 1.25rem', fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>Loading…</div>
+            ) : items.length === 0 ? (
+              <div style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                gap: '0.5rem', padding: '3rem',
+              }}>
+                <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-secondary)' }}>No items match</div>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>Try adjusting your search or filters</div>
+                {hasFilters && (
+                  <span
+                    style={{ fontSize: 'var(--text-sm)', color: 'var(--accent)', cursor: 'pointer', marginTop: '0.5rem' }}
+                    onClick={clearAll}
+                  >
+                    Clear filters
+                  </span>
+                )}
+              </div>
+            ) : (
+              items.map(item => (
+                <div
+                  key={item.id}
+                  style={{
+                    display: 'flex', alignItems: 'center',
+                    padding: '0 1.25rem', height: 44,
+                    borderBottom: '1px solid var(--border)',
+                    cursor: 'pointer', overflow: 'hidden',
+                    transition: 'background 0.1s',
+                  }}
+                  onClick={() => navigate(`/items/${item.id}`)}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-secondary)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  {visibleFields.map((f, i) => (
+                    <div
+                      key={f.id}
+                      style={{
+                        fontSize: i === 0 ? 'var(--text-base)' : 'var(--text-sm)',
+                        fontWeight: i === 0 ? 500 : 400,
+                        color: i === 0 ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        paddingRight: '1rem', flexShrink: 0, flex: 1, minWidth: 80,
+                      }}
+                    >
+                      {i === 0
+                        ? (getItemTitle(item, fields) || '—')
+                        : <CellValue field={f} value={item.fieldValues[f.id]} />
+                      }
+                    </div>
+                  ))}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Card list (mobile) */}
+      {isMobile && (
+        <div
+          data-testid="collection-cards-mobile"
+          style={{ flex: 1, overflowY: 'auto', padding: '0.75rem' }}
+        >
           {loading ? (
-            <div style={{ padding: '2rem 1.25rem', fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>Loading…</div>
+            <div style={{ padding: '2rem', fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>Loading…</div>
           ) : items.length === 0 ? (
             <div style={{
               display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
-              gap: '0.5rem', padding: '3rem',
+              gap: '0.5rem', padding: '3rem 1rem',
             }}>
               <div style={{ fontSize: 'var(--text-base)', fontWeight: 500, color: 'var(--text-secondary)' }}>No items match</div>
               <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>Try adjusting your search or filters</div>
@@ -506,39 +573,50 @@ export default function CollectionListPage() {
             items.map(item => (
               <div
                 key={item.id}
-                style={{
-                  display: 'flex', alignItems: 'center',
-                  padding: '0 1.25rem', height: 44,
-                  borderBottom: '1px solid var(--border)',
-                  cursor: 'pointer', overflow: 'hidden',
-                  transition: 'background 0.1s',
-                }}
                 onClick={() => navigate(`/items/${item.id}`)}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-secondary)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                style={{
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 10,
+                  padding: '0.85rem 1rem',
+                  marginBottom: '0.6rem',
+                  cursor: 'pointer',
+                  minHeight: 64,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.35rem',
+                }}
               >
-                {visibleFields.map((f, i) => (
-                  <div
-                    key={f.id}
-                    style={{
-                      fontSize: i === 0 ? 'var(--text-base)' : 'var(--text-sm)',
-                      fontWeight: i === 0 ? 500 : 400,
-                      color: i === 0 ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      paddingRight: '1rem', flexShrink: 0, flex: 1, minWidth: 80,
-                    }}
-                  >
-                    {i === 0
-                      ? (getItemTitle(item, fields) || '—')
-                      : <CellValue field={f} value={item.fieldValues[f.id]} />
-                    }
-                  </div>
-                ))}
+                <div style={{
+                  fontSize: 'var(--text-base)', fontWeight: 500,
+                  color: 'var(--text-primary)', overflow: 'hidden',
+                  textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {getItemTitle(item, fields) || '—'}
+                </div>
+                {visibleFields.slice(1, 4).map(f => {
+                  const val = item.fieldValues[f.id]
+                  if (val == null || val === '') return null
+                  return (
+                    <div
+                      key={f.id}
+                      style={{
+                        display: 'flex', gap: '0.4rem', alignItems: 'baseline',
+                        fontSize: 'var(--text-sm)',
+                      }}
+                    >
+                      <span style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}>{f.name}:</span>
+                      <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <CellValue field={f} value={val} />
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             ))
           )}
         </div>
-      </div>
+      )}
     </div>
   )
 }
