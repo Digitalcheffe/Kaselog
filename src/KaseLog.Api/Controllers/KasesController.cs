@@ -1,6 +1,7 @@
 using KaseLog.Api.Data;
 using KaseLog.Api.Models;
 using KaseLog.Api.Models.Requests;
+using KaseLog.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KaseLog.Api.Controllers;
@@ -12,12 +13,14 @@ namespace KaseLog.Api.Controllers;
 public sealed class KasesController : ControllerBase
 {
     private readonly IKaseRepository _kases;
+    private readonly IKaseExportService _export;
     private readonly ILogger<KasesController> _logger;
 
     /// <summary>Initialises a new instance of <see cref="KasesController"/>.</summary>
-    public KasesController(IKaseRepository kases, ILogger<KasesController> logger)
+    public KasesController(IKaseRepository kases, IKaseExportService export, ILogger<KasesController> logger)
     {
         _kases  = kases;
+        _export = export;
         _logger = logger;
     }
 
@@ -133,5 +136,37 @@ public sealed class KasesController : ControllerBase
 
         var entries = await _kases.GetTimelineAsync(id, Math.Max(1, page), Math.Clamp(pageSize, 1, 200));
         return Ok(ApiResponse<IEnumerable<TimelineEntryResponse>>.Success(entries));
+    }
+
+    /// <summary>Exports a Kase as a Markdown or PDF file download.</summary>
+    /// <param name="id">The GUID of the Kase to export.</param>
+    /// <param name="format">Export format: <c>markdown</c> or <c>pdf</c>.</param>
+    /// <returns>The file as a download, or 404 if the Kase is not found.</returns>
+    [HttpGet("{id:guid}/export")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Export(Guid id, [FromQuery] string format = "markdown")
+    {
+        var fmt = format.ToLowerInvariant();
+
+        if (fmt != "markdown" && fmt != "pdf")
+        {
+            return BadRequest(ApiResponse<object>.Failure(
+                "https://tools.ietf.org/html/rfc7807",
+                "Bad Request", 400,
+                "Invalid format. Supported values: markdown, pdf."));
+        }
+
+        var result = fmt == "pdf"
+            ? await _export.ExportPdfAsync(id)
+            : await _export.ExportMarkdownAsync(id);
+
+        if (result is null)
+            return NotFound(ApiResponse<object>.NotFound($"Kase with ID '{id}' was not found."));
+
+        _logger.LogInformation("[KASE] Exported kase {Id} as {Format}", id, format);
+
+        return File(result.Content, result.ContentType, fileDownloadName: result.FileName);
     }
 }

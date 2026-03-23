@@ -64,6 +64,7 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted, on
   const [pinning, setPinning] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [exporting, setExporting] = useState<'markdown' | 'pdf' | null>(null)
 
   useEffect(() => {
     setLocalTitle(kase.title)
@@ -104,6 +105,16 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted, on
       onPinToggled(updated)
     } catch { /* ignore */ } finally {
       setPinning(false)
+    }
+  }
+
+  async function handleExport(format: 'markdown' | 'pdf') {
+    if (exporting) return
+    setExporting(format)
+    try {
+      await kasesApi.export(kase.id, format)
+    } catch { /* ignore */ } finally {
+      setExporting(null)
     }
   }
 
@@ -248,6 +259,39 @@ function KaseSettingsPanel({ kase, entryCount, onClose, onUpdated, onDeleted, on
               <span>Entries</span>
               <span style={{ color: 'var(--text-primary)' }}>{entryCount}</span>
             </div>
+          </div>
+
+          <div style={{ height: 1, background: 'var(--border)' }} />
+
+          {/* Export */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>
+              Export
+            </div>
+            <button
+              onClick={() => handleExport('markdown')}
+              disabled={exporting !== null}
+              style={{
+                fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', cursor: exporting ? 'not-allowed' : 'pointer',
+                background: 'var(--bg-secondary)', border: '1px solid var(--border-mid)',
+                borderRadius: 7, padding: '6px 10px', fontFamily: 'inherit', textAlign: 'left',
+                opacity: exporting === 'markdown' ? 0.6 : 1,
+              }}
+            >
+              {exporting === 'markdown' ? 'Exporting…' : 'Export as Markdown'}
+            </button>
+            <button
+              onClick={() => handleExport('pdf')}
+              disabled={exporting !== null}
+              style={{
+                fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', cursor: exporting ? 'not-allowed' : 'pointer',
+                background: 'var(--bg-secondary)', border: '1px solid var(--border-mid)',
+                borderRadius: 7, padding: '6px 10px', fontFamily: 'inherit', textAlign: 'left',
+                opacity: exporting === 'pdf' ? 0.6 : 1,
+              }}
+            >
+              {exporting === 'pdf' ? 'Exporting…' : 'Export as PDF'}
+            </button>
           </div>
 
           <div style={{ height: 1, background: 'var(--border)' }} />
