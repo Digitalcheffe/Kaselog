@@ -16,6 +16,7 @@ import type {
   UpdateKaseRequest,
   CreateLogRequest,
   UpdateLogRequest,
+  PinLogRequest,
   CreateVersionRequest,
   UpdateUserRequest,
 } from './types'
@@ -100,6 +101,12 @@ export const logs = {
 
   delete: (id: string): Promise<void> =>
     request<void>(`/api/logs/${id}`, { method: 'DELETE' }),
+
+  pin: (id: string, body: PinLogRequest): Promise<LogResponse> =>
+    request<LogResponse>(`/api/logs/${id}/pin`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
 }
 
 // ── Log versions ──────────────────────────────────────────────────────────────

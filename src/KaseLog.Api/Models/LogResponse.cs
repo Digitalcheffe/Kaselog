@@ -7,6 +7,7 @@ public sealed class LogResponse
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
     public bool AutosaveEnabled { get; init; }
+    public bool IsPinned { get; init; }
     public string Content { get; init; } = string.Empty;
     public int VersionCount { get; init; }
     public IReadOnlyList<TagDto> Tags { get; init; } = [];

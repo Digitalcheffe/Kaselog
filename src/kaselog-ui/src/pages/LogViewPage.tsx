@@ -304,6 +304,18 @@ export default function LogViewPage() {
     }
   }
 
+  // ── Settings panel: pin toggle ───────────────────────────────────────────────
+
+  async function handlePinToggle() {
+    if (!id || !log) return
+    try {
+      const updated = await logsApi.pin(id, { isPinned: !log.isPinned })
+      setLog(updated)
+    } catch {
+      // silently ignore
+    }
+  }
+
   // ── Add tag ──────────────────────────────────────────────────────────────────
 
   async function handleAddTag(name: string) {
@@ -766,6 +778,47 @@ export default function LogViewPage() {
                         position: 'absolute',
                         top: 2,
                         [log.autosaveEnabled ? 'right' : 'left']: 2,
+                        width: 14,
+                        height: 14,
+                        borderRadius: '50%',
+                        background: 'white',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                        transition: 'right 0.2s, left 0.2s',
+                      }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pin toggle */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                    <div>
+                      <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)' }}>Pin this log</div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 1 }}>
+                        Show in pinned filter on this Kase&rsquo;s timeline
+                      </div>
+                    </div>
+                    <div
+                      data-testid="log-pin-toggle"
+                      aria-label={log.isPinned ? 'Unpin this log' : 'Pin this log'}
+                      role="switch"
+                      aria-checked={log.isPinned}
+                      onClick={handlePinToggle}
+                      style={{
+                        width: 32,
+                        height: 18,
+                        borderRadius: 9,
+                        background: log.isPinned ? 'var(--accent)' : 'var(--border-mid)',
+                        position: 'relative',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                        transition: 'background 0.2s',
+                      }}
+                    >
+                      <div style={{
+                        position: 'absolute',
+                        top: 2,
+                        [log.isPinned ? 'right' : 'left']: 2,
                         width: 14,
                         height: 14,
                         borderRadius: '50%',

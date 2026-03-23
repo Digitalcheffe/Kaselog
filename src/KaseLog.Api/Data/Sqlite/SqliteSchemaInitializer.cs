@@ -64,6 +64,7 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
     [
         "ALTER TABLE Users ADD COLUMN FontSize TEXT NOT NULL DEFAULT 'medium'",
         "ALTER TABLE Kases ADD COLUMN IsPinned INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE Logs ADD COLUMN IsPinned INTEGER NOT NULL DEFAULT 0",
     ];
 
     // Each entry is a single DDL statement executed independently so that
@@ -89,6 +90,7 @@ public sealed class SqliteSchemaInitializer : ISchemaInitializer
           Title           TEXT NOT NULL,
           Description     TEXT,
           AutosaveEnabled INTEGER NOT NULL DEFAULT 1,
+          IsPinned        INTEGER NOT NULL DEFAULT 0,
           CreatedAt       TEXT NOT NULL,
           UpdatedAt       TEXT NOT NULL
         )
