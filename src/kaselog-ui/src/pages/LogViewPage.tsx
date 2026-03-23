@@ -932,6 +932,51 @@ export default function LogViewPage() {
                     ))}
                   </div>
                 </div>
+
+                <SpDivider />
+
+                {/* Export */}
+                <div>
+                  <SpLabel>Export</SpLabel>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <button
+                      data-testid="export-markdown-btn"
+                      onClick={() => void logsApi.export(log.id, 'markdown')}
+                      style={{
+                        width: '100%',
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--text-secondary)',
+                        background: 'var(--bg)',
+                        border: '1px solid var(--border-mid)',
+                        borderRadius: 5,
+                        padding: '0.4rem 0.6rem',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontFamily: 'var(--font)',
+                      }}
+                    >
+                      Export as Markdown
+                    </button>
+                    <button
+                      data-testid="export-pdf-btn"
+                      onClick={() => void logsApi.export(log.id, 'pdf')}
+                      style={{
+                        width: '100%',
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--text-secondary)',
+                        background: 'var(--bg)',
+                        border: '1px solid var(--border-mid)',
+                        borderRadius: 5,
+                        padding: '0.4rem 0.6rem',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontFamily: 'var(--font)',
+                      }}
+                    >
+                      Export as PDF
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Delete */}
