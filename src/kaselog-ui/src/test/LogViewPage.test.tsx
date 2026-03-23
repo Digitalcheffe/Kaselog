@@ -9,7 +9,7 @@ import type { KaseResponse, LogResponse, LogVersionResponse, TagResponse } from 
 
 vi.mock('../api/client', () => ({
   kases: { get: vi.fn() },
-  logs: { get: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() },
+  logs: { get: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn(), pin: vi.fn() },
   versions: { list: vi.fn(), create: vi.fn(), restore: vi.fn() },
   tags: { list: vi.fn(), addToLog: vi.fn(), removeFromLog: vi.fn() },
   images: { upload: vi.fn() },
@@ -75,6 +75,10 @@ function makeKase(overrides: Partial<KaseResponse> = {}): KaseResponse {
     title: 'Proxmox Cluster',
     description: null,
     logCount: 3,
+    isPinned: false,
+    latestLogTitle: null,
+    latestLogPreview: null,
+    latestLogUpdatedAt: null,
     createdAt: new Date(Date.now() - 86400000).toISOString(),
     updatedAt: new Date().toISOString(),
     ...overrides,
@@ -88,6 +92,7 @@ function makeLog(overrides: Partial<LogResponse> = {}): LogResponse {
     title: 'VLAN trunk configuration',
     description: null,
     autosaveEnabled: true,
+    isPinned: false,
     content: '# Hello world\n\nSome content here.',
     versionCount: 3,
     tags: [],

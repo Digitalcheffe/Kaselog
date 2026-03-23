@@ -12,6 +12,7 @@ public sealed class TimelineEntryResponse
     public string?              Title        { get; init; }
     public string?              Description  { get; init; }
     public int?                 VersionCount { get; init; }
+    public bool?                IsPinned     { get; init; }
     public IReadOnlyList<string>? Tags       { get; init; }
 
     // ── Collection item-specific (null for log) ───────────────────────────────

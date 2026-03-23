@@ -40,6 +40,7 @@ export interface LogResponse {
   title: string
   description: string | null
   autosaveEnabled: boolean
+  isPinned: boolean
   content: string
   versionCount: number
   tags: TagResponse[]
@@ -140,6 +141,7 @@ export interface TimelineEntryResponse {
   title?: string | null
   description?: string | null
   versionCount?: number | null
+  isPinned?: boolean | null
   tags?: string[]
   // Collection item-specific
   collectionId?: string | null
@@ -173,6 +175,10 @@ export interface UpdateLogRequest {
   title: string
   description?: string | null
   autosaveEnabled?: boolean
+}
+
+export interface PinLogRequest {
+  isPinned: boolean
 }
 
 export interface UpdateUserRequest {

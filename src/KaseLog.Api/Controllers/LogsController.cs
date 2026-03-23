@@ -62,6 +62,22 @@ public sealed class LogsController : ControllerBase
         return Ok(ApiResponse<LogResponse>.Success(log));
     }
 
+    /// <summary>Pins or unpins a Log.</summary>
+    /// <param name="id">The GUID of the Log to pin or unpin.</param>
+    /// <param name="request">Body containing the desired IsPinned state.</param>
+    /// <returns>The updated Log, or 404 if not found.</returns>
+    [HttpPatch("{id:guid}/pin")]
+    [ProducesResponseType(typeof(ApiResponse<LogResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<LogResponse>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetPinned(Guid id, [FromBody] PinLogRequest request)
+    {
+        var log = await _logs.SetPinnedAsync(id, request.IsPinned);
+        if (log is null)
+            return NotFound(ApiResponse<LogResponse>.NotFound($"Log with ID '{id}' was not found."));
+        _logger.LogInformation("[LOG] {Action} log {Id}", request.IsPinned ? "Pinned" : "Unpinned", id);
+        return Ok(ApiResponse<LogResponse>.Success(log));
+    }
+
     /// <summary>Deletes a Log and all its versions.</summary>
     /// <param name="id">The GUID of the Log to delete.</param>
     /// <returns>204 No Content on success, or 404 if not found.</returns>

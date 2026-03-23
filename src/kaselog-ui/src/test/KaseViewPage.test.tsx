@@ -325,7 +325,7 @@ describe('KaseViewPage — new content modal', () => {
   it('Step 2a submit with valid title calls POST and navigates to /logs/{id}', async () => {
     vi.mocked(logsApi.create).mockResolvedValue({
       id: 'new-log-id', kaseId: 'kase-1', title: 'My Session',
-      description: null, autosaveEnabled: true, content: '', versionCount: 1, tags: [],
+      description: null, autosaveEnabled: true, isPinned: false, content: '', versionCount: 1, tags: [],
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     })
 

@@ -13,7 +13,7 @@ public sealed class SqliteLogRepository : ILogRepository
     {
         using var conn = await _db.OpenAsync();
         var rows = (await conn.QueryAsync<LogRow>("""
-            SELECT l.Id, l.KaseId, l.Title, l.Description, l.AutosaveEnabled, l.CreatedAt, l.UpdatedAt,
+            SELECT l.Id, l.KaseId, l.Title, l.Description, l.AutosaveEnabled, l.IsPinned, l.CreatedAt, l.UpdatedAt,
                    COALESCE((SELECT Content FROM LogVersions WHERE LogId = l.Id ORDER BY CreatedAt DESC LIMIT 1), '') AS Content,
                    (SELECT COUNT(*) FROM LogVersions WHERE LogId = l.Id) AS VersionCount
             FROM Logs l
@@ -32,7 +32,7 @@ public sealed class SqliteLogRepository : ILogRepository
     {
         using var conn = await _db.OpenAsync();
         var row = await conn.QuerySingleOrDefaultAsync<LogRow>("""
-            SELECT l.Id, l.KaseId, l.Title, l.Description, l.AutosaveEnabled, l.CreatedAt, l.UpdatedAt,
+            SELECT l.Id, l.KaseId, l.Title, l.Description, l.AutosaveEnabled, l.IsPinned, l.CreatedAt, l.UpdatedAt,
                    COALESCE((SELECT Content FROM LogVersions WHERE LogId = l.Id ORDER BY CreatedAt DESC LIMIT 1), '') AS Content,
                    (SELECT COUNT(*) FROM LogVersions WHERE LogId = l.Id) AS VersionCount
             FROM Logs l
@@ -103,6 +103,16 @@ public sealed class SqliteLogRepository : ILogRepository
             """,
             new { Id = id.ToString(), Title = title, Description = description, AutosaveEnabled = autosaveEnabled ? 1 : 0, Now = nowStr });
 
+        if (affected == 0) return null;
+        return await GetByIdAsync(id);
+    }
+
+    public async Task<LogResponse?> SetPinnedAsync(Guid id, bool pinned)
+    {
+        using var conn = await _db.OpenAsync();
+        var affected = await conn.ExecuteAsync(
+            "UPDATE Logs SET IsPinned = @IsPinned WHERE Id = @Id",
+            new { Id = id.ToString(), IsPinned = pinned ? 1 : 0 });
         if (affected == 0) return null;
         return await GetByIdAsync(id);
     }
@@ -230,6 +240,7 @@ public sealed class SqliteLogRepository : ILogRepository
         Title = row.Title,
         Description = row.Description,
         AutosaveEnabled = row.AutosaveEnabled != 0,
+        IsPinned = row.IsPinned != 0,
         Content = row.Content,
         VersionCount = (int)row.VersionCount,
         Tags = tags,
@@ -254,6 +265,7 @@ public sealed class SqliteLogRepository : ILogRepository
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int AutosaveEnabled { get; set; }
+        public int IsPinned { get; set; }
         public string Content { get; set; } = string.Empty;
         public long VersionCount { get; set; }
         public string CreatedAt { get; set; } = string.Empty;

@@ -324,6 +324,8 @@ export default function KaseViewPage() {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [pinnedFilterActive, setPinnedFilterActive] = useState(false)
+  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -397,6 +399,28 @@ export default function KaseViewPage() {
         </div>
         <div style={{ flex: 1 }} />
 
+        {/* Pin filter toggle */}
+        <button
+          data-testid="pin-filter-toggle"
+          aria-pressed={pinnedFilterActive}
+          onClick={() => setPinnedFilterActive(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.3rem',
+            fontSize: 'var(--text-sm)',
+            color: pinnedFilterActive ? 'var(--accent)' : 'var(--text-tertiary)',
+            padding: '4px 10px', borderRadius: 6,
+            border: pinnedFilterActive ? '1px solid var(--accent)' : '1px solid var(--border)',
+            background: pinnedFilterActive ? 'var(--accent-light)' : 'var(--bg)',
+            cursor: 'pointer', fontFamily: 'var(--font)',
+            transition: 'all 0.15s',
+          }}
+        >
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M9.828 1.172a.5.5 0 0 0-.707 0L6.95 3.344a1 1 0 0 1-.707.293H3.5a1 1 0 0 0-.707 1.707l2 2A1 1 0 0 1 5 8.05v2.536a.5.5 0 0 0 .854.353L7.5 9.293l3.207 3.207a.5.5 0 0 0 .707-.707L8.207 8.586l1.621-1.621A3 3 0 0 0 10.657 5H12a1 1 0 0 0 .707-1.707l-2-2a1 1 0 0 0-.707-.293H9.828z" />
+          </svg>
+          Pinned
+        </button>
+
         {/* Settings gear */}
         <button
           aria-label="Kase settings"
@@ -428,16 +452,29 @@ export default function KaseViewPage() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
         {loading ? (
           <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>Loading&hellip;</div>
-        ) : entries.length === 0 ? (
-          <EmptyState onNew={() => setModalOpen(true)} />
-        ) : (
-          entries.map((entry, i) =>
+        ) : (() => {
+          // Apply pin + tag filters client-side
+          const filtered = entries.filter(entry => {
+            if (pinnedFilterActive && entry.entityType === 'log' && !entry.isPinned) return false
+            if (pinnedFilterActive && entry.entityType === 'collection_item') return false
+            if (activeTagFilter && entry.entityType === 'log') {
+              if (!(entry.tags ?? []).includes(activeTagFilter)) return false
+            }
+            return true
+          })
+
+          if (filtered.length === 0) {
+            if (pinnedFilterActive) return <PinnedEmptyState />
+            return <EmptyState onNew={() => setModalOpen(true)} />
+          }
+
+          return filtered.map((entry, i) =>
             entry.entityType === 'log' ? (
               <LogTimelineEntry
                 key={entry.id}
                 entry={entry}
                 index={i}
-                isLast={i === entries.length - 1}
+                isLast={i === filtered.length - 1}
                 isHovered={hoveredId === entry.id}
                 onMouseEnter={() => setHoveredId(entry.id)}
                 onMouseLeave={() => setHoveredId(null)}
@@ -448,7 +485,7 @@ export default function KaseViewPage() {
                 key={entry.id}
                 entry={entry}
                 index={i}
-                isLast={i === entries.length - 1}
+                isLast={i === filtered.length - 1}
                 isHovered={hoveredId === entry.id}
                 onMouseEnter={() => setHoveredId(entry.id)}
                 onMouseLeave={() => setHoveredId(null)}
@@ -456,7 +493,7 @@ export default function KaseViewPage() {
               />
             )
           )
-        )}
+        })()}
       </div>
 
       {/* New content modal */}
@@ -484,6 +521,26 @@ export default function KaseViewPage() {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+function PinnedEmptyState() {
+  return (
+    <div
+      data-testid="pinned-empty-state"
+      style={{
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        paddingTop: '4rem', gap: '0.5rem',
+      }}
+    >
+      <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)', fontWeight: 500 }}>
+        No pinned logs in this Kase
+      </div>
+      <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-tertiary)' }}>
+        Open a log's settings to pin it
+      </div>
+    </div>
+  )
+}
 
 function EmptyState({ onNew }: { onNew: () => void }) {
   return (
@@ -527,6 +584,7 @@ interface LogEntryProps {
 
 function LogTimelineEntry({ entry, index, isLast, isHovered, onMouseEnter, onMouseLeave, onClick }: LogEntryProps) {
   const isNewest = index === 0
+  const isPinned = entry.isPinned === true
 
   return (
     <div
@@ -537,13 +595,35 @@ function LogTimelineEntry({ entry, index, isLast, isHovered, onMouseEnter, onMou
     >
       {/* Spine */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 4, width: 14, flexShrink: 0 }}>
-        <div style={{
-          width: 10, height: 10, borderRadius: '50%',
-          background: isNewest ? 'var(--accent)' : 'var(--bg-tertiary)',
-          border: '2px solid var(--bg)',
-          boxShadow: isNewest ? '0 0 0 1.5px var(--accent)' : '0 0 0 1.5px var(--border-mid)',
-          flexShrink: 0,
-        }} />
+        {/* Dot with optional pin marker */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div
+            data-testid={isPinned ? 'pinned-dot' : 'log-dot'}
+            style={{
+              width: 10, height: 10, borderRadius: '50%',
+              background: isNewest ? 'var(--accent)' : 'var(--bg-tertiary)',
+              border: '2px solid var(--bg)',
+              boxShadow: isNewest ? '0 0 0 1.5px var(--accent)' : '0 0 0 1.5px var(--border-mid)',
+            }}
+          />
+          {isPinned && (
+            <svg
+              data-testid="pin-dot-marker"
+              width="8" height="8"
+              viewBox="0 0 16 16"
+              fill="var(--accent)"
+              aria-label="Pinned"
+              style={{
+                position: 'absolute',
+                top: -5,
+                left: 6,
+                opacity: 0.9,
+              }}
+            >
+              <path d="M9.828 1.172a.5.5 0 0 0-.707 0L6.95 3.344a1 1 0 0 1-.707.293H3.5a1 1 0 0 0-.707 1.707l2 2A1 1 0 0 1 5 8.05v2.536a.5.5 0 0 0 .854.353L7.5 9.293l3.207 3.207a.5.5 0 0 0 .707-.707L8.207 8.586l1.621-1.621A3 3 0 0 0 10.657 5H12a1 1 0 0 0 .707-1.707l-2-2a1 1 0 0 0-.707-.293H9.828z" />
+            </svg>
+          )}
+        </div>
         {!isLast && (
           <div style={{ width: 1, flex: 1, background: 'var(--border)', marginTop: 4, minHeight: '1.25rem' }} />
         )}
@@ -560,6 +640,18 @@ function LogTimelineEntry({ entry, index, isLast, isHovered, onMouseEnter, onMou
             {entry.title}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+            {isPinned && (
+              <svg
+                data-testid="pin-entry-badge"
+                width="10" height="10"
+                viewBox="0 0 16 16"
+                fill="var(--accent)"
+                aria-label="Pinned log"
+                style={{ opacity: 0.7 }}
+              >
+                <path d="M9.828 1.172a.5.5 0 0 0-.707 0L6.95 3.344a1 1 0 0 1-.707.293H3.5a1 1 0 0 0-.707 1.707l2 2A1 1 0 0 1 5 8.05v2.536a.5.5 0 0 0 .854.353L7.5 9.293l3.207 3.207a.5.5 0 0 0 .707-.707L8.207 8.586l1.621-1.621A3 3 0 0 0 10.657 5H12a1 1 0 0 0 .707-1.707l-2-2a1 1 0 0 0-.707-.293H9.828z" />
+              </svg>
+            )}
             <span style={{
               fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)',
               padding: '1px 6px', background: 'var(--bg-secondary)',
