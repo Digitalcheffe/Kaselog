@@ -1,4 +1,16 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+
+// ── Responsive breakpoint hook ────────────────────────────────────────────────
+
+function useBreakpoint() {
+  const [w, setW] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1024))
+  const handler = useCallback(() => setW(window.innerWidth), [])
+  useEffect(() => {
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [handler])
+  return { isWide: w >= 1280, isMedium: w >= 960 }
+}
 import { useNavigate } from 'react-router-dom'
 import { kases as kasesApi } from '../api/client'
 import { useKases } from '../contexts/KasesContext'
@@ -374,15 +386,28 @@ interface KaseRowProps {
   isLast: boolean
   onPinToggle: (kase: KaseResponse) => void
   onManage: (kase: KaseResponse) => void
+  isWide?: boolean
+  isMedium?: boolean
 }
 
-function KaseRow({ kase, isLast, onPinToggle, onManage }: KaseRowProps) {
+function KaseRow({ kase, isLast, onPinToggle, onManage, isWide = false, isMedium = false }: KaseRowProps) {
   const navigate = useNavigate()
   const [hovered, setHovered] = useState(false)
 
   const activityTime = kase.latestLogUpdatedAt
     ? formatRelativeTime(kase.latestLogUpdatedAt)
     : formatRelativeTime(kase.createdAt)
+
+  const cardStyle: React.CSSProperties = isWide
+    ? {
+        borderRadius: 'var(--radius)',
+        border: `1px solid ${hovered ? 'var(--border-mid)' : 'var(--border)'}`,
+        overflow: 'hidden',
+        transition: 'border-color 0.1s',
+      }
+    : {
+        borderBottom: isLast ? 'none' : '1px solid var(--border)',
+      }
 
   return (
     <div
@@ -392,10 +417,10 @@ function KaseRow({ kase, isLast, onPinToggle, onManage }: KaseRowProps) {
         alignItems: 'flex-start',
         gap: '0.75rem',
         padding: '0.85rem 1rem',
-        borderBottom: isLast ? 'none' : '1px solid var(--border)',
         background: hovered ? 'var(--bg-secondary)' : 'var(--bg)',
         transition: 'background 0.1s',
         cursor: 'pointer',
+        ...cardStyle,
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -470,7 +495,22 @@ function KaseRow({ kase, isLast, onPinToggle, onManage }: KaseRowProps) {
       </div>
 
       {/* Right side: pin button + timestamp */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: isMedium ? 'row' : 'column',
+        alignItems: isMedium ? 'center' : 'flex-end',
+        gap: isMedium ? 4 : 4,
+        flexShrink: 0,
+      }}>
+        {isMedium && (
+          <div style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--text-tertiary)',
+            whiteSpace: 'nowrap',
+          }}>
+            {activityTime}
+          </div>
+        )}
         <button
           data-testid={`pin-btn-${kase.id}`}
           aria-label={kase.isPinned ? 'Unpin kase' : 'Pin kase'}
@@ -479,24 +519,29 @@ function KaseRow({ kase, isLast, onPinToggle, onManage }: KaseRowProps) {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            padding: '2px',
+            width: 32,
+            height: 32,
             display: 'flex',
             alignItems: 'center',
-            borderRadius: 4,
+            justifyContent: 'center',
+            borderRadius: 6,
             opacity: kase.isPinned ? 1 : (hovered ? 0.7 : 0.25),
             transition: 'opacity 0.15s',
+            flexShrink: 0,
           }}
         >
-          <PinIcon filled={kase.isPinned} size={14} />
+          <PinIcon filled={kase.isPinned} size={20} />
         </button>
 
-        <div style={{
-          fontSize: 'var(--text-xs)',
-          color: 'var(--text-tertiary)',
-          whiteSpace: 'nowrap',
-        }}>
-          {activityTime}
-        </div>
+        {!isMedium && (
+          <div style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--text-tertiary)',
+            whiteSpace: 'nowrap',
+          }}>
+            {activityTime}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -507,6 +552,7 @@ function KaseRow({ kase, isLast, onPinToggle, onManage }: KaseRowProps) {
 export default function KaseListPage() {
   const navigate = useNavigate()
   const { kaseList, loading, refresh, updateKase } = useKases()
+  const { isWide, isMedium } = useBreakpoint()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -582,21 +628,6 @@ export default function KaseListPage() {
   function handlePanelPinToggled(updated: KaseResponse) {
     setSelectedKase(updated)
     updateKase(updated)
-    refresh()
-  }
-
-  function handlePanelDeleted(_kase: KaseResponse) {
-    setSelectedKase(null)
-    refresh()
-  }
-
-  function handlePanelUpdated(updated: KaseResponse) {
-    setSelectedKase(updated)
-    refresh()
-  }
-
-  function handlePanelPinToggled(updated: KaseResponse) {
-    setSelectedKase(updated)
     refresh()
   }
 
@@ -697,8 +728,15 @@ export default function KaseListPage() {
           </div>
         ) : (
           /* Kase list */
-          <div style={{
-            maxWidth: 680,
+          <div style={isWide ? {
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '0.75rem',
+            alignItems: 'start',
+            width: '100%',
+          } : {
+            maxWidth: isMedium ? 900 : 680,
+            width: '100%',
             borderRadius: 'var(--radius)',
             border: '1px solid var(--border)',
             overflow: 'hidden',
@@ -711,6 +749,8 @@ export default function KaseListPage() {
                 isLast={i === pinnedKases.length - 1 && unpinnedKases.length === 0}
                 onPinToggle={handlePinToggle}
                 onManage={kase => setSelectedKase(kase)}
+                isWide={isWide}
+                isMedium={isMedium}
               />
             ))}
 
@@ -722,6 +762,7 @@ export default function KaseListPage() {
                   height: 1,
                   background: 'var(--border)',
                   margin: 0,
+                  ...(isWide ? { gridColumn: '1 / -1' } : {}),
                 }}
               />
             )}
@@ -734,6 +775,8 @@ export default function KaseListPage() {
                 isLast={i === unpinnedKases.length - 1}
                 onPinToggle={handlePinToggle}
                 onManage={kase => setSelectedKase(kase)}
+                isWide={isWide}
+                isMedium={isMedium}
               />
             ))}
           </div>
