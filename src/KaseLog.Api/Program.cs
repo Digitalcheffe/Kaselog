@@ -39,6 +39,7 @@ builder.Services.AddSingleton(new ImageStorageOptions(imagesDir));
 
 // ── Export service ────────────────────────────────────────────────────────────
 builder.Services.AddScoped<IKaseExportService, KaseExportService>();
+builder.Services.AddScoped<ILogExportService, LogExportService>();
 
 // ── Database provider ─────────────────────────────────────────────────────────
 if (dbProvider.Equals("sqlite", StringComparison.OrdinalIgnoreCase))
