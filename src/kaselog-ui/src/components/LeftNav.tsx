@@ -249,15 +249,18 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
 
   return (
     <>
-      <nav style={{
-        width: 'var(--nav-width)',
-        minWidth: 'var(--nav-width)',
-        background: 'var(--bg-secondary)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}>
+      <nav
+        data-testid="left-nav"
+        style={{
+          width: 'var(--nav-width)',
+          minWidth: 'var(--nav-width)',
+          background: 'var(--bg-secondary)',
+          borderRight: '1px solid var(--border)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
         {/* Logo */}
         <div style={{ padding: '1rem 1rem 0.75rem', borderBottom: '1px solid var(--border)' }}>
           <div style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>

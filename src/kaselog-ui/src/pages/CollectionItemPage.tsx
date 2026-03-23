@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type ReactElement } from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { collections as collectionsApi, kases as kasesApi, images as imagesApi } from '../api/client'
+import { useIsMobile } from '../hooks/useMobile'
 import type {
   CollectionResponse,
   CollectionFieldResponse,
@@ -391,6 +392,7 @@ function FormLayout({
   errors,
   readOnly,
   onChange,
+  isMobile = false,
 }: {
   layout: LayoutRow[]
   fields: CollectionFieldResponse[]
@@ -398,6 +400,7 @@ function FormLayout({
   errors: Set<string>
   readOnly: boolean
   onChange: (fieldId: string, value: unknown) => void
+  isMobile?: boolean
 }) {
   const fieldMap = Object.fromEntries(fields.map(f => [f.id, f]))
 
@@ -482,7 +485,7 @@ function FormLayout({
   })
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
       {items}
     </div>
   )
@@ -618,6 +621,7 @@ export default function CollectionItemPage() {
 
   const isNew = !id || id === 'new'
   const collectionIdParam = searchParams.get('collectionId') ?? ''
+  const isMobile = useIsMobile()
 
   const [collection, setCollection] = useState<CollectionResponse | null>(null)
   const [fields, setFields] = useState<CollectionFieldResponse[]>([])
@@ -834,6 +838,7 @@ export default function CollectionItemPage() {
             errors={errors}
             readOnly={mode === 'view'}
             onChange={handleChange}
+            isMobile={isMobile}
           />
 
           {/* Kase link */}

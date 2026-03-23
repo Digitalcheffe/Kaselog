@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { search as searchApi } from '../api/client'
 import type { SearchResult } from '../api/types'
+import { useIsMobile } from '../hooks/useMobile'
 
 interface Props {
   onClose: () => void
@@ -40,6 +41,7 @@ function collectionDotColor(color: string | null | undefined): string {
 
 export default function SearchOverlay({ onClose }: Props) {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -174,7 +176,23 @@ export default function SearchOverlay({ onClose }: Props) {
       <div
         ref={overlayRef}
         data-testid="search-overlay"
-        style={{
+        style={isMobile ? {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100dvh',
+          background: 'var(--bg)',
+          border: 'none',
+          borderRadius: '0px',
+          boxShadow: 'none',
+          overflow: 'hidden',
+          zIndex: 200,
+          display: 'flex',
+          flexDirection: 'column',
+        } : {
           position: 'fixed',
           top: 64,
           left: '50%',
@@ -237,7 +255,7 @@ export default function SearchOverlay({ onClose }: Props) {
 
         {/* Results — grouped by entity type */}
         {showResults && (
-          <div>
+          <div style={isMobile ? { flex: 1, overflowY: 'auto' } : {}}>
             {/* Logs group */}
             {logs.length > 0 && (
               <>
