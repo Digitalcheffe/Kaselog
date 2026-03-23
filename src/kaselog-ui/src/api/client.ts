@@ -76,6 +76,24 @@ export const kases = {
 
   unpin: (id: string): Promise<KaseResponse> =>
     request<KaseResponse>(`/api/kases/${id}/unpin`, { method: 'POST' }),
+
+  /** Triggers a file download for the given export format. */
+  export: async (id: string, format: 'markdown' | 'pdf'): Promise<void> => {
+    const res = await fetch(`/api/kases/${id}/export?format=${format}`, {
+      cache: 'no-store',
+    })
+    if (!res.ok) throw new Error(`Export failed: ${res.status}`)
+    const blob = await res.blob()
+    const disposition = res.headers.get('Content-Disposition') ?? ''
+    const nameMatch = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition)
+    const fileName = nameMatch ? nameMatch[1].replace(/['"]/g, '') : `kase.${format === 'pdf' ? 'pdf' : 'md'}`
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    a.click()
+    URL.revokeObjectURL(url)
+  },
 }
 
 // ── Logs ──────────────────────────────────────────────────────────────────────

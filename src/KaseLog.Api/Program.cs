@@ -3,9 +3,14 @@ using KaseLog.Api.Data;
 using KaseLog.Api.Data.Sqlite;
 using KaseLog.Api.Middleware;
 using KaseLog.Api.Models;
+using KaseLog.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
+using QuestPDF.Infrastructure;
 using System.Reflection;
+
+// QuestPDF community license — free for self-hosted / open-source use
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +36,9 @@ builder.WebHost.UseUrls($"http://*:{port}");
 var dataDir   = Path.GetDirectoryName(dataPath) ?? "/data";
 var imagesDir = Path.Combine(dataDir, "images");
 builder.Services.AddSingleton(new ImageStorageOptions(imagesDir));
+
+// ── Export service ────────────────────────────────────────────────────────────
+builder.Services.AddScoped<IKaseExportService, KaseExportService>();
 
 // ── Database provider ─────────────────────────────────────────────────────────
 if (dbProvider.Equals("sqlite", StringComparison.OrdinalIgnoreCase))
