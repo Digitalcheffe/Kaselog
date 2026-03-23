@@ -506,7 +506,7 @@ function KaseRow({ kase, isLast, onPinToggle, onManage }: KaseRowProps) {
 
 export default function KaseListPage() {
   const navigate = useNavigate()
-  const { kaseList, loading, refresh } = useKases()
+  const { kaseList, loading, refresh, updateKase } = useKases()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -562,10 +562,32 @@ export default function KaseListPage() {
   }
 
   async function handlePinToggle(kase: KaseResponse) {
+    // Optimistic: flip immediately so the UI responds instantly
+    updateKase({ ...kase, isPinned: !kase.isPinned })
     try {
-      await (kase.isPinned ? kasesApi.unpin(kase.id) : kasesApi.pin(kase.id))
-      refresh()
-    } catch { /* ignore */ }
+      const updated = await (kase.isPinned ? kasesApi.unpin(kase.id) : kasesApi.pin(kase.id))
+      updateKase(updated)  // Confirm with server response
+      refresh()            // Background sync (silent — no loading flash)
+    } catch {
+      updateKase(kase)     // Revert to original on error
+    }
+  }
+
+  function handlePanelUpdated(updated: KaseResponse) {
+    setSelectedKase(updated)
+    updateKase(updated)
+    refresh()
+  }
+
+  function handlePanelPinToggled(updated: KaseResponse) {
+    setSelectedKase(updated)
+    updateKase(updated)
+    refresh()
+  }
+
+  function handlePanelDeleted(_kase: KaseResponse) {
+    setSelectedKase(null)
+    refresh()
   }
 
   function handlePanelUpdated(updated: KaseResponse) {
