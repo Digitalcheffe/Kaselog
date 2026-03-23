@@ -115,7 +115,7 @@ function KaseContextMenu({ x, y, kase, onClose, onPinToggle }: ContextMenuProps)
 // ── Main nav component ────────────────────────────────────────────────────────
 
 export default function LeftNav({ onSearchOpen }: LeftNavProps) {
-  const { kaseList, refresh: refreshKases } = useKases()
+  const { kaseList, refresh: refreshKases, updateKase } = useKases()
   const { collectionList } = useCollections()
   const { user } = useUser()
   const navigate = useNavigate()
@@ -146,10 +146,15 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
   const hasPinnedVisible = visiblePinned.length > 0 && visibleUnpinned.length > 0
 
   async function handleContextMenuPinToggle(kase: KaseResponse) {
+    // Optimistic flip — nav updates instantly, no flicker
+    updateKase({ ...kase, isPinned: !kase.isPinned })
     try {
-      await (kase.isPinned ? kasesApi.unpin(kase.id) : kasesApi.pin(kase.id))
-      refreshKases()
-    } catch { /* ignore */ }
+      const updated = await (kase.isPinned ? kasesApi.unpin(kase.id) : kasesApi.pin(kase.id))
+      updateKase(updated)   // Confirm with server response
+      refreshKases()        // Background sync
+    } catch {
+      updateKase(kase)      // Revert on error
+    }
   }
 
   function handleContextMenu(e: React.MouseEvent, kase: KaseResponse) {
