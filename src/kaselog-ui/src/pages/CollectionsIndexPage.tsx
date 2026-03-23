@@ -38,7 +38,7 @@ export default function CollectionsIndexPage() {
         padding: '0 1.25rem', gap: '0.75rem',
         background: 'var(--bg)', flexShrink: 0,
       }}>
-        <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text-primary)' }}>
+        <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.34px' }}>
           Collections
         </div>
         {!loading && (
