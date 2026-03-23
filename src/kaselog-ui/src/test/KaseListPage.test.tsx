@@ -10,10 +10,12 @@ import type { KaseResponse } from '../api/types'
 
 vi.mock('../api/client', () => ({
   kases: {
-    list: vi.fn(),
+    list:   vi.fn(),
     create: vi.fn(),
-    pin: vi.fn(),
-    unpin: vi.fn(),
+    pin:    vi.fn(),
+    unpin:  vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
   },
 }))
 
@@ -299,5 +301,161 @@ describe('KaseListPage — full row layout and pinning', () => {
     await waitFor(() => {
       expect(kasesApi.unpin).toHaveBeenCalledWith('k1')
     })
+  })
+})
+
+// ── Kase settings panel tests ──────────────────────────────────────────────
+
+describe('KaseListPage — settings panel via gear icon', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockNavigate.mockReset()
+  })
+
+  it('clicking the gear icon opens the management panel without navigating', async () => {
+    const user = userEvent.setup()
+    vi.mocked(kasesApi.list).mockResolvedValue([makeKase({ id: 'k1', title: 'My Kase' })])
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('settings-btn-k1'))
+    await user.click(screen.getByTestId('settings-btn-k1'))
+
+    await waitFor(() => screen.getByTestId('kase-management-panel'))
+    expect(screen.getByTestId('kase-management-panel')).toBeInTheDocument()
+    expect(mockNavigate).not.toHaveBeenCalledWith('/kases/k1')
+  })
+
+  it('clicking a kase row (not the gear) navigates to /kases/:id', async () => {
+    const user = userEvent.setup()
+    vi.mocked(kasesApi.list).mockResolvedValue([makeKase({ id: 'k1', title: 'My Kase' })])
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('kase-row-k1'))
+
+    // Click the title text inside the row (not the gear button)
+    await user.click(screen.getByText('My Kase'))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/kases/k1')
+    expect(screen.queryByTestId('kase-management-panel')).not.toBeInTheDocument()
+  })
+
+  it('panel opens pre-populated with title and description', async () => {
+    const user = userEvent.setup()
+    vi.mocked(kasesApi.list).mockResolvedValue([
+      makeKase({ id: 'k1', title: 'Proxmox Cluster', description: 'Home lab setup' }),
+    ])
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('settings-btn-k1'))
+    await user.click(screen.getByTestId('settings-btn-k1'))
+
+    await waitFor(() => screen.getByTestId('panel-title-input'))
+
+    expect(screen.getByTestId<HTMLInputElement>('panel-title-input').value).toBe('Proxmox Cluster')
+    expect(screen.getByTestId<HTMLTextAreaElement>('panel-description-input').value).toBe('Home lab setup')
+  })
+
+  it('Save button is disabled until a field changes', async () => {
+    const user = userEvent.setup()
+    vi.mocked(kasesApi.list).mockResolvedValue([makeKase({ id: 'k1' })])
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('settings-btn-k1'))
+    await user.click(screen.getByTestId('settings-btn-k1'))
+
+    await waitFor(() => screen.getByTestId('panel-save-btn'))
+    expect(screen.getByTestId('panel-save-btn')).toBeDisabled()
+  })
+
+  it('blank title on save shows validation error without calling the API', async () => {
+    const user = userEvent.setup()
+    vi.mocked(kasesApi.list).mockResolvedValue([makeKase({ id: 'k1', title: 'Some Kase' })])
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('settings-btn-k1'))
+    await user.click(screen.getByTestId('settings-btn-k1'))
+
+    await waitFor(() => screen.getByTestId('panel-title-input'))
+
+    await user.clear(screen.getByTestId('panel-title-input'))
+    await user.click(screen.getByTestId('panel-save-btn'))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Title is required')
+    expect(kasesApi.update).not.toHaveBeenCalled()
+  })
+
+  it('successful save updates the kase title in the list', async () => {
+    const user     = userEvent.setup()
+    const original = makeKase({ id: 'k1', title: 'Old Title', description: null })
+    const updated  = { ...original, title: 'New Title' }
+
+    vi.mocked(kasesApi.list).mockResolvedValue([original])
+    vi.mocked(kasesApi.update).mockImplementation(async () => {
+      vi.mocked(kasesApi.list).mockResolvedValue([updated])
+      return updated
+    })
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('settings-btn-k1'))
+    await user.click(screen.getByTestId('settings-btn-k1'))
+
+    await waitFor(() => screen.getByTestId('panel-title-input'))
+
+    await user.clear(screen.getByTestId('panel-title-input'))
+    await user.type(screen.getByTestId('panel-title-input'), 'New Title')
+    await user.click(screen.getByTestId('panel-save-btn'))
+
+    await waitFor(() => {
+      expect(kasesApi.update).toHaveBeenCalledWith('k1', expect.objectContaining({ title: 'New Title' }))
+    })
+  })
+
+  it('pin toggle in panel calls correct endpoint', async () => {
+    const user     = userEvent.setup()
+    const unpinned = makeKase({ id: 'k1', isPinned: false })
+    const pinned   = { ...unpinned, isPinned: true }
+
+    vi.mocked(kasesApi.list).mockResolvedValue([unpinned])
+    vi.mocked(kasesApi.pin).mockResolvedValue(pinned)
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('settings-btn-k1'))
+    await user.click(screen.getByTestId('settings-btn-k1'))
+
+    await waitFor(() => screen.getByTestId('panel-pin-toggle'))
+    await user.click(screen.getByTestId('panel-pin-toggle'))
+
+    await waitFor(() => expect(kasesApi.pin).toHaveBeenCalledWith('k1'))
+  })
+
+  it('confirming delete calls DELETE and removes the kase from the list', async () => {
+    const user = userEvent.setup()
+    const kase = makeKase({ id: 'k1', title: 'Doomed Kase' })
+
+    vi.mocked(kasesApi.list)
+      .mockResolvedValueOnce([kase])
+      .mockResolvedValueOnce([])
+    vi.mocked(kasesApi.delete).mockResolvedValue(undefined)
+
+    renderPage()
+
+    await waitFor(() => screen.getByTestId('settings-btn-k1'))
+    await user.click(screen.getByTestId('settings-btn-k1'))
+
+    await waitFor(() => screen.getByTestId('panel-delete-btn'))
+    await user.click(screen.getByTestId('panel-delete-btn'))
+
+    await waitFor(() => screen.getByTestId('panel-confirm-delete-btn'))
+    await user.click(screen.getByTestId('panel-confirm-delete-btn'))
+
+    await waitFor(() => expect(kasesApi.delete).toHaveBeenCalledWith('k1'))
+    await waitFor(() => expect(screen.queryByTestId('kase-management-panel')).not.toBeInTheDocument())
   })
 })
