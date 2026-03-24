@@ -10,6 +10,7 @@ import CollectionListPage from './pages/CollectionListPage'
 import CollectionDesignerPage from './pages/CollectionDesignerPage'
 import NewCollectionPage from './pages/NewCollectionPage'
 import CollectionItemPage from './pages/CollectionItemPage'
+import SettingsPage from './pages/SettingsPage'
 
 // Registered routes (all paths the frontend handles):
 //   /                          → KaseListPage   (index)
@@ -18,6 +19,7 @@ import CollectionItemPage from './pages/CollectionItemPage'
 //   /logs/:id                  → LogViewPage
 //   /search                    → SearchPage
 //   /profile                   → ProfilePage
+//   /settings                  → SettingsPage
 //   /collections               → CollectionsIndexPage
 //   /collections/new           → NewCollectionPage
 //   /collections/:id           → CollectionListPage
@@ -35,6 +37,7 @@ const router = createBrowserRouter([
       { path: '/logs/:id', element: <LogViewPage /> },
       { path: '/search', element: <SearchPage /> },
       { path: '/profile', element: <ProfilePage /> },
+      { path: '/settings', element: <SettingsPage /> },
       { path: '/collections', element: <CollectionsIndexPage /> },
       { path: '/collections/new', element: <NewCollectionPage /> },
       { path: '/collections/:id', element: <CollectionListPage /> },
