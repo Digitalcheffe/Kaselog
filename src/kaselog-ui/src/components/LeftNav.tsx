@@ -274,53 +274,6 @@ export default function LeftNav({ onSearchOpen }: LeftNavProps) {
           </div>
         </div>
 
-        {/* App Settings pin — always visible, above scrollable sections */}
-        <div style={{ borderBottom: '1px solid var(--border)', padding: '0.4rem 0.5rem', flexShrink: 0 }}>
-          <button
-            data-testid="nav-settings-btn"
-            onClick={() => navigate('/settings')}
-            aria-label="App Settings"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.4rem 0.55rem',
-              borderRadius: 7,
-              background: isSettingsActive ? 'var(--accent-light)' : 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              width: '100%',
-              fontFamily: 'var(--font)',
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M8 5a3 3 0 1 0 0 6A3 3 0 0 0 8 5ZM6 8a2 2 0 1 1 4 0A2 2 0 0 1 6 8Z"
-                fill={isSettingsActive ? 'var(--accent-text)' : 'var(--text-tertiary)'}
-              />
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M8 1a.75.75 0 0 1 .728.568l.254 1.02a5.1 5.1 0 0 1 .954.554l1.008-.308a.75.75 0 0 1 .816.302l1 1.732a.75.75 0 0 1-.144.944l-.774.692a5.14 5.14 0 0 1 0 1.392l.774.692a.75.75 0 0 1 .144.944l-1 1.732a.75.75 0 0 1-.816.302l-1.008-.308a5.1 5.1 0 0 1-.954.554l-.254 1.02A.75.75 0 0 1 8 15a.75.75 0 0 1-.728-.568l-.254-1.02a5.1 5.1 0 0 1-.954-.554l-1.008.308a.75.75 0 0 1-.816-.302l-1-1.732a.75.75 0 0 1 .144-.944l.774-.692a5.14 5.14 0 0 1 0-1.392l-.774-.692a.75.75 0 0 1-.144-.944l1-1.732a.75.75 0 0 1 .816-.302l1.008.308a5.1 5.1 0 0 1 .954-.554l.254-1.02A.75.75 0 0 1 8 1Z"
-                fill={isSettingsActive ? 'var(--accent-text)' : 'var(--text-tertiary)'}
-              />
-            </svg>
-            <span style={{
-              fontSize: 'var(--text-sm)',
-              color: isSettingsActive ? 'var(--accent-text)' : 'var(--text-secondary)',
-              fontWeight: isSettingsActive ? 500 : 400,
-              flex: 1,
-              textAlign: 'left',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}>
-              App Settings
-            </span>
-          </button>
-        </div>
 
         {/* Nav body — scrollable */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
